@@ -22,8 +22,9 @@ def fill_mass_function_with_sink_mass(total_mass):
 
 
 def print_diagnostics(gravhydro):
-    print "Time=", gravhydro.model_time().in_(units.Myr)
-    print "N=", len(gravhydro.particles), "M=", gravhydro.particles.mass.sum().in_(units.MSun)
+    print "Time =", gravhydro.model_time().in_(units.Myr)
+    print "Ngravhydro =", len(gravhydro.particles), "Mgravhydro=", gravhydro.particles.mass.sum().in_(units.MSun)
+    print " "
 
 
 def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
@@ -63,24 +64,24 @@ def run_molecular_cloud(gas_particles, sink_particles, tend, dt_diag, save_path,
         Mtot = 0|units.MSun
                 
         if len(hydro.sink_particles) > 0:
-            print "Mass conservation at t = {0} Myr:".format(time.in_(units.Myr))
-            print "Slocal_gas = {0} MSun, " \
-                  "Slocal_sinks = {1} MSun, " \
-                  "sum = {2} MSun".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            print "Slocal_gas = {0}, " \
+                  "Slocal_sinks = {1}, " \
+                  "sum = {2}".format(hydro.gas_particles.mass.sum().in_(units.MSun),
                                       hydro.sink_particles.mass.sum().in_(units.MSun),
                                       (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
-            print "Shydro_gas = {0} MSun, " \
-                  "Shydro_sinks = {1} MSun, " \
-                  "sum = {2} MSun".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
-                                      hydro.code.sink_particles.mass.sum().in_(units.MSun),
-                                      (hydro.code.gas_particles.mass.sum() + hydro.code.sink_particles.mass.sum()).in_(units.MSun))
+            print "Shydro_gas = {0}, " \
+                  "Shydro_sinks = {1}, " \
+                  "sum = {2}\n*".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
+                                      hydro.code.dm_particles.mass.sum().in_(units.MSun),
+                                      (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(units.MSun))
 
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
 
             removed_sinks = Particles(0)
             for sink in hydro.sink_particles:
                 if sink.mass > mass_treshold_for_star_formation:
-                    print "Turn sink into cluster. Msink={0} MSun".format(sink.mass.in_(units.MSun))
+                    print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
                     masses = fill_mass_function_with_sink_mass(sink.mass)
                     local_converter = nbody_system.nbody_to_si(masses.sum(), sink.radius)
                     stars_from_sink = new_plummer_model(len(masses), local_converter)
@@ -108,8 +109,8 @@ def run_molecular_cloud(gas_particles, sink_particles, tend, dt_diag, save_path,
                 hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
                     
         else:
-            print "Mass conservation at t = {0} Myr".format(time.in_(units.Myr))
-            print "Local: {0} MSun, Hydro: {1} MSun".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
                                                             hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
 
