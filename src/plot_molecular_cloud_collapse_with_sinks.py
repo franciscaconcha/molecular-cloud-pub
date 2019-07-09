@@ -31,18 +31,14 @@ def make_map(sph,N=100,L=1):
 
 def plot_molecular_cloud(filename):
     print "read file:", filename
-    bodies = read_set_from_file(filename, "amuse")
-    i = 0
-    sinks = Particles(0)
-    for bi in bodies.history:
-        if i==0:
-            gas =  bi.as_set()
-            print "N=", len(gas)
-            i+=1
-        else:
-            sinks =  bi.as_set()
-            print "N=", len(sinks)
-#    print sinks
+    gas = read_set_from_file(filename, "amuse")
+    sinkfile = filename.split("_gas_")[0] + "_sink_" + filename.split("_gas_")[1]
+    import os.path
+    if os.path.isfile(sinkfile):
+        sinks = read_set_from_file(sinkfile, "hdf5", close_file=True)
+    else:
+        sinks = Particles(0)
+
     print "N=", len(gas), len(sinks)
     #sinks =  bodies.history.next()
     L = 10.0
@@ -51,7 +47,8 @@ def plot_molecular_cloud(filename):
     #print sinks
     hydro = Hydro(Fi, gas)
     time = 0 | units.Myr
-#    hydro.code.dm_particles.add_particles(sinks)
+    if len(sinks)>0:
+        hydro.code.dm_particles.add_particles(sinks)
     #plot_hydro_and_stars(time, hydro, L=10)    
     plot_hydro(time, hydro, L)
 
@@ -72,7 +69,7 @@ def make_stars(cluster_particle):
         stars.velocity += cluster_particle.velocity
     return stars
 
-def get_stars_from_molecular_clous(parts):
+def get_stars_from_molecular_cloud(parts):
     cutoff_density = 10000 | units.amu/units.cm**3
     stars = Particles(0)
     for ip in parts:
@@ -89,11 +86,12 @@ def plot_hydro_and_stars(time, sph, L=10):
     cbar = fig.colorbar(cax, ticks=[4, 7.5, 11], orientation='vertical', fraction=0.045)
     cbar.set_label('projected density [$amu/cm^3$]', rotation=270)
 
-    stars = get_stars_from_molecular_clous(sph.gas_particles)
+    #stars = get_stars_from_molecular_cloud(sph.gas_particles)
+    stars = sph.dm_particles
     if len(stars):
         #m =  100.0*stars.mass/max(stars.mass)
-        m =  100.0*stars.mass/stars.mass.mean()
-        c =  stars.mass/stars.mass.mean()
+        m =  100.0*stars.mass/stars.mass.max()
+        c =  'k' #stars.mass/stars.mass.mean()
         x = -stars.x.value_in(units.parsec)
         y = stars.y.value_in(units.parsec)
         pyplot.scatter(x, y, s=m, c=c, lw=0)
@@ -122,8 +120,7 @@ def plot_hydro(time, sph, L=10):
     cm = pyplot.cm.get_cmap('RdBu')
 #    cm = pyplot.cm.jet #gist_ncar
     if len(dmp):
-        #m = 10.0*dmp.mass/dmp.mass.max()
-        m = 30*numpy.log10(dmp.mass/dmp.mass.min())
+        m = 100*numpy.log10(dmp.mass/dmp.mass.min())
         c = numpy.sqrt(dmp.mass/dmp.mass.max())
         pyplot.scatter(dmp.y.value_in(units.parsec), dmp.x.value_in(units.parsec), c=c, s=m, lw=0, cmap=cm)
 

@@ -16,12 +16,12 @@ COOL = True
 
 
 class Hydro:
-        def __init__(self, hydro_code, particles):
+        def __init__(self, hydro_code, particles, tstart=0|units.Myr):
                 
                 if not hydro_code in [Fi,Gadget2]:
                     raise Exception("unsupported Hydro code: %s"%(hydro_code.__name__))
 
-                self.model_time = 0|units.Myr
+                self.current_time = tstart
                 self.typestr = "Hydro"
                 self.namestr = hydro_code.__name__
 
@@ -115,10 +115,10 @@ class Hydro:
                 print "Cooling flag:", self.cooling_flag
                 self.cooling = SimplifiedThermalModelEvolver(self.code.gas_particles)
                 #self.cooling = Cooling(self.code.gas_particles)
-                self.cooling.model_time=self.code.model_time
+                self.cooling.model_time=self.model_time
 
         def print_diagnostics(self):
-                print "Time=", self.code.model_time.in_(units.Myr)
+                print "Time=", self.model_time.in_(units.Myr)
                 print "N=", len(self.gas_particles), len(self.sink_particles)
 
                 if len(self.sink_particles)>0:
@@ -136,7 +136,7 @@ class Hydro:
 
         @property
         def model_time(self):
-                return self.code.model_time
+                return self.current_time
         
         @property
         def gas_particles(self):
@@ -147,16 +147,21 @@ class Hydro:
                 return self.code.stop
                 
         def evolve_model(self, model_time):
-            self.model_time = model_time
-            
-            start_time = time.time()
 
+                
+            #print "timing:", self.model_time.in_(units.Myr), self.code.model_time.in_(units.Myr), self.current_time.in_(units.Myr)
+                
+            start_time = time.time()
+            
             density_limit_detection = self.code.stopping_conditions.density_limit_detection
             density_limit_detection.enable()
 
-            model_time_old=self.code.model_time
-            dt=model_time - model_time_old
-            print "Evolve Hydrodynamics:", dt.in_(units.Myr)
+            # this needs to be cleaned up.
+            model_time_old = self.model_time
+            self.current_time = model_time
+            dt = model_time - model_time_old
+            hydro_time = self.code.model_time + dt
+            print "Evolve Hydrodynamics:", dt.in_(units.Myr), self.model_time.in_(units.Myr), self.code.model_time.in_(units.Myr), self.current_time.in_(units.Myr), hydro_time.in_(units.Myr)
 
             print "Density trenshold:", self.density_threshold.in_(units.g/units.cm**3), self.code.gas_particles.density.max().in_(units.g/units.cm**3)
             
@@ -164,14 +169,14 @@ class Hydro:
                 print "Cool gas for dt=", (dt/2).in_(units.Myr)
                 self.cooling.evolve_for(dt/2)
                 #print "...done."
-            self.code.evolve_model(model_time)
+            self.code.evolve_model(hydro_time)
 
             #print "gas evolved."
             while density_limit_detection.is_set():
                 self.resolve_sinks()
 
                 print "..done"
-                self.code.evolve_model(model_time)
+                self.code.evolve_model(hydro_time)
                 self.channel_to_sinks.copy()
                 print "end N=", len(self.sink_particles), len(self.code.dm_particles)
 
@@ -227,7 +232,7 @@ class Hydro:
                     else:
                         print "this sink should not exicst"
                 newsinks.name = "Sink" 
-                newsinks.birth_age = self.code.model_time
+                newsinks.birth_age = self.model_time
                 newsinks.Lx = 0 | (units.g * units.m**2)/units.s
                 newsinks.Ly = 0 | (units.g * units.m**2)/units.s
                 newsinks.Lz = 0 | (units.g * units.m**2)/units.s
