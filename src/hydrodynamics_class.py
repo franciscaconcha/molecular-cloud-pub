@@ -14,6 +14,7 @@ from amuse.ext.sink import new_sink_particles
 
 COOL = True
 
+
 class Hydro:
         def __init__(self, hydro_code, particles):
                 
@@ -124,12 +125,12 @@ class Hydro:
                     print "Sink masses:", len(self.code.dm_particles.mass)
                     print "Sink masses:", len(self.sink_particles.mass)
 
-        def write_set_to_file(self, index):
-                filename = "hydro_gas_particles_i{0:04}.amuse".format(index)
+        def write_set_to_file(self, save_path, index):
+                filename = "{0}/hydro_gas_particles_i{1:04}.amuse".format(save_path, index)
                 write_set_to_file(self.gas_particles, filename, "amuse", timestamp=self.model_time,
                                   append_to_file=False)
                 if len(self.sink_particles):
-                    filename = "hydro_sink_particles_i{0:04}.amuse".format(index)
+                    filename = "{0}/hydro_sink_particles_i{1:04}.amuse".format(save_path, index)
                     write_set_to_file(self.sink_particles, filename, "amuse",
                                       timestamp=self.model_time)
 

@@ -1,1 +1,6 @@
 .idea/
+results/
+*.pyc
+*.amuse
+*.out
+*.del

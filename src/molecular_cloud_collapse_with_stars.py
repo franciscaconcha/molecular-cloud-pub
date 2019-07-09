@@ -9,36 +9,41 @@ from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
+
 def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
-    masses = new_kroupa_mass_distribution(1000, 100|units.MSun)
-    mean_mass = masses.sum()/len(masses)
+    masses = new_kroupa_mass_distribution(1000, 100 | units.MSun)
+    mean_mass = masses.sum() / len(masses)
     Nstars = int(total_mass/mean_mass)
     masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
     print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
     print "total mass generated M=", masses.sum().in_(units.MSun)
     return masses
 
+
 def print_diagnostics(gravhydro):
     print "Time=", gravhydro.model_time().in_(units.Myr)
     print "N=", len(gravhydro.particles), "M=", gravhydro.particles.mass.sum().in_(units.MSun)
 
+
 def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
 
     conv = nbody_system.nbody_to_si(Mcloud,Rcloud)
-    gas=molecular_cloud(targetN=N,convert_nbody=conv,
+    gas = molecular_cloud(targetN=N,convert_nbody=conv,
             base_grid=body_centered_grid_unit_cube).result
     gas.name = "gas"
 
     return gas
 
-def run_molecular_cloud(gas_particles, sink_particles, t_end, dt_diag, index=0):
+
+def run_molecular_cloud(gas_particles, sink_particles, tend, dt_diag, save_path, index=0):
 
     Mcloud = gas_particles.mass.sum()
     
     stars = Particles(0)
     hydro = Hydro(Fi, gas_particles)
-    if len(sink_particles)>0:
+
+    if len(sink_particles) > 0:
         hydro.sink_particles.add_particles(sink_particles)
         hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
 
@@ -58,25 +63,24 @@ def run_molecular_cloud(gas_particles, sink_particles, t_end, dt_diag, index=0):
         Mtot = 0|units.MSun
                 
         if len(hydro.sink_particles) > 0:
-            print "Mass conservation: Slocal:", time.in_(units.Myr), \
-                  hydro.gas_particles.mass.sum().in_(units.MSun), \
-                  hydro.sink_particles.mass.sum().in_(units.MSun), \
-                  "sum=", (hydro.gas_particles.mass.sum() \
-                            + hydro.sink_particles.mass.sum()).in_(units.MSun)
-            print "Mass conservation: Shydro:", time.in_(units.Myr), \
-                  hydro.code.gas_particles.mass.sum().in_(units.MSun), \
-                  hydro.code.dm_particles.mass.sum().in_(units.MSun), \
-                  "sum=", \
-                  (hydro.code.gas_particles.mass.sum() \
-                    + hydro.code.dm_particles.mass.sum()).in_(units.MSun), \
-                    "S=", hydro.sink_particles.mass.sum().in_(units.MSun)
-            Mtot = hydro.gas_particles.mass.sum() \
-                    + hydro.sink_particles.mass.sum()
+            print "Mass conservation at t = {0} Myr:".format(time.in_(units.Myr))
+            print "Slocal_gas = {0} MSun, " \
+                  "Slocal_sinks = {1} MSun, " \
+                  "sum = {2} MSun".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+                                      hydro.sink_particles.mass.sum().in_(units.MSun),
+                                      (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
+            print "Shydro_gas = {0} MSun, " \
+                  "Shydro_sinks = {1} MSun, " \
+                  "sum = {2} MSun".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
+                                      hydro.code.sink_particles.mass.sum().in_(units.MSun),
+                                      (hydro.code.gas_particles.mass.sum() + hydro.code.sink_particles.mass.sum()).in_(units.MSun))
+
+            Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
 
             removed_sinks = Particles(0)
             for sink in hydro.sink_particles:
-                if sink.mass>mass_treshold_for_star_formation:
-                    print "Turn sink into cluster Msink=", sink.mass.in_(units.MSun)
+                if sink.mass > mass_treshold_for_star_formation:
+                    print "Turn sink into cluster. Msink={0} MSun".format(sink.mass.in_(units.MSun))
                     masses = fill_mass_function_with_sink_mass(sink.mass)
                     local_converter = nbody_system.nbody_to_si(masses.sum(), sink.radius)
                     stars_from_sink = new_plummer_model(len(masses), local_converter)
@@ -104,18 +108,17 @@ def run_molecular_cloud(gas_particles, sink_particles, t_end, dt_diag, index=0):
                 hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
                     
         else:
-            print "Mass conservation: local:", time.in_(units.Myr), \
-                  hydro.gas_particles.mass.sum().in_(units.MSun) 
-            print "Mass conservation: hydro:", time.in_(units.Myr), \
-                  hydro.code.gas_particles.mass.sum().in_(units.MSun)
+            print "Mass conservation at t = {0} Myr".format(time.in_(units.Myr))
+            print "Local: {0} MSun, Hydro: {1} MSun".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+                                                            hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
 
-        if Mtot < Mcloud-(1.e-5|units.MSun):
-            print "Mass is not conserved:", Mtot.in_(units.MSun), \
-                  Mcloud.in_(units.MSun)
+        if Mtot < Mcloud - (1.e-5|units.MSun):
+            print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
+                                                                                     Mcloud.in_(units.MSun))
             exit(-1)
 
-        if gravhydro==None:
+        if gravhydro == None:
             hydro.evolve_model(time)
         else:
             gravhydro.evolve_model(time)
@@ -138,16 +141,56 @@ def run_molecular_cloud(gas_particles, sink_particles, t_end, dt_diag, index=0):
         if time>t_diag:
             index=index+1
             t_diag += dt_diag
-            hydro.write_set_to_file(index)
+            hydro.write_set_to_file(save_path, index)
 
     hydro.stop()
     return gas_particles
+
+
+def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+    numpy.random.seed(3141)
+
+    if len(filename) == 0:
+        gas_particles = generate_initial_conditions_for_molecular_cloud(o.Ncloud,
+                                                                        Mcloud=o.Mcloud,
+                                                                        Rcloud=o.Rcloud)
+        rho_cloud = o.Mcloud / o.Rcloud ** 3
+        tff = 0.5427 / numpy.sqrt(constants.G * rho_cloud)
+        print "Freefall timescale=", tff.in_(units.Myr)
+        rho_cloud = 3. * o.Mcloud / (4. * numpy.pi * o.Rcloud ** 3)
+        print rho_cloud
+        tend = 10 * tff
+        dt_diag = 0.1 * tff
+        hydro = Hydro(Fi, gas_particles)
+        hydro.write_set_to_file(save_path, 0)
+        filename = "hydro_gas_particles_i{0:04}.amuse".format(0)
+        hydro.stop()
+
+    gas_particles = read_set_from_file("{0}/{1}".format(save_path, filename), "hdf5", close_file=True)
+    index = int(filename.split("_i")[1].split(".amuse")[0])
+    sinkfile = filename.split("_gas_")[0] + "_sink_" + filename.split("_gas_")[1]
+
+    import os.path
+    if os.path.isfile(sinkfile):
+        sink_particles = read_set_from_file(sinkfile, "hdf5", close_file=True)
+    else:
+        sink_particles = Particles(0)
+
+    print "Time= {0}".format(gas_particles.get_timestamp().in_(units.Myr))
+    print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
+
+    parts = run_molecular_cloud(gas_particles, sink_particles, tend, dt_diag, save_path, index)
+
   
 def new_option_parser():
     from amuse.units.optparse import OptionParser
     result = OptionParser()
-    result.add_option("-f", dest="filename", default = "",
+    result.add_option("-f", dest="filename",
+                      default="",
                       help="input filename")
+    result.add_option("-s", dest="save_path",
+                      default=".",
+                      help="save path for results")
     result.add_option("--tend", dest="tend",
                       unit=units.Myr,
                       type="float",
@@ -156,60 +199,26 @@ def new_option_parser():
     result.add_option("--dt_diag", dest="dt_diag",
                       unit=units.Myr,
                       type="float",
-                      default = 0.1|units.Myr,
+                      default=0.1|units.Myr,
                       help="diagnosticstime step")
     result.add_option("--Ncloud", dest="Ncloud",
-                      default = 1000,
+                      default=1000,
                       type="float",
                       help="number of gas particles.")
     result.add_option("--Mcloud", dest="Mcloud",
                       unit=units.MSun,
                       type="float",
-                      default = 1000|units.MSun,
+                      default=1000|units.MSun,
                       help="cloud mass")
     result.add_option("--Rcloud", dest="Rcloud",
                       unit=units.parsec,
                       type="float",
-                      default = 3|units.parsec,
+                      default=3|units.parsec,
                       help="cloud size")
 
     return result
 
-if __name__ in ("__main__","__plot__"):
-    o, arguments  = new_option_parser().parse_args()
-    numpy.random.seed(3141)
-    tend = o.tend 
-    dt_diag = o.dt_diag
-    filename = o.filename
 
-    if len(o.filename)==0:
-        gas_particles = generate_initial_conditions_for_molecular_cloud(o.Ncloud,
-                                                                        Mcloud=o.Mcloud,
-                                                                        Rcloud=o.Rcloud)
-        rho_cloud = o.Mcloud/o.Rcloud**3
-        tff = 0.5427/numpy.sqrt(constants.G*rho_cloud)
-        print "Freefall timescale=", tff.in_(units.Myr)
-        rho_cloud = 3.*o.Mcloud/(4.*numpy.pi*o.Rcloud**3)
-        print rho_cloud
-        tend = 10*tff
-        dt_diag = 0.1*tff
-        hydro = Hydro(Fi, gas_particles)
-        hydro.write_set_to_file(0)
-        filename = "hydro_gas_particles_i{0:04}.amuse".format(0)
-        hydro.stop()
-
-    gas_particles = read_set_from_file(filename, "hdf5", close_file=True)
-    index = int(filename.split("_i")[1].split(".amuse")[0])
-    sinkfile = filename.split("_gas_")[0]+"_sink_"+filename.split("_gas_")[1]
-    import os.path
-    if os.path.isfile(sinkfile):
-        sink_particles = read_set_from_file(sinkfile, "hdf5", close_file=True)
-    else:
-        sink_particles = Particles(0)
-    print "N=", index, len(gas_particles), len(sink_particles)
-    print "Time=", gas_particles.get_timestamp().in_(units.Myr)
-        
-    parts = run_molecular_cloud(gas_particles, sink_particles, tend, dt_diag, index)
-
-
-    
+if __name__ in ("__main__", "__plot__"):
+    o, arguments = new_option_parser().parse_args()
+    main(**o.__dict__)
