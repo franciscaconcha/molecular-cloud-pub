@@ -9,6 +9,12 @@ from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
+def write_data(path, hydro, index=0, stars=Particles(0)):
+        hydro.write_set_to_file(path, index=index)
+        filename = "{0}/hydro_stars_particles_i{1:04}.amuse".format(path, index)
+        write_set_to_file(stars, filename, "hdf5",
+                          timestamp=hydro.model_time,
+                          append_to_file=False)
 
 def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
@@ -142,7 +148,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         if time>t_diag:
             index=index+1
             t_diag += dt_diag
-            hydro.write_set_to_file(save_path, index)
+            write_data(save_path, hydro=hydro, index=index, stars=stars)
 
     hydro.stop()
     return gas_particles
@@ -162,7 +168,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
         tend = 10 * tff
         dt_diag = 0.1 * tff
         hydro = Hydro(Fi, gas_particles)
-        hydro.write_set_to_file(save_path, 0)
+        write_data(save_path, hydro)
         filename = "hydro_gas_particles_i{0:04}.amuse".format(0)
         hydro.stop()
 

@@ -33,6 +33,7 @@ def plot_molecular_cloud(filename):
     print "read file:", filename
     gas = read_set_from_file(filename, "amuse")
     sinkfile = filename.split("_gas_")[0] + "_sink_" + filename.split("_gas_")[1]
+    starfile = filename.split("_star_")[0] + "_sink_" + filename.split("_gas_")[1]
     import os.path
     if os.path.isfile(sinkfile):
         sinks = read_set_from_file(sinkfile, "hdf5", close_file=True)
