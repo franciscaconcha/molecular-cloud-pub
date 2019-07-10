@@ -31,7 +31,7 @@ def fill_mass_function_with_sink_mass(total_mass):
 
 
 def print_diagnostics(gravhydro):
-    print "Time =", gravhydro.model_time().in_(units.Myr)
+    print "Time =", gravhydro.model_time.in_(units.Myr)
     print "Ngravhydro =", len(gravhydro.particles), "Mgravhydro=", gravhydro.particles.mass.sum().in_(units.MSun)
     print " "
 
@@ -107,8 +107,8 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
                         gravhydro = Bridge()
-                        gravhydro.add_system(gravity, (hydro,))
-                        gravhydro.add_system(hydro, (gravity,))
+                        gravhydro.add_system(gravity, (hydro.code,))
+                        gravhydro.add_system(hydro.code, (gravity,))
                         gravhydro.timestep = 0.1*dt
                     else:
                         gravity.code.particles.add_particles(stars_from_sink)
