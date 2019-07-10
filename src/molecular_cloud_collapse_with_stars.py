@@ -61,7 +61,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
     dt = min(dt_diag, 0.1 | units.Myr)
     t_diag = 0 | units.Myr
 
-    mass_treshold_for_star_formation = 100 | units.MSun    
+    mass_treshold_for_star_formation = 10 | units.MSun    
     E0 = hydro.gas_particles.kinetic_energy() \
          + hydro.gas_particles.potential_energy() \
          + hydro.gas_particles.thermal_energy()
