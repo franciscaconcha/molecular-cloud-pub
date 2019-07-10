@@ -39,8 +39,14 @@ def plot_molecular_cloud(filename):
         sinks = read_set_from_file(sinkfile, "hdf5", close_file=True)
     else:
         sinks = Particles(0)
+    if os.path.isfile(starfile):
+        stars = read_set_from_file(starfile, "hdf5", close_file=True)
+    else:
+        stars = Particles(0)
 
-    print "N=", len(gas), len(sinks)
+    print "N=", len(gas), len(sinks), len(stars)
+    print sinks.mass.in_(units.MSun)
+    
     #sinks =  bodies.history.next()
     L = 10.0
 #    if len(sinks):
@@ -49,6 +55,8 @@ def plot_molecular_cloud(filename):
     hydro = Hydro(Fi, gas)
     time = 0 | units.Myr
     if len(sinks)>0:
+        hydro.code.dm_particles.add_particles(sinks)
+    if len(stars)>0:
         hydro.code.dm_particles.add_particles(sinks)
     #plot_hydro_and_stars(time, hydro, L=10)    
     plot_hydro(time, hydro, L)

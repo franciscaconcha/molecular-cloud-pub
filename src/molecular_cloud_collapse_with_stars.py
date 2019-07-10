@@ -12,9 +12,10 @@ from gravity_class import Gravity
 def write_data(path, hydro, index=0, stars=Particles(0)):
         hydro.write_set_to_file(path, index=index)
         filename = "{0}/hydro_stars_particles_i{1:04}.amuse".format(path, index)
-        write_set_to_file(stars, filename, "hdf5",
-                          timestamp=hydro.model_time,
-                          append_to_file=False)
+        if len(stars)>0:
+                write_set_to_file(stars, filename, "hdf5",
+                                  timestamp=hydro.model_time,
+                                  append_to_file=False)
 
 def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
