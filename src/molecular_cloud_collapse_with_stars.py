@@ -4,6 +4,8 @@ from matplotlib import pyplot
 from amuse.lab import *
 from amuse.ext.molecular_cloud import molecular_cloud
 from amuse.ext.evrard_test import body_centered_grid_unit_cube
+from amuse.couple.bridge import Bridge
+
 
 from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
@@ -88,6 +90,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
 
             removed_sinks = Particles(0)
+
             for sink in hydro.sink_particles:
                 if sink.mass > mass_treshold_for_star_formation:
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
@@ -95,15 +98,15 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     local_converter = nbody_system.nbody_to_si(masses.sum(), sink.radius)
                     stars_from_sink = new_plummer_model(len(masses), local_converter)
                     stars_from_sink.mass = masses
-                    stars_from_sink.scale_to_standard()
-                    stars.from_sink.age = time
+                    stars_from_sink.scale_to_standard(local_converter)
+                    stars_from_sink.age = time
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
                     if gravity==None:
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
-                        gravhydro = bridge.Bridge()
+                        gravhydro = Bridge()
                         gravhydro.add_system(gravity, (hydro,))
                         gravhydro.add_system(hydro, (gravity,))
                         gravhydro.timestep = 0.1*dt
