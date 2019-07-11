@@ -21,21 +21,21 @@ def write_data(path, hydro, index=0, stars=Particles(0)):
 
 def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
-    masses = []
-    cumulative_mass = 0.0 | units.MSun
-
-    while cumulative_mass < total_mass:
-        mass = new_kroupa_mass_distribution(1, 100 | units.MSun)
-        cumulative_mass += mass
+    masses = [] | units.MSun
+    while total_mass>0|units.MSun:
+        mass = new_kroupa_mass_distribution(1, 100 | units.MSun)[0]
+        if mass>total_mass:
+                mass = total_mass
+        total_mass -= mass
         masses.append(mass)
 
-    print total_mass - cumulative_mass
     #mean_mass = masses.sum() / len(masses)
     #Nstars = int(total_mass/mean_mass)
     #masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
     #print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
     #print "total mass generated M=", masses.sum().in_(units.MSun)
-    #return masses
+    print "N new stars=", len(masses), "total mass=", masses.sum().in_(units.MSun)
+    return masses
 
 
 def print_diagnostics(gravhydro):
@@ -103,7 +103,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                 if sink.mass > mass_treshold_for_star_formation:
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
                     masses = fill_mass_function_with_sink_mass(sink.mass)
-                    local_converter = nbody_system.nbody_to_si(masses.sum(), sink.radius)
+                    local_converter = nbody_system.nbody_to_si(numpy.sum(masses), sink.radius)
                     stars_from_sink = new_plummer_model(len(masses), local_converter)
                     stars_from_sink.mass = masses
                     stars_from_sink.scale_to_standard(local_converter)
