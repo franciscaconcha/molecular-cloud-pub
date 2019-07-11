@@ -21,13 +21,21 @@ def write_data(path, hydro, index=0, stars=Particles(0)):
 
 def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
-    masses = new_kroupa_mass_distribution(1000, 100 | units.MSun)
-    mean_mass = masses.sum() / len(masses)
-    Nstars = int(total_mass/mean_mass)
-    masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
-    print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
-    print "total mass generated M=", masses.sum().in_(units.MSun)
-    return masses
+    masses = []
+    cumulative_mass = 0.0 | units.MSun
+
+    while cumulative_mass < total_mass:
+        mass = new_kroupa_mass_distribution(1, 100 | units.MSun)
+        cumulative_mass += mass
+        masses.append(mass)
+
+    print total_mass - cumulative_mass
+    #mean_mass = masses.sum() / len(masses)
+    #Nstars = int(total_mass/mean_mass)
+    #masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
+    #print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
+    #print "total mass generated M=", masses.sum().in_(units.MSun)
+    #return masses
 
 
 def print_diagnostics(gravhydro):
@@ -103,7 +111,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
-                    if gravity==None:
+                    if gravity == None:
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
                         gravhydro = Bridge()
