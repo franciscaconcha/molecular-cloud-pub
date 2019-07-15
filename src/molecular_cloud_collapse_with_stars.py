@@ -23,7 +23,7 @@ def fill_mass_function_with_sink_mass(total_mass):
     print "Make mass function for M=", total_mass.in_(units.MSun)
     masses = [] | units.MSun
     while total_mass>0|units.MSun:
-        mass = new_kroupa_mass_distribution(1, 100 | units.MSun)[0]
+        mass = new_kroupa_mass_distribution(1, 100 | total_mass)[0]
         if mass>total_mass:
                 mass = total_mass
         total_mass -= mass
