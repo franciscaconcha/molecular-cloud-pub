@@ -52,25 +52,28 @@ def main():
     #pyplot.loglog(masses, fit, lw=3, c='red', label='Kroupa 2001')
 
     sink_masses = [1, 10, 100, 1000, 10000] | units.MSun
-    colors = ['blue', 'black', 'pink', 'yellow', 'green']
+    colors = ['blue', 'lavender', 'pink', 'yellow', 'green']
 
     i = 0
 
     for s in sink_masses:
-        sink_stars_masses = fill_mass_function_with_sink_mass(s).value_in(units.MSun)
-        N = len(sink_stars_masses)
-        fit = kroupa2001(numpy.sort(sink_stars_masses))
-        kroupa_masses = new_kroupa_mass_distribution(N, mass_max=50 | units.MSun).value_in(units.MSun)  # Total mass is the mass of the sink
-        print "total sink mass = {0} MSun, total kroupa = {1} MSun".format(sink_stars_masses.sum(),
-                                                                           kroupa_masses.sum())
+        for j in range(50):
+            print "j = ", j
+            sink_stars_masses = fill_mass_function_with_sink_mass(s).value_in(units.MSun)
+            N = len(sink_stars_masses)
+            fit = kroupa2001(numpy.sort(sink_stars_masses))
+            kroupa_masses = new_kroupa_mass_distribution(N, mass_max=50 | units.MSun).value_in(units.MSun)  # Total mass is the mass of the sink
+            print "total sink mass = {0} MSun, total kroupa = {1} MSun".format(sink_stars_masses.sum(),
+                                                                               kroupa_masses.sum())
 
-        #y, binEdges = numpy.histogram(kroupa_masses, bins=10)
-        #bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
-        pyplot.loglog(numpy.sort(sink_stars_masses), fit, '-', c='red', lw=3, label="Kroupa 2001")
+            #y, binEdges = numpy.histogram(kroupa_masses, bins=10)
+            #bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+            pyplot.hist(sink_stars_masses, bins=100, color=colors[i], alpha=0.5)
+            pyplot.loglog(numpy.sort(sink_stars_masses), fit, '-', c='red', lw=3, alpha=0.5)#, label="Kroupa 2001")
 
-        y, binEdges = numpy.histogram(sink_stars_masses, bins=10)
-        bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
-        pyplot.loglog(bincenters, y, '-', c=colors[i])#, lw=3, label="Kroupa 2001")
+            #y, binEdges = numpy.histogram(sink_stars_masses, bins=10)
+            #bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+            #pyplot.loglog(bincenters, y, '-', c=colors[i])#, lw=3, label="Kroupa 2001")
 
         i += 1
         pyplot.legend()
