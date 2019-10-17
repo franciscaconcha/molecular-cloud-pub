@@ -50,12 +50,14 @@ class Gravity:
         self.channel_from_framework = stars.new_channel_to(self.code.particles)
         
     def evolve_model(self, model_time):
-        for gi in self.channel_from_framework:
-            gi.copy()
+        self.channel_from_framework.copy()
+        #for gi in self.channel_from_framework:
+        #    gi.copy()
             #gi.copy_attributes("mass")
         self.code.evolve_model(model_time)
-        for gi in self.channel_to_framework:
-            gi.copy()
+        #for gi in self.channel_to_framework:
+        #    gi.copy()
+        self.channel_to_framework.copy()
 
 def print_diagnostics(model_time, particles, converter):
     print "Diaganostics: Time=", time, "N=", len(particles)
