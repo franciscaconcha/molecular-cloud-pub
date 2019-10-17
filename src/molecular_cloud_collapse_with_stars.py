@@ -1,5 +1,4 @@
 import numpy
-from matplotlib import pyplot 
 
 from amuse.lab import *
 from amuse.ext.molecular_cloud import molecular_cloud
@@ -11,6 +10,7 @@ from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
+
 def write_data(path, hydro, index=0, stars=Particles(0)):
         hydro.write_set_to_file(path, index=index)
         filename = "{0}/hydro_stars_particles_i{1:04}.amuse".format(path, index)
@@ -19,12 +19,14 @@ def write_data(path, hydro, index=0, stars=Particles(0)):
                                   timestamp=hydro.model_time,
                                   append_to_file=False)
 
+
 def fill_mass_function_with_sink_mass(total_mass):
-    print "Make mass function for M=", total_mass.in_(units.MSun)
+    #print "Make mass function for M=", total_mass.in_(units.MSun)
     masses = [] | units.MSun
-    while total_mass>0|units.MSun:
-        mass = new_kroupa_mass_distribution(1, 100 | total_mass)[0]
-        if mass>total_mass:
+
+    while total_mass > 0 | units.MSun:
+        mass = new_kroupa_mass_distribution(1, mass_max=total_mass)[0]
+        if mass > total_mass:
                 mass = total_mass
         total_mass -= mass
         masses.append(mass)
@@ -34,14 +36,9 @@ def fill_mass_function_with_sink_mass(total_mass):
     #masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
     #print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
     #print "total mass generated M=", masses.sum().in_(units.MSun)
-    print "N new stars=", len(masses), "total mass=", masses.sum().in_(units.MSun)
+
+    #print "N new stars=", len(masses), "total mass=", masses.sum().in_(units.MSun)
     return masses
-
-
-def print_diagnostics(gravhydro):
-    print "Time =", gravhydro.model_time.in_(units.Myr)
-    print "Ngravhydro =", len(gravhydro.particles), "Mgravhydro=", gravhydro.particles.mass.sum().in_(units.MSun)
-    print " "
 
 
 def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
@@ -80,7 +77,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
     while time < tend:
         time += dt
         print "Evolve to time=", time.in_(units.Myr)
-        Mtot = 0|units.MSun
+        Mtot = 0 | units.MSun
                 
         if len(hydro.sink_particles) > 0:
             print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
@@ -111,18 +108,20 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
-                    if gravity == None:
+                    if gravity is None:
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
+                        gravity_from_framework = gravity.particles.new_channel_to(stars)
+                        gravity_to_framework = stars.new_channel_to(gravity.particles)
                         gravhydro = Bridge()
                         gravhydro.add_system(gravity, (hydro.code,))
                         gravhydro.add_system(hydro.code, (gravity,))
-                        gravhydro.timestep = 0.1*dt
+                        gravhydro.timestep = 0.1 * dt
                     else:
                         gravity.code.particles.add_particles(stars_from_sink)
-                        gravity.update_channels(stars)
+                        gravity_to_framework.copy()
 
-            if len(removed_sinks)>0:
+            if len(removed_sinks) > 0:
                 # clean up hydro code by removing sink particles.
                 print "Clean up hydro code by removing sink particles."
                 hydro.sink_particles.remove_particle(removed_sinks)
@@ -134,7 +133,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                                                             hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
 
-        if Mtot < Mcloud - (1.e-5|units.MSun):
+        if Mtot < Mcloud - (1.e-5 | units.MSun):
             print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
                                                                                      Mcloud.in_(units.MSun))
             exit(-1)
@@ -150,15 +149,16 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         E_th = hydro.gas_particles.thermal_energy()
         Eerr = (E-E0)/E0
         print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
-        print "maximal_density:",gas_particles.rho.max().in_(units.MSun/units.parsec**3)
+        print "maximal_density:", gas_particles.rho.max().in_(units.MSun/units.parsec**3)
 
         hydro.print_diagnostics()
         if gravhydro==None:
             print "No gravhydro yet."
         else:
-            print_diagnostics(gravhydro)
-        if time>t_diag:
-            index=index+1
+            print "gravhydro"
+            #print_diagnostics(gravhydro)
+        if time > t_diag:
+            index = index+1
             t_diag += dt_diag
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
@@ -209,7 +209,7 @@ def new_option_parser():
                       default="",
                       help="input filename")
     result.add_option("-s", dest="save_path",
-                      default=".",
+                      default="./results/",
                       help="save path for results")
     result.add_option("--tend", dest="tend",
                       unit=units.Myr,
