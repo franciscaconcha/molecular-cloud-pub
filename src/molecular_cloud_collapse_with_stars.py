@@ -111,7 +111,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     if gravity is None:
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
-                        gravity_from_framework = gravity.particles.new_channel_to(stars)
+                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
                         gravity_to_framework = stars.new_channel_to(gravity.particles)
                         gravhydro = Bridge()
                         gravhydro.add_system(gravity, (hydro.code,))
