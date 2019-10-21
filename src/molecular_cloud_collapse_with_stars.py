@@ -10,6 +10,8 @@ from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
+import if_mf
+
 
 def write_data(path, hydro, index=0, stars=Particles(0)):
         hydro.write_set_to_file(path, index=index)
@@ -41,26 +43,37 @@ def fill_mass_function_with_sink_mass(total_mass):
     return masses
 
 
-def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
+def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud, Tcloud):
 
     conv = nbody_system.nbody_to_si(Mcloud,Rcloud)
     gas = molecular_cloud(targetN=N,convert_nbody=conv,
             base_grid=body_centered_grid_unit_cube).result
     gas.name = "gas"
 
+    gas.u = constants.kB*Tcloud/(2.33*1.008*al.constants.u)
+    gas.xion = 0.
+    gas.flux = 0. | units.s**-1.
+
+    sigma = 0.01 | al.units.parsec
+
+    gas.x += np.random.normal(size=len(gas))*sigma
+    gas.y += np.random.normal(size=len(gas))*sigma
+    gas.z += np.random.normal(size=len(gas))*sigma
+
     return gas
 
 
-def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, box_size, save_path, index=0):
 
     Mcloud = gas_particles.mass.sum()
     
     stars = Particles(0)
-    hydro = Hydro(Fi, gas_particles, tstart)
+    hydro = Hydro(Fi, gas_particles, tstart, box_size=box_size)
 
     if len(sink_particles) > 0:
         hydro.sink_particles.add_particles(sink_particles)
         hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
+        hydro.radiative.particles.add_particles(sink_particles)
 
 
     gravity = None
@@ -105,27 +118,35 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     stars_from_sink.mass = masses
                     stars_from_sink.scale_to_standard(local_converter)
                     stars_from_sink.age = time
+
+                    stars_from_sink.flux = if_mf.ionizing_flux(masses.value_in(units.MSun))
+                    stars_from_sink.xion = 1.
+                    stars_from_sink.u = constants.kB*(1E4 | units.K)/(1.008*constants.u)
+
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
                     if gravity is None:
                         gravity_offset_time = time
-                        gravity = Gravity(ph4, stars)
+                        gravity = Gravity(ph4, stars, hydro.radiative.particles, box_size=box_size)
                         #gravity_from_framework = gravity.particles.new_channel_to(stars)
                         gravity_to_framework = stars.new_channel_to(gravity.particles)
                         gravhydro = Bridge()
                         gravhydro.add_system(gravity, (hydro.code,))
                         gravhydro.add_system(hydro.code, (gravity,))
                         gravhydro.timestep = 0.1 * dt
+                        hydro.radiative.particles.add_particles(stars)
                     else:
                         gravity.code.particles.add_particles(stars_from_sink)
+                        hydro.radiative.particles.add_particles(stars_from_sink)
                         gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
                 # clean up hydro code by removing sink particles.
                 print "Clean up hydro code by removing sink particles."
-                hydro.sink_particles.remove_particle(removed_sinks)
+                hydro.sink_particles.remove_particles(removed_sinks)
                 hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
+                hydro.radiative.particles.remove_particles(removed_sinks)
                     
         else:
             print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
@@ -166,12 +187,13 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
     return gas_particles
 
 
-def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, Tcloud, box_size):
 
     if len(filename) == 0:
         gas_particles = generate_initial_conditions_for_molecular_cloud(o.Ncloud,
                                                                         Mcloud=o.Mcloud,
-                                                                        Rcloud=o.Rcloud)
+                                                                        Rcloud=o.Rcloud,
+                                                                        Tcloud=o.Tcloud)
         rho_cloud = o.Mcloud / o.Rcloud ** 3
         tff = 0.5427 / numpy.sqrt(constants.G * rho_cloud)
         print "Freefall timescale=", tff.in_(units.Myr)
@@ -199,7 +221,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, start_time, tend, dt_diag, save_path, index)
+    parts = run_molecular_cloud(gas_particles, sink_particles, start_time, tend, dt_diag, box_size, save_path, index)
 
   
 def new_option_parser():
@@ -235,6 +257,16 @@ def new_option_parser():
                       type="float",
                       default=3|units.parsec,
                       help="cloud size")
+    result.add_option("--Tcloud", dest="Tcloud",
+                      unit=units.K,
+                      type="float",
+                      default=10|units.K,
+                      help="cloud temperature")
+    result.add_option("--box_size", dest="box_size",
+                      unit=units.parsec,
+                      type="float",
+                      default=30|units.parsec,
+                      help="simulation box cube edge length")
 
     return result
 

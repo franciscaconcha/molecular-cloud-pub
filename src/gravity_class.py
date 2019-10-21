@@ -14,7 +14,7 @@ from amuse.units.optparse import OptionParser
 from amuse.community.adaptb.interface import Adaptb
 
 class Gravity:
-    def __init__(self, gravity_code, stars, converter=None):
+    def __init__(self, gravity_code, stars, radiative_particles, converter=None, box_size=30.|al.units.parsec):
         if converter==None:
             self.converter=nbody_system.nbody_to_si(1|units.MSun,1|units.parsec)
         else:
@@ -29,11 +29,20 @@ class Gravity:
         if hasattr(self.code.parameters, "lightspeed"):
             self.code.parameters.lightspeed = 0 | units.kms
 
+        self.star_particles = stars
         self.code.particles.add_particles(stars)
         if isinstance(self.code, Mercury):
             self.code.commit_particles() 
 
         self.update_channels(stars)
+
+        if hasattr(self.code.stopping_conditions, "out_of_box_detection"):
+            self.out_of_box_detection = self.code.stopping_conditions.out_of_box_detection
+            self.box_size = box_size
+            self.code.parameters.stopping_conditions_out_of_box_size = box_size
+            self.out_of_box_detection.enable()
+
+        self.radiative_particles = radiative_particles
 
     @property
     def model_time(self):
@@ -46,8 +55,9 @@ class Gravity:
         return self.code.particles
 
     def update_channels(self, stars):
-        self.channel_to_framework = self.code.particles.new_channel_to(stars)
-        self.channel_from_framework = stars.new_channel_to(self.code.particles)
+        self.star_particles = stars
+        self.channel_to_framework = self.code.particles.new_channel_to(self.star_particles)
+        self.channel_from_framework = self.star_particles.new_channel_to(self.code.particles)
         
     def evolve_model(self, model_time):
         self.channel_from_framework.copy()
@@ -55,6 +65,16 @@ class Gravity:
         #    gi.copy()
             #gi.copy_attributes("mass")
         self.code.evolve_model(model_time)
+
+        while self.out_of_box_detection.is_set():
+            #self.code.update_particle_set()
+            stars_to_remove = self.code.particles.select_array(
+                lambda x, y, z: (x > self.box_size/2.)*(y > self.box_size/2.)*(z > self.box_size/2.), ['x', 'y', 'z'])
+            self.code.particles.remove_particles(stars_to_remove)
+            self.radiative_particles.remove_particles(stars_to_remove)
+            self.star_particles.synchronize_to(self.code.particles)
+            self.channel_to_framework.copy()
+            self.code.evolve_model(model_time)
         #for gi in self.channel_to_framework:
         #    gi.copy()
         self.channel_to_framework.copy()

@@ -7,8 +7,10 @@ from amuse.datamodel import Particles
 
 from amuse.community.fi.interface import Fi
 from amuse.community.gadget2.interface import Gadget2
+from amuse.community.simplex.interface import SimpleX
 
 from cooling_class import Cooling, SimplifiedThermalModelEvolver
+from radiativetransfer_class import Radiative
 #from amuse.ext.sink import SinkParticles
 from amuse.ext.sink import new_sink_particles
 
@@ -16,7 +18,7 @@ COOL = True
 
 
 class Hydro:
-        def __init__(self, hydro_code, particles, tstart=0|units.Myr):
+        def __init__(self, hydro_code, particles, tstart=0|units.Myr, box_size=30.|al.units.parsec):
                 
                 if not hydro_code in [Fi,Gadget2]:
                     raise Exception("unsupported Hydro code: %s"%(hydro_code.__name__))
@@ -50,7 +52,8 @@ class Hydro:
                         self.code.parameters.begin_time= 0.0|units.Myr
                         self.code.parameters.use_hydro_flag=True
                         self.code.parameters.self_gravity_flag=True
-                        self.code.parameters.periodic_box_size = 100.*system_size
+                        #self.code.parameters.periodic_box_size = 100.*system_size
+                        self.code.parameters.periodic_box_size = box_size
                         """
                         isothermal_flag:
                         When True then we have to do our own adiabatic cooling (and Gamma has to be 1.0)
@@ -109,13 +112,21 @@ class Hydro:
                 # Create a channel
                 self.channel_to_gas = self.code.gas_particles.new_channel_to(self.gas_particles)
                 self.channel_to_sinks = self.code.dm_particles.new_channel_to(self.sink_particles)
+                self.channel_from_gas = self.gas_particles.new_channel_to(self.code.gas_particles)
                 self.channel_from_sinks = self.sink_particles.new_channel_to(self.code.dm_particles)
+                self.channel_from_radiative_gas = self.radiative.particles.new_channel_to(self.gas_particles)
+                self.channel_from_radiative_dm  = self.radiative.particles.new_channel_to(self.dm_particles)
+                self.channel_to_radiative_gas = self.gas_particles.new_channel_to(self.radiative.particles)
+                self.channel_to_radiative_dm  = self.dm_particles.new_channel_to(self.radiative.particles)
                 
                 # External Cooling
                 print "Cooling flag:", self.cooling_flag
                 self.cooling = SimplifiedThermalModelEvolver(self.code.gas_particles)
                 #self.cooling = Cooling(self.code.gas_particles)
                 self.cooling.model_time=self.model_time
+
+                # Heating through ionising radiation, and some cooling
+                self.radiative = Radiative(SimpleX, self.gas_particles.union(self.sink_particles))
 
         def print_diagnostics(self):
                 print "Time=", self.model_time.in_(units.Myr)
@@ -144,6 +155,7 @@ class Hydro:
 
         @property
         def stop(self):
+                self.radiative.stop()
                 return self.code.stop
                 
         def evolve_model(self, model_time):
@@ -166,10 +178,43 @@ class Hydro:
             print "Density trenshold:", self.density_threshold.in_(units.g/units.cm**3), self.code.gas_particles.density.max().in_(units.g/units.cm**3)
             
             if COOL:
+                self.radiative.evolve_for(dt/4)
+                self.channel_from_radiative_gas.copy()
+                self.channel_from_radiative_dm.copy()
+                self.channel_to_gas.copy()
+                self.channel_to_sinks.copy()
                 print "Cool gas for dt=", (dt/2).in_(units.Myr)
                 self.cooling.evolve_for(dt/2)
+                self.channel_from_gas.copy()
+                self.channel_from_sinks.copy()
+                self.channel_to_radiative_gas.copy()
+                self.channel_to_radiative_dm.copy()
+                self.radiative.evolve_for(dt/4)
+                self.channel_from_radiative_gas.copy()
+                self.channel_from_radiative_dm.copy()
+                self.channel_to_gas.copy()
+                self.channel_to_sinks.copy()
                 #print "...done."
+
+
+
             self.code.evolve_model(hydro_time)
+
+            # Handle out-of-box particles
+            self.code.update_particle_set()
+            gas_to_remove = self.gas_particles.difference(self.code.gas_particles)
+            sinks_to_remove = self.sink_particles.difference(self.code.dm_particles)
+            if len(sinks_to_remove) > 0:
+                print ("[WARNING]: removing {a} sink particles".format(a=len(sinks_to_remove)))
+            self.code.gas_particles.remove_particles( gas_to_remove )
+            self.code.dm_particles.remove_particles( sinks_to_remove )
+            self.radiative.particles.remove_particles( gas_to_remove )
+            self.radiative.particles.remove_particles( sinks_to_remove )
+            self.gas_particles.synchronize_to(self.code.gas_particles)
+            self.channel_to_gas.copy()
+            self.sink_particles.synchronize_to(self.code.dm_particles)
+            self.channel_to_sinks.copy()
+                
 
             #print "gas evolved."
             while density_limit_detection.is_set():
@@ -177,12 +222,43 @@ class Hydro:
 
                 print "..done"
                 self.code.evolve_model(hydro_time)
+
+                # Handle out-of-box particles
+                self.code.update_particle_set()
+                gas_to_remove = self.gas_particles.difference(self.code.gas_particles)
+                sinks_to_remove = self.sink_particles.difference(self.code.dm_particles)
+                if len(sinks_to_remove) > 0:
+                    print ("Warning: removing {a} sink particles".format(a=len(sinks_to_remove)))
+                self.code.gas_particles.remove_particles( gas_to_remove )
+                self.code.dm_particles.remove_particles( sinks_to_remove )
+                self.radiative.particles.remove_particles( gas_to_remove )
+                self.radiative.particles.remove_particles( sinks_to_remove )
+                self.gas_particles.synchronize_to(self.code.gas_particles)
+                self.channel_to_gas.copy()
+                self.sink_particles.synchronize_to(self.code.dm_particles)
                 self.channel_to_sinks.copy()
+
                 print "end N=", len(self.sink_particles), len(self.code.dm_particles)
 
             if COOL:
-                print "Cool gas for another dt=", (dt/2).in_(units.Myr)
+                self.channel_to_radiative_gas.copy()
+                self.channel_to_radiative_dm.copy()
+                self.radiative.evolve_for(dt/4)
+                self.channel_from_radiative_gas.copy()
+                self.channel_from_radiative_dm.copy()
+                self.channel_to_gas.copy()
+                self.channel_to_sinks.copy()
+                print "Cool gas for dt=", (dt/2).in_(units.Myr)
                 self.cooling.evolve_for(dt/2)
+                self.channel_from_gas.copy()
+                self.channel_from_sinks.copy()
+                self.channel_to_radiative_gas.copy()
+                self.channel_to_radiative_dm.copy()
+                self.radiative.evolve_for(dt/4)
+                self.channel_from_radiative_gas.copy()
+                self.channel_from_radiative_dm.copy()
+                self.channel_to_gas.copy()
+                self.channel_to_sinks.copy()
                 #print "...done."
 
 
@@ -190,13 +266,16 @@ class Hydro:
                 
             if len(self.sink_particles)>0:
                 sinks = new_sink_particles(self.sink_particles)
-	        sinks.accrete(self.gas_particles)
+	            sinks.accrete(self.gas_particles)
                 for si in range(len(self.sink_particles)):
                     self.sink_particles[si].Lx += sinks[si].angular_momentum[0]
                     self.sink_particles[si].Ly += sinks[si].angular_momentum[1]
                     self.sink_particles[si].Lz += sinks[si].angular_momentum[2]
 
-	        self.gas_particles.synchronize_to(self.code.gas_particles)
+                gas_accreted = self.code.gas_particles.difference(self.gas_particles)
+                self.radiative.particles.remove_particles(gas_accreted)
+
+	            self.gas_particles.synchronize_to(self.code.gas_particles)
                 # make sure that the accreted mass is copied to the Hydro code..+++
                 self.channel_from_sinks.copy()
                 
@@ -220,6 +299,7 @@ class Hydro:
             candidate_sinks=highdens.copy()
             self.gas_particles.remove_particles(highdens)
             self.gas_particles.synchronize_to(self.code.gas_particles)
+            self.radiative.particles.remove_particles(highdens)
 
             print "new sinks..."
             if len(candidate_sinks)>0: # had to make some changes to prevent double adding particles
@@ -240,6 +320,7 @@ class Hydro:
                 print "pre N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
                 #self.sink_particles.add_sinks(newsinks)
                 self.sink_particles.add_particles(newsinks)
+                self.radiative.particles.add_particles(newsinks)
                 print "post N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
             else:
                 print "N candidates:", len(candidate_sinks)
