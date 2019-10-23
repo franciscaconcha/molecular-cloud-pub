@@ -108,6 +108,9 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+
+
                     if gravity is None:
                         gravity_offset_time = time
                         gravity = Gravity(ph4, stars)
@@ -132,8 +135,9 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
                                                             hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
+            print Mtot
 
-        if Mtot < Mcloud - (1.e-5 | units.MSun):
+        if Mtot < Mcloud - (1.E-5 | units.MSun):
             print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
                                                                                      Mcloud.in_(units.MSun))
             exit(-1)
@@ -141,6 +145,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         if gravhydro == None:
             hydro.evolve_model(time)
         else:
+            print "EVOLVING GRAVHYDRO"
             gravhydro.evolve_model(time)
             
         E = hydro.gas_particles.kinetic_energy() \
@@ -214,7 +219,7 @@ def new_option_parser():
     result.add_option("--tend", dest="tend",
                       unit=units.Myr,
                       type="float",
-                      default = 1.0|units.Myr,
+                      default = 5.0|units.Myr,
                       help="end time")
     result.add_option("--dt_diag", dest="dt_diag",
                       unit=units.Myr,
