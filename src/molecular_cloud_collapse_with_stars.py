@@ -110,13 +110,14 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                 star_from_sink.vy = sink.vy
                 star_from_sink.vz = sink.vz
                 star_from_sink.mass = star_from_sink_mass
-                star_from_sink.radius = sink.radius
-                star_from_sink.scale_to_standard(local_converter)
+                #star_from_sink.radius = sink.radius
+                print sink.radius.value_in(units.RSun)
+                #star_from_sink.scale_to_standard(local_converter)
                 star_from_sink.age = time
                 removed_sinks.add_particle(sink)
 
                 stars.add_particles(star_from_sink)
-                Mcloud = gas_particles.mass.sum() + star_from_sink_mass.mass.sum()
+                Mcloud = gas_particles.mass.sum() + star_from_sink_mass
 
                 if gravity is None:
                     gravity_offset_time = time
@@ -128,7 +129,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                     gravhydro.add_system(hydro.code, (gravity,))
                     gravhydro.timestep = 0.1 * dt
                 else:
-                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity.code.particles.add_particles(star_from_sink)
                     gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
@@ -144,12 +145,13 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             Mtot = hydro.gas_particles.mass.sum()
             print Mtot
 
-        if Mtot < Mcloud - (1.E-5 | units.MSun):
-            print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
-                                                                                     Mcloud.in_(units.MSun))
-            exit(-1)
+        print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
+        #if Mcloud - Mtot > (1E-2 | units.MSun):
+        #    print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
+        #                                                                             Mcloud.in_(units.MSun))
+        #    exit(-1)
 
-        if gravhydro == None:
+        if gravhydro is None:
             hydro.evolve_model(time)
         else:
             print "EVOLVING GRAVHYDRO"
@@ -164,16 +166,17 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         print "maximal_density:", gas_particles.rho.max().in_(units.MSun/units.parsec**3)
 
         hydro.print_diagnostics()
-        if gravhydro==None:
+        if gravhydro is None:
             print "No gravhydro yet."
         else:
             print "gravhydro"
             #print_diagnostics(gravhydro)
         if time > t_diag:
-            index = index+1
+            index += 1
             t_diag += dt_diag
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
+    print len(gravity.code.particles)
     hydro.stop()
     return gas_particles
 
