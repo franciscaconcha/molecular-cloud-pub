@@ -4,6 +4,7 @@ from amuse.lab import *
 from amuse.ext.molecular_cloud import molecular_cloud
 from amuse.ext.evrard_test import body_centered_grid_unit_cube
 from amuse.couple.bridge import Bridge
+from amuse.ic.fractalcluster import new_fractal_cluster_model
 
 
 from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
@@ -25,27 +26,20 @@ def fill_mass_function_with_sink_mass(total_mass):
     masses = [] | units.MSun
 
     while total_mass > 0 | units.MSun:
-        mass = new_kroupa_mass_distribution(1, mass_max=total_mass)[0]
+        mass = new_kroupa_mass_distribution(1, mass_max=100 | units.MSun)[0]
         if mass > total_mass:
                 mass = total_mass
         total_mass -= mass
         masses.append(mass)
 
-    #mean_mass = masses.sum() / len(masses)
-    #Nstars = int(total_mass/mean_mass)
-    #masses = new_kroupa_mass_distribution(Nstars, 100|units.MSun)
-    #print "Generate N=", Nstars, "stars of mean mass m=", mean_mass.in_(units.MSun)
-    #print "total mass generated M=", masses.sum().in_(units.MSun)
-
-    #print "N new stars=", len(masses), "total mass=", masses.sum().in_(units.MSun)
     return masses
 
 
 def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
 
     conv = nbody_system.nbody_to_si(Mcloud,Rcloud)
-    gas = molecular_cloud(targetN=N,convert_nbody=conv,
-            base_grid=body_centered_grid_unit_cube).result
+    gas = molecular_cloud(targetN=N, convert_nbody=conv,
+                          base_grid=body_centered_grid_unit_cube).result
     gas.name = "gas"
 
     return gas
@@ -62,7 +56,6 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         hydro.sink_particles.add_particles(sink_particles)
         hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
 
-
     gravity = None
     gravhydro = None
     dt = min(dt_diag, 0.1 | units.Myr)
@@ -73,6 +66,9 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
          + hydro.gas_particles.potential_energy() \
          + hydro.gas_particles.thermal_energy()
     time = gas_particles.get_timestamp()
+
+    # Sample IMF
+    IMF_masses = numpy.sort(new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
 
     while time < tend:
         time += dt
@@ -95,34 +91,45 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
 
             removed_sinks = Particles(0)
+            star_i = 0
 
             for sink in hydro.sink_particles:
-                if sink.mass > mass_treshold_for_star_formation:
-                    print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
-                    masses = fill_mass_function_with_sink_mass(sink.mass)
-                    local_converter = nbody_system.nbody_to_si(numpy.sum(masses), sink.radius)
-                    stars_from_sink = new_plummer_model(len(masses), local_converter)
-                    stars_from_sink.mass = masses
-                    stars_from_sink.scale_to_standard(local_converter)
-                    stars_from_sink.age = time
-                    removed_sinks.add_particle(sink)
+                #if sink.mass > mass_treshold_for_star_formation:
+                print "Sink has formed"
+                print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
+                print sink.mass, sink.radius, sink.x, sink.vx
+                star_from_sink_mass = IMF_masses[star_i]
+                star_i += 1
+                local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
+                star_from_sink = Particles(1)
 
-                    stars.add_particles(stars_from_sink)
-                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+                star_from_sink.x = sink.x
+                star_from_sink.y = sink.y
+                star_from_sink.z = sink.z
+                star_from_sink.vx = sink.vx
+                star_from_sink.vy = sink.vy
+                star_from_sink.vz = sink.vz
+                star_from_sink.mass = star_from_sink_mass
+                star_from_sink.radius = sink.radius
+                star_from_sink.scale_to_standard(local_converter)
+                star_from_sink.age = time
+                removed_sinks.add_particle(sink)
 
+                stars.add_particles(star_from_sink)
+                Mcloud = gas_particles.mass.sum() + star_from_sink_mass.mass.sum()
 
-                    if gravity is None:
-                        gravity_offset_time = time
-                        gravity = Gravity(ph4, stars)
-                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
-                        gravity_to_framework = stars.new_channel_to(gravity.particles)
-                        gravhydro = Bridge()
-                        gravhydro.add_system(gravity, (hydro.code,))
-                        gravhydro.add_system(hydro.code, (gravity,))
-                        gravhydro.timestep = 0.1 * dt
-                    else:
-                        gravity.code.particles.add_particles(stars_from_sink)
-                        gravity_to_framework.copy()
+                if gravity is None:
+                    gravity_offset_time = time
+                    gravity = Gravity(ph4, stars)
+                    #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                    gravity_to_framework = stars.new_channel_to(gravity.particles)
+                    gravhydro = Bridge()
+                    gravhydro.add_system(gravity, (hydro.code,))
+                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.timestep = 0.1 * dt
+                else:
+                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
                 # clean up hydro code by removing sink particles.
