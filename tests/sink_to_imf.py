@@ -31,7 +31,7 @@ def fill_mass_function_with_sink_mass(total_mass, imf):
 
     if imf == 'Kroupa':
         while total_mass > 0 | units.MSun:
-            mass = new_kroupa_mass_distribution(1, mass_max=total_mass)[0]
+            mass = new_kroupa_mass_distribution(1, mass_max=100 | units.MSun)[0]
             if mass > total_mass:
                     mass = total_mass
             total_mass -= mass
@@ -39,7 +39,7 @@ def fill_mass_function_with_sink_mass(total_mass, imf):
 
     elif imf == 'Salpeter':
         while total_mass > 0 | units.MSun:
-            mass = new_salpeter_mass_distribution(1, mass_max=total_mass)[0]
+            mass = new_salpeter_mass_distribution(1, mass_max=100 | units.MSun)[0]
             if mass > total_mass:
                 mass = total_mass
             total_mass -= mass
@@ -103,7 +103,7 @@ def main(imf):
         pyplot.title(plot_title)
         pyplot.legend()
         #pyplot.show()
-        pyplot.savefig('tests/results/IMF/{0}_sink_{1}MSun.png'.format(imf, s.value_in(units.MSun)))
+        pyplot.savefig('tests/results/IMF_100MSun/{0}_sink_{1}MSun.png'.format(imf, s.value_in(units.MSun)))
 
 
 

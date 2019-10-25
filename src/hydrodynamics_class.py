@@ -217,6 +217,7 @@ class Hydro:
             print "processing high dens particles...",
             highdens=self.gas_particles.select_array(lambda rho:rho>self.density_threshold,["rho"])
             print "N=", len(highdens)
+            print "sinks mass: ", highdens.mass.value_in(units.MSun)
             candidate_sinks=highdens.copy()
             self.gas_particles.remove_particles(highdens)
             self.gas_particles.synchronize_to(self.code.gas_particles)
@@ -230,7 +231,7 @@ class Hydro:
                     if nsi not in self.sink_particles:
                         newsinks.add_particle(nsi)
                     else:
-                        print "this sink should not exicst"
+                        print "this sink should not exist"
                 newsinks.name = "Sink" 
                 newsinks.birth_age = self.model_time
                 newsinks.Lx = 0 | (units.g * units.m**2)/units.s
