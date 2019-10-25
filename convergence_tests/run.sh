@@ -21,7 +21,7 @@ do
             start_s=`date "+%s"`
             echo $filepath >> $logfile
             echo "START: $start" >> $logfile
-            #../../amuse/amuse.sh cloud_collapse.py --Mcloud 4000 --Rcloud 1 --Ncloud $Ns -s $filepath
+            ../../amuse/amuse.sh cloud_collapse.py --Mcloud 4000 --Rcloud 1 --Ncloud $Ns -s $filepath
             end=`date "+%Y-%m-%d %H:%M:%S"`
             end_s=`date "+%s"`
             echo "END: $end" >> $logfile
