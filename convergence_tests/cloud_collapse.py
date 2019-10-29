@@ -83,12 +83,10 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                                             units.MSun))
 
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
-            print "SINK FORMED"
-            return 0
-            removed_sinks = Particles(0)
-            star_i = 0
-
-
+            #print "SINK FORMED"
+            #return 0
+            #removed_sinks = Particles(0)
+            #star_i = 0
 
         else:
             print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
