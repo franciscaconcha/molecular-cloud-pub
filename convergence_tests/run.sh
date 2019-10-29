@@ -6,7 +6,7 @@
 Nsph=(4000 8000 16000 32000)
 Nruns=(1 2 3 4 5 6 7 8)
 
-logfile="results/log.txt"
+logfile="results/log_M$1MSun""_R$2pc.txt"
 echo "" > $logfile
 
 for Ns in ${Nsph[@]}
@@ -21,7 +21,7 @@ do
             start_s=`date "+%s"`
             echo $filepath >> $logfile
             echo "START: $start" >> $logfile
-            ../../amuse/amuse.sh cloud_collapse.py --Mcloud 4000 --Rcloud 1 --Ncloud $Ns -s $filepath
+            ../../amuse/amuse.sh cloud_collapse.py --Mcloud $1 --Rcloud $2 --Ncloud $Ns -s $filepath
             end=`date "+%Y-%m-%d %H:%M:%S"`
             end_s=`date "+%s"`
             echo "END: $end" >> $logfile
