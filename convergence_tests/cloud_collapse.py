@@ -69,18 +69,18 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         Mtot = 0 | units.MSun
 
         if len(hydro.sink_particles) > 0:
-            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
-            print "Slocal_gas = {0}, " \
-                  "Slocal_sinks = {1}, " \
-                  "sum = {2}".format(hydro.gas_particles.mass.sum().in_(units.MSun),
-                                     hydro.sink_particles.mass.sum().in_(units.MSun),
-                                     (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
-            print "Shydro_gas = {0}, " \
-                  "Shydro_sinks = {1}, " \
-                  "sum = {2}\n*".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
-                                        hydro.code.dm_particles.mass.sum().in_(units.MSun),
-                                        (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
-                                            units.MSun))
+            #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            #print "Slocal_gas = {0}, " \
+            #      "Slocal_sinks = {1}, " \
+            #      "sum = {2}".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            #                         hydro.sink_particles.mass.sum().in_(units.MSun),
+            #                         (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
+            #print "Shydro_gas = {0}, " \
+            #      "Shydro_sinks = {1}, " \
+            #      "sum = {2}\n*".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
+            #                            hydro.code.dm_particles.mass.sum().in_(units.MSun),
+            #                            (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
+            #                                units.MSun))
 
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
             #print "SINK FORMED"
@@ -89,44 +89,36 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             #star_i = 0
 
         else:
-            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
-            print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
-                                                    hydro.code.gas_particles.mass.sum().in_(units.MSun))
+            #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            #print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            #                                        hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
-            print Mtot
+            #print Mtot
 
-        print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
+        hydro.evolve_model(time)
+        #print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
         # if Mcloud - Mtot > (1E-2 | units.MSun):
         #    print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
         #                                                                             Mcloud.in_(units.MSun))
         #    exit(-1)
 
-        if gravhydro is None:
-            hydro.evolve_model(time)
-        else:
-            print "EVOLVING GRAVHYDRO"
-            gravhydro.evolve_model(time)
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
             + hydro.gas_particles.thermal_energy()
         E_th = hydro.gas_particles.thermal_energy()
         Eerr = (E - E0) / E0
-        print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
-        print "maximal_density:", gas_particles.rho.max().in_(units.MSun / units.parsec ** 3)
+        #print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
+        #print "maximal_density:", gas_particles.rho.max().in_(units.MSun / units.parsec ** 3)
 
-        hydro.print_diagnostics()
-        if gravhydro is None:
-            print "No gravhydro yet."
-        else:
-            print "gravhydro"
-            # print_diagnostics(gravhydro)
+        #hydro.print_diagnostics()
+
         if time > t_diag:
             index += 1
-            t_diag += dt_diag
+            #t_diag += dt_diag
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
-    print len(gravity.code.particles)
+    #print len(gravity.code.particles)
     hydro.stop()
     return gas_particles
 
@@ -150,7 +142,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
         print "Freefall timescale=", tff.in_(units.Myr)
         rho_cloud = 3. * o.Mcloud / (4. * numpy.pi * o.Rcloud ** 3)
         print rho_cloud
-        tend = 10 * tff
+
+        #tend = 10 * tff
         dt_diag = 0.1 * tff
         hydro = Hydro(Fi, gas_particles)
         write_data(save_path, hydro)

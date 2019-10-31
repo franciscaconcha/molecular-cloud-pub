@@ -19,6 +19,7 @@ do
             filepath="results/5Myr/M$1MSun""_R$2pc_N$Ns""/$r"
             start=`date "+%Y-%m-%d %H:%M:%S"`
             start_s=`date "+%s"`
+            echo $filepath
             echo $filepath >> $logfile
             echo "START: $start" >> $logfile
             ../../amuse/amuse.sh cloud_collapse.py --Mcloud $1 --Rcloud $2 --Ncloud $Ns -s $filepath --tend 5
