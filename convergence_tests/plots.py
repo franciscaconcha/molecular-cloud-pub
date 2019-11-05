@@ -7,7 +7,7 @@ from amuse.lab import *
 
 def Nsph_vs_mean_sink_size(path, save_path, Rcloud):
 
-    Mcloud = [4000, 7500, 15000]
+    Mcloud = [4000]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -47,7 +47,7 @@ def Nsph_vs_mean_sink_size(path, save_path, Rcloud):
 
 def Nsph_vs_mean_sink_mass(path, save_path, Rcloud):
 
-    Mcloud = [4000, 7500, 15000]
+    Mcloud = [4000]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -74,7 +74,7 @@ def Nsph_vs_mean_sink_mass(path, save_path, Rcloud):
                             sink_particles = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
                             #print sink_particles.time
                             #print sink_particles.x, sink_particles.y, sink_particles.z
-                            print '{0}/{1}'.format(filepath, f)
+                            #print '{0}/{1}'.format(filepath, f)
                             masses.append(numpy.mean(sink_particles.mass.value_in(units.MSun)))
             plots.append(numpy.mean(masses))
 
@@ -90,7 +90,7 @@ def Nsph_vs_mean_sink_mass(path, save_path, Rcloud):
 
 def Nsph_vs_Nsinks_tff(path, save_path, Rcloud):
 
-    Mcloud = [4000, 7500, 15000]
+    Mcloud = [4000]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -184,14 +184,14 @@ def time_vs_mean_sink_size(path, save_path, Rcloud):
     pyplot.xlabel(r'Time [Myr]')
     pyplot.ylabel(r'$<R_\mathrm{sink}>$ [pc]')
     pyplot.title('SFE = 40\%')
-    pyplot.legend()
+    pyplot.legend(loc="upper right")
     pyplot.savefig('{0}/time_vs_mean_sink_size.png'.format(save_path))
     pyplot.show()
 
 
 def time_vs_mean_sink_mass(path, save_path, Rcloud):
 
-    Mcloud = 7500#, 15000]
+    Mcloud = 4000#, 15000]
     SFE = [40, 25, 10]
 
     Nsph = [4000, 8000, 16000, 32000]
@@ -239,8 +239,61 @@ def time_vs_mean_sink_mass(path, save_path, Rcloud):
     pyplot.xlabel(r'Time [Myr]')
     pyplot.ylabel(r'$<M_\mathrm{sink}>$ [$M_{\odot}$]')
     pyplot.title('SFE = 40\%')
-    pyplot.legend()
+    pyplot.legend(loc="lower right")
     pyplot.savefig('{0}/time_vs_mean_sink_mass.png'.format(save_path))
+    pyplot.show()
+
+def time_vs_Nsinks(path, save_path, Rcloud):
+
+    Mcloud = 4000#, 15000]
+    SFE = [40, 25, 10]
+
+    Nsph = [4000, 8000, 16000, 32000]
+    #Nruns = int(32000 / Nsph)
+
+    for N in Nsph:
+        Nruns = int(32000 / N)
+        all_sinks = []
+        all_times = []
+        for r in range(1, Nruns + 1):
+            filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                              Mcloud,
+                                                              int(Rcloud.value_in(units.parsec)),
+                                                              N,
+                                                              r)
+            files = os.listdir(filepath) #= '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+            print filepath
+
+            sinks = []
+            times = []
+
+            for f in files:
+                if 'sink' in f:
+                    sink_particles = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+                    #print sink_particles.get_timestamp().value_in(units.Myr), \
+                    #    numpy.mean(sink_particles.radius.value_in(units.parsec))
+
+                    sinks.append(len(sink_particles))
+                    times.append(sink_particles.get_timestamp().value_in(units.Myr))
+
+            sorted_times = numpy.sort(times)
+            sorted_sinks = [x for _, x in sorted(zip(times, sinks))]
+
+            #print sorted_times
+            #print sorted_sizes
+
+            all_times.append(sorted_times)
+            all_sinks.append(sorted_sinks)
+
+        pyplot.plot(numpy.mean(all_times, axis=0),
+                    numpy.mean(all_sinks, axis=0),
+                    label='N = {0}'.format(N))
+
+    pyplot.xlabel(r'Time [Myr]')
+    pyplot.ylabel(r'$N_\mathrm{sink}$')
+    pyplot.title('SFE = 40\%')
+    pyplot.legend(loc="best")
+    pyplot.savefig('{0}/time_vs_Nsinks.png'.format(save_path))
     pyplot.show()
 
 
@@ -249,7 +302,7 @@ def time_vs_sink_location(path, save_path, Rcloud):
     Mcloud = 4000#, 15000]
     SFE = [40, 25, 10]
 
-    Nsph = [4000]#[4000, 8000, 16000, 32000]
+    Nsph = [4000, 8000, 16000, 32000]
     #Nruns = int(32000 / Nsph)
 
     cmap = pyplot.cm.get_cmap('Oranges', 100)  # PiYG
@@ -259,12 +312,16 @@ def time_vs_sink_location(path, save_path, Rcloud):
         rgb = cmap(i)[:3]  # will return rgba, we take only first 3 so we get rgb
         colors.append(pyplot.cm.colors.rgb2hex(rgb))
 
-    fig = pyplot.figure(figsize=(10, 10))
-    ax = fig.gca()
+    fig, axes = pyplot.subplots(2, 2, figsize=(14, 14))
 
     # Plot "cloud"
     cloud = pyplot.Circle((0, 0), 1.0, color='k', alpha=0.2, fill=False)
-    ax.add_artist(cloud)
+    #for ax in axes.flatten():
+    #    ax.set_aspect('equal')
+    #    ax.add_artist(cloud)
+
+    # Subplots locations
+    subpl = {4000: (0, 0), 8000: (0, 1), 16000: (1, 0), 32000: (1, 1)}
 
     for N in Nsph:
         filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
@@ -286,6 +343,9 @@ def time_vs_sink_location(path, save_path, Rcloud):
                 locs_x.append(numpy.mean(sink_particles.x.value_in(units.parsec)))
                 locs_y.append(numpy.mean(sink_particles.y.value_in(units.parsec)))
                 times.append(sink_particles.get_timestamp().value_in(units.Myr))
+                #pyplot.plot(sink_particles.get_timestamp().value_in(units.Myr),
+                #            numpy.mean(sink_particles.x.value_in(units.parsec)),
+                #            'ro')
 
         sorted_times = numpy.sort(times)
         sorted_x = [x for _, x in sorted(zip(times, locs_x))]
@@ -293,22 +353,25 @@ def time_vs_sink_location(path, save_path, Rcloud):
 
         print len(sorted_times)
 
-        pyplot.scatter(sorted_x, sorted_y, c=colors)
+        axes[subpl[N][0], subpl[N][1]].scatter(sorted_x, sorted_y, c=colors)
+        axes[subpl[N][0], subpl[N][1]].set_aspect('equal')
+        #axes[subpl[N][0], subpl[N][1]].add_artist(cloud)
+        axes[subpl[N][0], subpl[N][1]].set_xlim([-1.0, 1.0])
+        axes[subpl[N][0], subpl[N][1]].set_ylim([-1.0, 1.0])
+        axes[subpl[N][0], subpl[N][1]].set_xlabel(r'x [pc]')
+        axes[subpl[N][0], subpl[N][1]].set_ylabel(r'y [pc]')
 
     # Had to do this because pyplot was being weird about the colorbar's cmap
     norm = pyplot.Normalize(sorted_times[0], sorted_times[-1])
     sm = pyplot.cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
 
-    fig.colorbar(sm, label='Time [Myr]', fraction=0.046, pad=0.04)
+    fig.subplots_adjust(right=0.8, hspace=0.5)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    fig.colorbar(sm, cax=cbar_ax, label='Time [Myr]')#, fraction=0.046, pad=0.04)
 
-    ax.set_aspect('equal')
-    pyplot.title('SFE = 40\%')
-    pyplot.xlim([-1.0, 1.0])
-    pyplot.ylim([-1.0, 1.0])
-    pyplot.xlabel(r'x [pc]')
-    pyplot.ylabel(r'y [pc]')
-
+    pyplot.suptitle('SFE = 40\%')
+    pyplot.savefig('{0}/sinks_location.png'.format(save_path))
     pyplot.show()
 
 
@@ -318,13 +381,12 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     #Nsph_vs_mean_sink_size(path, save_path, Rcloud)
     #Nsph_vs_mean_sink_mass(path, save_path, Rcloud)
-    Nsph_vs_Nsinks_tff(path, save_path, Rcloud)
+    #Nsph_vs_Nsinks_tff(path, save_path, Rcloud)
 
+    #time_vs_Nsinks(path, save_path, Rcloud)
     #time_vs_mean_sink_size(path, save_path, Rcloud)
     #time_vs_mean_sink_mass(path, save_path, Rcloud)
-    #time_vs_sink_location(path, save_path, Rcloud)
-
-    #sink_motion(path, save_path, Rcloud)
+    time_vs_sink_location(path, save_path, Rcloud)
 
 
 def new_option_parser():
