@@ -160,17 +160,21 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             + hydro.gas_particles.thermal_energy()
         E_th = hydro.gas_particles.thermal_energy()
         Eerr = (E - E0) / E0
-        #print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
-        #print "maximal_density:", gas_particles.rho.max().in_(units.MSun / units.parsec ** 3)
+        print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
+        print "maximal_density:", gas_particles.rho.max().in_(units.MSun / units.parsec ** 3)
 
-        #hydro.print_diagnostics()
-
+        hydro.print_diagnostics()
+        if gravhydro is None:
+            print "No gravhydro yet."
+        else:
+            print "gravhydro"
+            # print_diagnostics(gravhydro)
         if time > t_diag:
             index += 1
-            #t_diag += dt_diag
+            t_diag += dt_diag
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
-    #print len(gravity.code.particles)
+    print len(gravity.code.particles)
     hydro.stop()
     return gas_particles
 
