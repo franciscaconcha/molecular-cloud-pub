@@ -375,9 +375,22 @@ def time_vs_sink_location(path, save_path, Rcloud):
     pyplot.show()
 
 
+def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      Mcloud,
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      Nsph,
+                                                      1)
+    files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+    files.sort(key=lambda f: int(filter(str.isdigit, f)))
+    print files
+
+
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
+
+    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
 
     #Nsph_vs_mean_sink_size(path, save_path, Rcloud)
     #Nsph_vs_mean_sink_mass(path, save_path, Rcloud)
