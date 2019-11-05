@@ -63,6 +63,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
          + hydro.gas_particles.thermal_energy()
     time = gas_particles.get_timestamp()
 
+    # Sample IMF
+    IMF_masses = numpy.sort(new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
+
     while time < tend:
         time += dt
         print "Evolve to time=", time.in_(units.Myr)
