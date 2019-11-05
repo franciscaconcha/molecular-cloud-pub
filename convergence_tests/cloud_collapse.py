@@ -97,34 +97,20 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             for sink in hydro.sink_particles:
                 if method == 'cluster':
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
+                    print "FORMING STARS"
                     # Calculate number of stars from mean of sampled IMF
                     mean_mass = numpy.mean(IMF_masses)
                     Nstars = sink.mass / mean_mass
                     print Nstars
-                    """stars_from_sink = new_fractal_cluster_model(Nstars,
+                    local_converter = nbody_system.nbody_to_si(sink.mass, sink.radius)
+                    stars_from_sink = new_fractal_cluster_model(Nstars,
+                                                                fractal_dimension=1.6,
+                                                                convert_nbody=local_converter,
+                                                                )
+                    removed_sinks.add_particle(sink)
 
-                    )
-                    print sink.mass, sink.radius, sink.x, sink.vx
-                    star_from_sink_mass = IMF_masses[star_i]
-                    star_i += 1
-                    local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
-                    star_from_sink = Particles(1)
-
-                star_from_sink.x = sink.x
-                star_from_sink.y = sink.y
-                star_from_sink.z = sink.z
-                star_from_sink.vx = sink.vx
-                star_from_sink.vy = sink.vy
-                star_from_sink.vz = sink.vz
-                star_from_sink.mass = star_from_sink_mass
-                #star_from_sink.radius = sink.radius
-                print sink.radius.value_in(units.RSun)
-                #star_from_sink.scale_to_standard(local_converter)
-                star_from_sink.age = time
-                removed_sinks.add_particle(sink)
-
-                stars.add_particles(star_from_sink)
-                Mcloud = gas_particles.mass.sum() + star_from_sink_mass
+                    stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                 if gravity is None:
                     gravity_offset_time = time
