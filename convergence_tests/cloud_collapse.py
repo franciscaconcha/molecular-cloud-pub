@@ -43,7 +43,7 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
     return gas
 
 
-def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_diag, save_path, index=0):
     Mcloud = gas_particles.mass.sum()
 
     stars = Particles(0)
@@ -83,6 +83,10 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             #                                units.MSun))
 
             Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            MC_SFE = hydro.sink_particles.mass.sum() / Mtot
+            if MC_SFE >= SFE:
+                print "SFE reached"
+                break
             #print "SINK FORMED"
             #return 0
             #removed_sinks = Particles(0)
@@ -165,7 +169,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, start_time, tend, dt_diag, save_path, index)
+    parts = run_molecular_cloud(gas_particles, sink_particles, 0.4, start_time, tend, dt_diag, save_path, index)
 
 
 def new_option_parser():
