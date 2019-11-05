@@ -122,7 +122,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     gravhydro.add_system(hydro.code, (gravity,))
                     gravhydro.timestep = 0.1 * dt
                 else:
-                    gravity.code.particles.add_particles(star_from_sink)
+                    gravity.code.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
@@ -149,6 +149,11 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         #                                                                             Mcloud.in_(units.MSun))
         #    exit(-1)
 
+        if gravhydro is None:
+            hydro.evolve_model(time)
+        else:
+            print "EVOLVING GRAVHYDRO"
+            gravhydro.evolve_model(time)
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
