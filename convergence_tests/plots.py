@@ -390,15 +390,15 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
 
-    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
 
-    #Nsph_vs_mean_sink_size(path, save_path, Rcloud)
-    #Nsph_vs_mean_sink_mass(path, save_path, Rcloud)
-    #Nsph_vs_Nsinks_tff(path, save_path, Rcloud)
+    Nsph_vs_mean_sink_size(path, save_path, Rcloud)
+    Nsph_vs_mean_sink_mass(path, save_path, Rcloud)
+    Nsph_vs_Nsinks_tff(path, save_path, Rcloud)
 
-    #time_vs_Nsinks(path, save_path, Rcloud)
-    #time_vs_mean_sink_size(path, save_path, Rcloud)
-    #time_vs_mean_sink_mass(path, save_path, Rcloud)
+    time_vs_Nsinks(path, save_path, Rcloud)
+    time_vs_mean_sink_size(path, save_path, Rcloud)
+    time_vs_mean_sink_mass(path, save_path, Rcloud)
     time_vs_sink_location(path, save_path, Rcloud)
 
 
