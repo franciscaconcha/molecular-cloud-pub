@@ -377,7 +377,7 @@ def time_vs_sink_location(path, save_path, Rcloud):
 
 def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
     filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                      Mcloud,
+                                                      int(Mcloud.value_in(units.MSun)),
                                                       int(Rcloud.value_in(units.parsec)),
                                                       Nsph,
                                                       1)
