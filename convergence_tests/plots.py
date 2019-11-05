@@ -7,7 +7,7 @@ from amuse.lab import *
 
 def Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [Mcloud.value_in(units.MSun)]#, 7500, 15000]
+    Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -47,7 +47,7 @@ def Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
 
 def Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [Mcloud.value_in(units.MSun)]#, 7500, 15000]
+    Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -90,7 +90,7 @@ def Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
 
 def Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [Mcloud.value_in(units.MSun)]#, 7500, 15000]
+    Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
