@@ -103,7 +103,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     Nstars = sink.mass / mean_mass
                     print Nstars
                     local_converter = nbody_system.nbody_to_si(sink.mass, sink.radius)
-                    stars_from_sink = new_fractal_cluster_model(Nstars,
+                    stars_from_sink = new_fractal_cluster_model(int(Nstars),
                                                                 fractal_dimension=1.6,
                                                                 convert_nbody=local_converter,
                                                                 )
