@@ -5,9 +5,9 @@ import os
 from amuse.lab import *
 
 
-def Nsph_vs_mean_sink_size(path, save_path, Rcloud):
+def Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [4000]#, 7500, 15000]
+    Mcloud = list(Mcloud)#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -45,9 +45,9 @@ def Nsph_vs_mean_sink_size(path, save_path, Rcloud):
     pyplot.show()
 
 
-def Nsph_vs_mean_sink_mass(path, save_path, Rcloud):
+def Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [4000]#, 7500, 15000]
+    Mcloud = list(Mcloud)#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -88,9 +88,9 @@ def Nsph_vs_mean_sink_mass(path, save_path, Rcloud):
     pyplot.show()
     
 
-def Nsph_vs_Nsinks_tff(path, save_path, Rcloud):
+def Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = [4000]#, 7500, 15000]
+    Mcloud = list(Mcloud)#, 7500, 15000]
     SFE = [40, 25, 10]
 
     for M in Mcloud:
@@ -134,9 +134,8 @@ def Nsph_vs_Nsinks_tff(path, save_path, Rcloud):
     #pyplot.show()
 
 
-def time_vs_mean_sink_size(path, save_path, Rcloud):
+def time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = 4000#, 7500, 15000]
     SFE = [40, 25, 10]
 
     Nsph = [4000, 8000, 16000, 32000]
@@ -189,9 +188,8 @@ def time_vs_mean_sink_size(path, save_path, Rcloud):
     pyplot.show()
 
 
-def time_vs_mean_sink_mass(path, save_path, Rcloud):
+def time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = 4000#, 15000]
     SFE = [40, 25, 10]
 
     Nsph = [4000, 8000, 16000, 32000]
@@ -243,9 +241,8 @@ def time_vs_mean_sink_mass(path, save_path, Rcloud):
     pyplot.savefig('{0}/time_vs_mean_sink_mass.png'.format(save_path))
     pyplot.show()
 
-def time_vs_Nsinks(path, save_path, Rcloud):
+def time_vs_Nsinks(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = 4000#, 15000]
     SFE = [40, 25, 10]
 
     Nsph = [4000, 8000, 16000, 32000]
@@ -297,9 +294,8 @@ def time_vs_Nsinks(path, save_path, Rcloud):
     pyplot.show()
 
 
-def time_vs_sink_location(path, save_path, Rcloud):
+def time_vs_sink_location(path, save_path, Mcloud, Rcloud):
 
-    Mcloud = 4000#, 15000]
     SFE = [40, 25, 10]
 
     Nsph = [4000, 8000, 16000, 32000]
@@ -392,14 +388,14 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
 
-    Nsph_vs_mean_sink_size(path, save_path, Rcloud)
-    Nsph_vs_mean_sink_mass(path, save_path, Rcloud)
-    Nsph_vs_Nsinks_tff(path, save_path, Rcloud)
+    Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
+    Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
+    Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud)
 
-    time_vs_Nsinks(path, save_path, Rcloud)
-    time_vs_mean_sink_size(path, save_path, Rcloud)
-    time_vs_mean_sink_mass(path, save_path, Rcloud)
-    time_vs_sink_location(path, save_path, Rcloud)
+    time_vs_Nsinks(path, save_path, Mcloud, Rcloud)
+    time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
+    time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
+    time_vs_sink_location(path, save_path, Mcloud, Rcloud)
 
 
 def new_option_parser():
