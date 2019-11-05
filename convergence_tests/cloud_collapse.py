@@ -91,20 +91,24 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print "SFE reached"
                 break
 
-            """removed_sinks = Particles(0)
+            removed_sinks = Particles(0)
             star_i = 0
 
             for sink in hydro.sink_particles:
                 if method == 'cluster':
-                    
-                #if sink.mass > mass_treshold_for_star_formation:
-                print "Sink has formed"
-                print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
-                print sink.mass, sink.radius, sink.x, sink.vx
-                star_from_sink_mass = IMF_masses[star_i]
-                star_i += 1
-                local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
-                star_from_sink = Particles(1)
+                    print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
+                    # Calculate number of stars from mean of sampled IMF
+                    mean_mass = numpy.mean(IMF_masses)
+                    Nstars = sink.mass / mean_mass
+                    print Nstars
+                    """stars_from_sink = new_fractal_cluster_model(Nstars,
+
+                    )
+                    print sink.mass, sink.radius, sink.x, sink.vx
+                    star_from_sink_mass = IMF_masses[star_i]
+                    star_i += 1
+                    local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
+                    star_from_sink = Particles(1)
 
                 star_from_sink.x = sink.x
                 star_from_sink.y = sink.y
