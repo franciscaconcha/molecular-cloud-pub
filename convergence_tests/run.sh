@@ -6,7 +6,7 @@
 Nsph=(4000 8000 16000 32000)
 Nruns=(1 2 3 4 5 6 7 8)
 
-logfile="results/5Myr/log_M$1MSun""_R$2pc.txt"
+logfile="results/5Myr_SFE/log_M$1MSun""_R$2pc.txt"
 echo "" > $logfile
 
 for Ns in ${Nsph[@]}
@@ -16,7 +16,7 @@ do
     do
         if [ $(expr $Ns \* $r) -le 32000 ]
         then
-            filepath="results/5Myr/M$1MSun""_R$2pc_N$Ns""/$r"
+            filepath="results/5Myr_SFE/M$1MSun""_R$2pc_N$Ns""/$r"
             start=`date "+%Y-%m-%d %H:%M:%S"`
             start_s=`date "+%s"`
             echo $filepath

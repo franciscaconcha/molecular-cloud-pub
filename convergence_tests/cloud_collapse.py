@@ -20,7 +20,7 @@ def write_data(path, hydro, index=0, stars=Particles(0)):
                           append_to_file=False)
 
 
-def fill_mass_function_with_sink_mass(total_mass):
+def fill_mass_function_with_sink_mass(total_mass, method):
     # print "Make mass function for M=", total_mass.in_(units.MSun)
     masses = [] | units.MSun
 
@@ -43,7 +43,7 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
     return gas
 
 
-def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
     Mcloud = gas_particles.mass.sum()
 
     stars = Particles(0)
@@ -91,10 +91,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 print "SFE reached"
                 break
 
-            removed_sinks = Particles(0)
+            """removed_sinks = Particles(0)
             star_i = 0
 
             for sink in hydro.sink_particles:
+                if method == 'cluster':
+                    
                 #if sink.mass > mass_treshold_for_star_formation:
                 print "Sink has formed"
                 print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
@@ -141,7 +143,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
             #print "SINK FORMED"
             #return 0
             #removed_sinks = Particles(0)
-            #star_i = 0
+            #star_i = 0"""
 
         else:
             #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
@@ -220,7 +222,10 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, 0.4, start_time, tend, dt_diag, save_path, index)
+    SFE = 0.4
+    method = 'cluster'
+
+    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
 
 def new_option_parser():
