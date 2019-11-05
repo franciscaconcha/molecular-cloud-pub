@@ -87,6 +87,54 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
             if MC_SFE >= SFE:
                 print "SFE reached"
                 break
+
+            removed_sinks = Particles(0)
+            star_i = 0
+
+            for sink in hydro.sink_particles:
+                #if sink.mass > mass_treshold_for_star_formation:
+                print "Sink has formed"
+                print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
+                print sink.mass, sink.radius, sink.x, sink.vx
+                star_from_sink_mass = IMF_masses[star_i]
+                star_i += 1
+                local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
+                star_from_sink = Particles(1)
+
+                star_from_sink.x = sink.x
+                star_from_sink.y = sink.y
+                star_from_sink.z = sink.z
+                star_from_sink.vx = sink.vx
+                star_from_sink.vy = sink.vy
+                star_from_sink.vz = sink.vz
+                star_from_sink.mass = star_from_sink_mass
+                #star_from_sink.radius = sink.radius
+                print sink.radius.value_in(units.RSun)
+                #star_from_sink.scale_to_standard(local_converter)
+                star_from_sink.age = time
+                removed_sinks.add_particle(sink)
+
+                stars.add_particles(star_from_sink)
+                Mcloud = gas_particles.mass.sum() + star_from_sink_mass
+
+                if gravity is None:
+                    gravity_offset_time = time
+                    gravity = Gravity(ph4, stars)
+                    #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                    gravity_to_framework = stars.new_channel_to(gravity.particles)
+                    gravhydro = Bridge()
+                    gravhydro.add_system(gravity, (hydro.code,))
+                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.timestep = 0.1 * dt
+                else:
+                    gravity.code.particles.add_particles(star_from_sink)
+                    gravity_to_framework.copy()
+
+            if len(removed_sinks) > 0:
+                # clean up hydro code by removing sink particles.
+                print "Clean up hydro code by removing sink particles."
+                hydro.sink_particles.remove_particle(removed_sinks)
+                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
             #print "SINK FORMED"
             #return 0
             #removed_sinks = Particles(0)
