@@ -269,7 +269,7 @@ def time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud):
                     #print sink_particles.get_timestamp().value_in(units.Myr), \
                     #    numpy.mean(sink_particles.radius.value_in(units.parsec))
 
-                    masses.append(sink_particles.mass.sum()value_in(units.MSun))
+                    masses.append(sink_particles.mass.sum().value_in(units.MSun))
                     times.append(sink_particles.get_timestamp().value_in(units.Myr))
 
             sorted_times = numpy.sort(times)
