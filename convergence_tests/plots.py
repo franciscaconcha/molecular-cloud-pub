@@ -147,7 +147,7 @@ def time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
         all_times = []
         for r in range(1, Nruns + 1):
             filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                              Mcloud,
+                                                              int(Mcloud.value_in(units.MSun)),
                                                               int(Rcloud.value_in(units.parsec)),
                                                               N,
                                                               r)
@@ -201,7 +201,7 @@ def time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
         all_times = []
         for r in range(1, Nruns + 1):
             filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                              Mcloud,
+                                                              int(Mcloud.value_in(units.MSun)),
                                                               int(Rcloud.value_in(units.parsec)),
                                                               N,
                                                               r)
@@ -254,7 +254,7 @@ def time_vs_Nsinks(path, save_path, Mcloud, Rcloud):
         all_times = []
         for r in range(1, Nruns + 1):
             filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                              Mcloud,
+                                                              int(Mcloud.value_in(units.MSun)),
                                                               int(Rcloud.value_in(units.parsec)),
                                                               N,
                                                               r)
@@ -321,7 +321,7 @@ def time_vs_sink_location(path, save_path, Mcloud, Rcloud):
 
     for N in Nsph:
         filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                          Mcloud,
+                                                          int(Mcloud.value_in(units.MSun)),
                                                           int(Rcloud.value_in(units.parsec)),
                                                           N,
                                                           1)
