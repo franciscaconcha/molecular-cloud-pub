@@ -89,6 +89,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             MC_SFE = hydro.sink_particles.mass.sum() / Mtot
             if MC_SFE >= SFE:
                 print "SFE reached"
+                # TODO stop hydro code, kick out all gas, keep going with Nbody
                 break
 
             removed_sinks = Particles(0)
@@ -114,6 +115,14 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+
+                elif method == 'single':
+                    print "Forming single star for sink. Msink = {0}".format(sink.mass.in_(units.MSun))
+                    print "SINK mass: {0}  radius: {1}  tff: {2}".format(sink.mass._in(units.MSun),
+                                                                         sink.radius._in(units.RSun),
+                                                                         1. / numpy.sqrt(constants.G * (sink.mass / sink.radius)))
+
                     Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                 if gravity is None:
@@ -226,7 +235,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
     SFE = 0.4
-    method = 'cluster'
+    method = 'single' #'cluster'
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
