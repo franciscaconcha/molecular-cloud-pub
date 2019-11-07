@@ -125,7 +125,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                     #Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
-                if gravity is None:
+                """if gravity is None:
                     gravity_offset_time = time
                     gravity = Gravity(ph4, stars)
                     #gravity_from_framework = gravity.particles.new_channel_to(stars)
@@ -142,7 +142,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 # clean up hydro code by removing sink particles.
                 print "Clean up hydro code by removing sink particles."
                 hydro.sink_particles.remove_particle(removed_sinks)
-                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
+                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)"""
             #print "SINK FORMED"
             #return 0
             #removed_sinks = Particles(0)
