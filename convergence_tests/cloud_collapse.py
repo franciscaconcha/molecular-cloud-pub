@@ -123,7 +123,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                                                                          sink.radius.in_(units.RSun),
                                                                          1. / numpy.sqrt(constants.G * (sink.mass / sink.radius)))
 
-                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+                    #Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                 if gravity is None:
                     gravity_offset_time = time
