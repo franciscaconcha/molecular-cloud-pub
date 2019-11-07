@@ -100,13 +100,17 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     print "FORMING STARS"
                     # Calculate number of stars from mean of sampled IMF
                     mean_mass = numpy.mean(IMF_masses)
-                    Nstars = sink.mass / mean_mass
+                    Nstars = int(sink.mass / mean_mass)
+                    masses = new_kroupa_mass_distribution(Nstars, mass_max=sink.mass)
                     print Nstars
                     local_converter = nbody_system.nbody_to_si(sink.mass, sink.radius)
-                    stars_from_sink = new_fractal_cluster_model(int(Nstars),
+                    stars_from_sink = new_fractal_cluster_model(Nstars,
                                                                 fractal_dimension=1.6,
                                                                 convert_nbody=local_converter,
                                                                 )
+                    stars_from_sink.mass = masses
+                    stars_from_sink.scale_to_standard(local_converter)
+                    stars_from_sink.age = time
                     removed_sinks.add_particle(sink)
 
                     stars.add_particles(stars_from_sink)
