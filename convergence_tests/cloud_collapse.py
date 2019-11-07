@@ -119,8 +119,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                 elif method == 'single':
                     print "Forming single star for sink. Msink = {0}".format(sink.mass.in_(units.MSun))
-                    print "SINK mass: {0}  radius: {1}  tff: {2}".format(sink.mass._in(units.MSun),
-                                                                         sink.radius._in(units.RSun),
+                    print "SINK mass: {0}  radius: {1}  tff: {2}".format(sink.mass.in_(units.MSun),
+                                                                         sink.radius.in_(units.RSun),
                                                                          1. / numpy.sqrt(constants.G * (sink.mass / sink.radius)))
 
                     Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
