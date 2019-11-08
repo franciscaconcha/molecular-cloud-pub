@@ -430,6 +430,7 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
                                                       int(Rcloud.value_in(units.parsec)),
                                                       Nsph,
                                                       1)
+    filepath = path
     files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
     stars_files = [x for x in files if 'stars' in x]
     stars_files.sort(key=lambda f: int(filter(str.isdigit, f)))
@@ -440,10 +441,10 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
 
     ax = fig.gca()
     ax.set_aspect('equal')
-    fig.xlim([-1.0, 1.0])
-    fig.ylim([-1.0, 1.0])
-    fig.xlabel(r'x [pc]')
-    fig.ylabel(r'y [pc]')
+    ax.set_xlim([-1.0, 1.0])
+    ax.set_ylim([-1.0, 1.0])
+    ax.set_xlabel(r'x [pc]')
+    ax.set_ylabel(r'y [pc]')
 
     pyplot.show()
 
