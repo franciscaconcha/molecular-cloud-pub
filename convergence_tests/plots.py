@@ -424,31 +424,45 @@ def time_vs_sink_location(path, save_path, Mcloud, Rcloud):
 
 
 def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
+    fig = pyplot.figure(figsize=(8, 8))
     filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
                                                       int(Mcloud.value_in(units.MSun)),
                                                       int(Rcloud.value_in(units.parsec)),
                                                       Nsph,
                                                       1)
     files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-    files.sort(key=lambda f: int(filter(str.isdigit, f)))
-    print files
+    stars_files = [x for x in files if 'stars' in x]
+    stars_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
+    pyplot.scatter(stars.x.value_in(units.parsec),
+                   stars.y.value_in(units.parsec))
+
+    ax = fig.gca()
+    ax.set_aspect('equal')
+    fig.xlim([-1.0, 1.0])
+    fig.ylim([-1.0, 1.0])
+    fig.xlabel(r'x [pc]')
+    fig.ylabel(r'y [pc]')
+
+    pyplot.show()
 
 
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
 
-    #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
 
-    Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
-    Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
-    Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud)
+    #Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
+    #Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
+    #Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud)
 
-    time_vs_Nsinks(path, save_path, Mcloud, Rcloud)
-    time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
-    time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
-    time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud)
-    time_vs_sink_location(path, save_path, Mcloud, Rcloud)
+    #time_vs_Nsinks(path, save_path, Mcloud, Rcloud)
+    #time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
+    #time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
+    #time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud)
+    #time_vs_sink_location(path, save_path, Mcloud, Rcloud)
 
 
 def new_option_parser():
