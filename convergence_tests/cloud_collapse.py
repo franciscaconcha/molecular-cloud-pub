@@ -250,7 +250,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
     SFE = 0.4
-    method = 'single' #'cluster'
+    method = 'cluster'
+    #method = 'single'
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
