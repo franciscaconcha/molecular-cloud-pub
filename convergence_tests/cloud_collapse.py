@@ -65,6 +65,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     # Sample IMF
     IMF_masses = numpy.sort(new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
+    current_mass = 0  # To keep track of formed stars in 'single' method
 
     while time < tend:
         time += dt
@@ -123,9 +124,27 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                                                                          sink.radius.in_(units.RSun),
                                                                          1. / numpy.sqrt(constants.G * (sink.mass / sink.radius)))
 
-                    #Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+                    if sink.mass > IMF_masses[current_mass]:
+                        stars_from_sink = Particles(1)
+                        stars_from_sink.mass = IMF_masses[current_mass]
+                        current_mass += 1
+                        sink.mass = sink.mass - stars_from_sink.mass
 
-                """if gravity is None:
+                        # Find position offset inside sink radius
+                        Rsink = sink.radius.value_in(units.parsec)
+                        offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+                        stars_from_sink.x = sink.x + offset
+                        stars_from_sink.y = sink.y + offset
+                        stars_from_sink.z = sink.z + offset
+
+                        stars_from_sink.vx = sink.vx
+                        stars_from_sink.vy = sink.vy
+                        stars_from_sink.vz = sink.vz
+
+                    stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+
+                if gravity is None:
                     gravity_offset_time = time
                     gravity = Gravity(ph4, stars)
                     #gravity_from_framework = gravity.particles.new_channel_to(stars)
@@ -142,11 +161,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 # clean up hydro code by removing sink particles.
                 print "Clean up hydro code by removing sink particles."
                 hydro.sink_particles.remove_particle(removed_sinks)
-                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)"""
-            #print "SINK FORMED"
-            #return 0
-            #removed_sinks = Particles(0)
-            #star_i = 0"""
+                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
 
         else:
             #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
