@@ -64,7 +64,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     time = gas_particles.get_timestamp()
 
     # Sample IMF
-    IMF_masses = numpy.sort(new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
+    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun)
     current_mass = 0  # To keep track of formed stars in 'single' method
 
     delay_t = 0 | units.Myr  # Time when the next star should form in 'single' method
@@ -131,6 +131,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
 
                     if sink.mass > IMF_masses[current_mass] and form_star:
+                        print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
+                                                                                   sink.mass.in_(units.MSun))
                         # If sink is massive enough and it's time to form a star
                         stars_from_sink = Particles(1)
                         stars_from_sink.mass = IMF_masses[current_mass]
@@ -188,7 +190,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             Mtot = hydro.gas_particles.mass.sum()
             #print Mtot
 
-        hydro.evolve_model(time)
         #print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
         # if Mcloud - Mtot > (1E-2 | units.MSun):
         #    print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
