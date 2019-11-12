@@ -249,6 +249,7 @@ class Hydro:
                 ns.merged_ids = numpy.zeros((1, ))
                 self.sink_id += 1
                 ns.form_star = True
+                ns.time_threshold = self.model_time
 
             self.g_newsinks = len(newsinks)
 
@@ -275,13 +276,13 @@ class Hydro:
             if len(cc) > 1:
                 nmerge += 1
             print "Merge sinks: N= ", len(cc)
-            merge_two_sinks(self.sink_particles, cc.copy(), self.sink_id, self.g_newsinks)
+            merge_two_sinks(self.sink_particles, cc.copy(), self.sink_id, self.model_time)
             self.sink_id += 2  # To account for the merged sink formed with a new id
             self.sink_particles.synchronize_to(self.code.dm_particles)
             print "sinks merged"
 
 
-def merge_two_sinks(bodies, particles_in_encounter, id, newsinks):
+def merge_two_sinks(bodies, particles_in_encounter, id, time):
     com_pos = particles_in_encounter.center_of_mass()
     com_vel = particles_in_encounter.center_of_mass_velocity()
     new_particle = Particles(1)
@@ -295,9 +296,11 @@ def merge_two_sinks(bodies, particles_in_encounter, id, newsinks):
 
     new_particle.id = id + 1
     new_particle.form_star = True
-    l = []
-    for p in particles_in_encounter:
-        l.append(p.id)
+    new_particle.time_threshold = time
+
+    #l = []
+    #for p in particles_in_encounter:
+    #    l.append(p.id)
     #new_particle.merged_ids = numpy.pad(numpy.array(l), (0, newsinks - len(particles_in_encounter)), 'constant')
 
 

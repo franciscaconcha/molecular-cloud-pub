@@ -67,10 +67,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     IMF_masses = new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun)
     current_mass = 0  # To keep track of formed stars in 'single' method
 
-    delay_t = 0 | units.Myr  # Time when the next star should form in 'single' method
-    prev_t = 0 | units.Myr  # To keep track of delay time passed
-    form_star = True  # Starts as True to create the 1st star
-
     while time < tend:
         time += dt
         print "Evolve to time=", time.in_(units.Myr)
@@ -98,10 +94,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 break
 
             removed_sinks = Particles(0)
-            initialized_sinks = []
 
             for sink in hydro.sink_particles:
-                initialized_sinks.append(sink.id)
 
                 if method == 'cluster':
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
@@ -131,39 +125,38 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     sink_volume = (4. / 3) * numpy.pi * sink.radius**3
                     delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
 
-                    if sink.mass > IMF_masses[current_mass] and form_star:
-                        if sink.id not in initialized_sinks:
-                            print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
-                                                                                       sink.mass.in_(units.MSun))
-                            # If sink is massive enough and it's time to form a star
-                            stars_from_sink = Particles(1)
-                            stars_from_sink.mass = IMF_masses[current_mass]
-                            current_mass += 1
-                            sink.mass -= stars_from_sink.mass
+                    if sink.mass > IMF_masses[current_mass] and sink.form_star:
+                        print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
+                                                                                   sink.mass.in_(units.MSun))
+                        # If sink is massive enough and it's time to form a star
+                        stars_from_sink = Particles(1)
+                        stars_from_sink.mass = IMF_masses[current_mass]
+                        current_mass += 1
+                        sink.mass -= stars_from_sink.mass
 
-                            # Find position offset inside sink radius
-                            Rsink = sink.radius.value_in(units.parsec)
-                            offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-                            stars_from_sink.x = sink.x + offset
-                            stars_from_sink.y = sink.y + offset
-                            stars_from_sink.z = sink.z + offset
+                        # Find position offset inside sink radius
+                        Rsink = sink.radius.value_in(units.parsec)
+                        offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+                        stars_from_sink.x = sink.x + offset
+                        stars_from_sink.y = sink.y + offset
+                        stars_from_sink.z = sink.z + offset
 
-                            stars_from_sink.vx = sink.vx
-                            stars_from_sink.vy = sink.vy
-                            stars_from_sink.vz = sink.vz
+                        stars_from_sink.vx = sink.vx
+                        stars_from_sink.vy = sink.vy
+                        stars_from_sink.vz = sink.vz
 
-                            form_star = False
-                            prev_t = time
+                        sink.form_star = False
+                        sink.time_threshold = time + delay_t  # Next time at which this sink should form a star
 
-                    elif sink.mass > IMF_masses[current_mass] and not form_star:
+                    elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
                         print "Sink is massive enough, but it's not yet time to form a star"
-                        print time, prev_t, delay_t
-                        if time - prev_t >= delay_t:
-                            form_star = True
+                        if time >= sink.time_threshold:
+                            sink.form_star = True
+                            # sink will form a star in the next timestep
 
-                    elif sink.mass < IMF_masses[current_mass] and form_star:
+                    elif sink.mass < IMF_masses[current_mass] and sink.form_star:
                         print "Sink is not massive enough to form this star."
-                        form_star = False
+                        sink.form_star = False
 
                     stars.add_particles(stars_from_sink)
                     Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
