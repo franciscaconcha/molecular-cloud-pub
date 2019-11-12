@@ -436,6 +436,8 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
     stars_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
     stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
+    print stars_files[-1]
+    print stars
     pyplot.scatter(stars.x.value_in(units.parsec),
                    stars.y.value_in(units.parsec))
 

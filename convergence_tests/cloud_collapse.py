@@ -67,6 +67,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     IMF_masses = numpy.sort(new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
     current_mass = 0  # To keep track of formed stars in 'single' method
 
+    delay_t = 0 | units.Myr  # Time when the next star should form in 'single' method
+    prev_t = 0 | units.Myr  # To keep track of delay time passed
+    form_star = True  # Starts as True to create the 1st star
+
     while time < tend:
         time += dt
         print "Evolve to time=", time.in_(units.Myr)
@@ -97,6 +101,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             star_i = 0
 
             for sink in hydro.sink_particles:
+                form_star = True
                 if method == 'cluster':
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
                     print "FORMING STARS"
@@ -119,12 +124,14 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                 elif method == 'single':
-                    print "Forming single star for sink. Msink = {0}".format(sink.mass.in_(units.MSun))
-                    print "SINK mass: {0}  radius: {1}  tff: {2}".format(sink.mass.in_(units.MSun),
-                                                                         sink.radius.in_(units.RSun),
-                                                                         1. / numpy.sqrt(constants.G * (sink.mass / sink.radius)))
+                    print "Forming single star from sink. Msink = {0}".format(sink.mass.in_(units.MSun))
 
-                    if sink.mass > IMF_masses[current_mass]:
+                    # 'Delay' for star formation is sink's free-fall time (for now!)
+                    sink_volume = (4. / 3) * numpy.pi * sink.radius**3
+                    delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
+
+                    if sink.mass > IMF_masses[current_mass] and form_star:
+                        # If sink is massive enough and it's time to form a star
                         stars_from_sink = Particles(1)
                         stars_from_sink.mass = IMF_masses[current_mass]
                         current_mass += 1
@@ -141,10 +148,21 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         stars_from_sink.vy = sink.vy
                         stars_from_sink.vz = sink.vz
 
+                        form_star = False
+                        prev_t = time
+
+                    elif sink.mass > IMF_masses[current_mass] and not form_star:
+                        print time, prev_t, delay_t
+                        if time - prev_t >= delay_t:
+                            form_star = True
+
+                    elif sink.mass < IMF_masses[current_mass] and form_star:
+                        form_star = False
+
                     stars.add_particles(stars_from_sink)
                     Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
-                if gravity is None:
+                if gravity is None:  # TODO check time offset of gravity integration
                     gravity_offset_time = time
                     gravity = Gravity(ph4, stars)
                     #gravity_from_framework = gravity.particles.new_channel_to(stars)
@@ -154,7 +172,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     gravhydro.add_system(hydro.code, (gravity,))
                     gravhydro.timestep = 0.1 * dt
                 else:
-                    gravity.code.particles.add_particles(stars_from_sink)
+                    #gravity.code.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
@@ -250,8 +268,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
     SFE = 0.4
-    method = 'cluster'
-    #method = 'single'
+    #method = 'cluster'
+    method = 'single'
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
