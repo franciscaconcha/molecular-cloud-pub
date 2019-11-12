@@ -248,6 +248,7 @@ class Hydro:
                 ns.id = self.sink_id
                 ns.merged_ids = numpy.zeros((1, ))
                 self.sink_id += 1
+                ns.form_star = True
 
             self.g_newsinks = len(newsinks)
 
@@ -293,6 +294,7 @@ def merge_two_sinks(bodies, particles_in_encounter, id, newsinks):
     new_particle.radius = particles_in_encounter.radius.max()
 
     new_particle.id = id + 1
+    new_particle.form_star = True
     l = []
     for p in particles_in_encounter:
         l.append(p.id)
