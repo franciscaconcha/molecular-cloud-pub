@@ -17,7 +17,6 @@ COOL = True
 
 class Hydro:
     sink_id = 0
-    g_newsinks = 0
 
     def __init__(self, hydro_code, particles, tstart=0 | units.Myr):
 
@@ -58,7 +57,7 @@ class Hydro:
             """
             isothermal_flag:
             When True then we have to do our own adiabatic cooling (and Gamma has to be 1.0)
-            When False then we dont do the adjabatic cooling and Fi is changing u
+            When False then we don't do the adiabatic cooling and Fi is changing u
             """
             self.code.parameters.isothermal_flag = True
             self.code.parameters.integrate_entropy_flag = False
@@ -79,7 +78,7 @@ class Hydro:
             self.code.parameters.time_max = dt * 2 ** int(numpy.log2(4 * (10 | units.Myr) / dt))
             self.code.parameters.max_size_timestep = 0.5 * dt
             # ~ self.code.parameters.min_size_timestep=
-            print "Isofag;", self.code.parameters.isothermal_flag
+            print "Isoflag;", self.code.parameters.isothermal_flag
             print "gamma=", self.code.parameters.polytropic_index_gamma
             # assert self.code.parameters.isothermal_flag == True
             assert self.code.parameters.no_gravity_flag == False
@@ -150,6 +149,10 @@ class Hydro:
     def stop(self):
         return self.code.stop
 
+    @property
+    def particles(self):
+        return self.code.particles
+
     def evolve_model(self, model_time):
 
         # print "timing:", self.model_time.in_(units.Myr), self.code.model_time.in_(units.Myr), self.current_time.in_(units.Myr)
@@ -164,10 +167,11 @@ class Hydro:
         self.current_time = model_time
         dt = model_time - model_time_old
         hydro_time = self.code.model_time + dt
+
         print "Evolve Hydrodynamics:", dt.in_(units.Myr), self.model_time.in_(units.Myr), self.code.model_time.in_(
             units.Myr), self.current_time.in_(units.Myr), hydro_time.in_(units.Myr)
 
-        print "Density treshold:", self.density_threshold.in_(
+        print "Density threshold:", self.density_threshold.in_(
             units.g / units.cm ** 3), self.code.gas_particles.density.max().in_(units.g / units.cm ** 3)
 
         if COOL:
@@ -244,14 +248,13 @@ class Hydro:
             newsinks.Ly = 0 | (units.g * units.m ** 2) / units.s
             newsinks.Lz = 0 | (units.g * units.m ** 2) / units.s
 
+            # Added this to keep track of sinks when forming stars
             for ns in newsinks:
                 ns.id = self.sink_id
-                ns.merged_ids = numpy.zeros((1, ))
+                #ns.merged_ids = numpy.zeros((1, ))
                 self.sink_id += 1
                 ns.form_star = True
                 ns.time_threshold = self.model_time
-
-            self.g_newsinks = len(newsinks)
 
             print "pre N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
             # self.sink_particles.add_sinks(newsinks)

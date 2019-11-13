@@ -63,7 +63,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
          + hydro.gas_particles.thermal_energy()
     time = gas_particles.get_timestamp()
 
-    # Sample IMF
+    # Sample IMF for single star formation
     IMF_masses = new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun)
     current_mass = 0  # To keep track of formed stars in 'single' method
 
@@ -112,6 +112,14 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                                                                 fractal_dimension=1.6,
                                                                 convert_nbody=local_converter,
                                                                 )
+                    stars_from_sink.x += sink.x
+                    stars_from_sink.y += sink.y
+                    stars_from_sink.z += sink.z
+
+                    stars_from_sink.vx += sink.vx
+                    stars_from_sink.vy += sink.vy
+                    stars_from_sink.vz += sink.vz
+
                     stars_from_sink.mass = masses
                     stars_from_sink.scale_to_standard(local_converter)
                     stars_from_sink.age = time
@@ -154,7 +162,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                     elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
-                        print "Sink is massive enough, but it's not yet time to form a star"
+                        print "Sink is massive enough, but it's not yet time to form a star."
                         if time >= sink.time_threshold:
                             sink.form_star = True
                             # sink will form a star in the next timestep
@@ -163,14 +171,14 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         print "Sink is not massive enough to form this star."
                         sink.form_star = False
 
-                if gravity is None:  # TODO check time offset of gravity integration
+                if gravity is None:  # TODO check time offset
                     gravity_offset_time = time
                     gravity = Gravity(ph4, stars)
                     #gravity_from_framework = gravity.particles.new_channel_to(stars)
                     gravity_to_framework = stars.new_channel_to(gravity.particles)
                     gravhydro = Bridge()
-                    gravhydro.add_system(gravity, (hydro.code,))
-                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.add_system(gravity, (hydro,))
+                    gravhydro.add_system(hydro, (gravity,))
                     gravhydro.timestep = 0.1 * dt
                 else:
                     gravity.code.particles.add_particles(stars_from_sink)
@@ -199,7 +207,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             hydro.evolve_model(time)
         else:
             print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
-            gravhydro.evolve_model(time)
+            gravhydro.evolve_model(time - gravity_offset_time)
+            print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
@@ -268,8 +277,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
     SFE = 0.4
-    #method = 'cluster'
-    method = 'single'
+    method = 'cluster'
+    #method = 'single'
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
