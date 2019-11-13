@@ -424,7 +424,6 @@ def time_vs_sink_location(path, save_path, Mcloud, Rcloud):
 
 
 def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
-    fig = pyplot.figure(figsize=(8, 8))
     filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
                                                       int(Mcloud.value_in(units.MSun)),
                                                       int(Rcloud.value_in(units.parsec)),
@@ -435,27 +434,100 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
     stars_files = [x for x in files if 'stars' in x]
     stars_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
-    stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
-    print stars_files[-1]
-    print stars
-    pyplot.scatter(stars.x.value_in(units.parsec),
-                   stars.y.value_in(units.parsec))
+    #stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
 
-    ax = fig.gca()
-    ax.set_aspect('equal')
-    ax.set_xlim([-1.0, 1.0])
-    ax.set_ylim([-1.0, 1.0])
-    ax.set_xlabel(r'x [pc]')
-    ax.set_ylabel(r'y [pc]')
+    i = 0
 
-    pyplot.show()
+    for sf in stars_files:
+        fig = pyplot.figure(figsize=(8, 8))
+        stars = read_set_from_file('{0}/{1}'.format(filepath, sf), "hdf5", close_file=True)
+        print stars_files[-1]
+        print len(stars)
+        pyplot.scatter(stars.x.value_in(units.parsec),
+                       stars.y.value_in(units.parsec))
+
+        ax = fig.gca()
+        ax.set_aspect('equal')
+        ax.set_xlim([-1.0, 1.0])
+        ax.set_ylim([-1.0, 1.0])
+        ax.set_xlabel(r'x [pc]')
+        ax.set_ylabel(r'y [pc]')
+
+        pyplot.savefig('{0}/{1}.png'.format(save_path, i))
+        i += 1
+
+
+def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      int(Mcloud.value_in(units.MSun)),
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      Nsph,
+                                                      1)
+    filepath = path
+    files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+
+    sink_files = [x for x in files if 'sink' in x]
+    sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    star_files = [x for x in files if 'stars' in x]
+    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    #stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
+
+    i = 0
+
+    prev_stars = None
+
+    for s in sink_files:
+        print s
+        sink_file_number = s.split('_')[-1].split('.')[0][1:]
+
+        fig = pyplot.figure(figsize=(8, 8))
+        sinks = read_set_from_file('{0}/{1}'.format(filepath, s), "hdf5", close_file=True)
+        pyplot.scatter(sinks.x.value_in(units.parsec),
+                       sinks.y.value_in(units.parsec),
+                       alpha=0.5)
+
+        for sf in star_files:
+            star_file_number = sf.split('_')[-1].split('.')[0][1:]
+
+            if star_file_number == sink_file_number:
+                stars = read_set_from_file('{0}/{1}'.format(filepath, sf), "hdf5", close_file=True)
+                if prev_stars is None:
+                    prev_stars = stars.key
+                else:
+                    # Is there a way to do this??
+                    #old_stars = stars[stars.key in prev_stars.key]
+                    #new_stars = stars[stars.key not in prev_stars.key]
+                    #print old_stars
+                    #prev_stars = stars.key
+                    #print "old stars: {0}, new stars: {1}".format(len(old_stars), len(new_stars))
+                    for star in stars:
+                        if star.key in prev_stars:  # old star
+                            pyplot.scatter(star.x.value_in(units.parsec),
+                                           star.y.value_in(units.parsec), marker="*", color='blue')
+                        else:  # new star
+                            pyplot.scatter(star.x.value_in(units.parsec),
+                                           star.y.value_in(units.parsec), marker="*", color='black')
+                    prev_stars = stars.key
+
+        ax = fig.gca()
+        ax.set_aspect('equal')
+        ax.set_xlim([-1.0, 1.0])
+        ax.set_ylim([-1.0, 1.0])
+        ax.set_xlabel(r'x [pc]')
+        ax.set_ylabel(r'y [pc]')
+
+        pyplot.savefig('{0}/{1}.png'.format(save_path, i))
+        i += 1
 
 
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
 
-    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    star_formation_movie(path, save_path, Rcloud, 4000, Mcloud)
 
     #Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
     #Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
