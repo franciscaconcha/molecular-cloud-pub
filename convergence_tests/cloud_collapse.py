@@ -97,6 +97,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
             for sink in hydro.sink_particles:
 
+                stars_from_sink = Particles(0)
+
                 if method == 'cluster':
                     print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
                     print "FORMING NEW FRACTAL CLUSTER"
@@ -148,6 +150,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         sink.form_star = False
                         sink.time_threshold = time + delay_t  # Next time at which this sink should form a star
 
+                        stars.add_particles(stars_from_sink)
+                        Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+
                     elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
                         print "Sink is massive enough, but it's not yet time to form a star"
                         if time >= sink.time_threshold:
@@ -158,21 +163,18 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         print "Sink is not massive enough to form this star."
                         sink.form_star = False
 
-                    stars.add_particles(stars_from_sink)
-                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
-
-                    if gravity is None:  # TODO check time offset of gravity integration
-                        gravity_offset_time = time
-                        gravity = Gravity(ph4, stars)
-                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
-                        gravity_to_framework = stars.new_channel_to(gravity.particles)
-                        gravhydro = Bridge()
-                        gravhydro.add_system(gravity, (hydro.code,))
-                        gravhydro.add_system(hydro.code, (gravity,))
-                        gravhydro.timestep = 0.1 * dt
-                    else:
-                        gravity.code.particles.add_particles(stars_from_sink)
-                        gravity_to_framework.copy()
+                if gravity is None:  # TODO check time offset of gravity integration
+                    gravity_offset_time = time
+                    gravity = Gravity(ph4, stars)
+                    #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                    gravity_to_framework = stars.new_channel_to(gravity.particles)
+                    gravhydro = Bridge()
+                    gravhydro.add_system(gravity, (hydro.code,))
+                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.timestep = 0.1 * dt
+                else:
+                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
                 # clean up hydro code by removing sink particles.
