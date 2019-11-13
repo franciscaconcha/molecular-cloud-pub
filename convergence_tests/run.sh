@@ -3,6 +3,7 @@
 # $1: Mcloud
 # $2: Rcloud
 # $3: results path
+# $4: method for star formation, cluster or single
 
 Nsph=(4000 8000 16000 32000)
 Nruns=(1 2 3 4 5 6 7 8)
@@ -23,7 +24,7 @@ do
             echo $filepath
             echo $filepath >> $logfile
             echo "START: $start" >> $logfile
-            ../../amuse/amuse.sh cloud_collapse.py --Mcloud $1 --Rcloud $2 --Ncloud $Ns -s $filepath --tend 5
+            ../../amuse/amuse.sh cloud_collapse.py --Mcloud $1 --Rcloud $2 --Ncloud $Ns -s $filepath --tend 5 -m $4
             end=`date "+%Y-%m-%d %H:%M:%S"`
             end_s=`date "+%s"`
             echo "END: $end" >> $logfile
