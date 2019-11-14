@@ -86,12 +86,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             #                            hydro.code.dm_particles.mass.sum().in_(units.MSun),
             #                            (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
             #                                units.MSun))
-            if gravhydro is None:
-                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
-                MC_SFE = hydro.sink_particles.mass.sum() / Mtot
-            else:
-                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum() + gravity.particles.mass.sum()
-                MC_SFE = gravity.particles.mass.sum() / Mtot
+
+            Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            MC_SFE = hydro.sink_particles.mass.sum() / Mtot
 
             if MC_SFE >= SFE:
                 print "SFE reached"
@@ -139,6 +136,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     # 'Delay' for star formation is sink's free-fall time (for now!)
                     sink_volume = (4. / 3) * numpy.pi * sink.radius**3
                     delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
+                    sink.tff = delay_t
+                    print "sink tff: {0}".format(delay_t.in_(units.Myr))
 
                     if sink.mass > IMF_masses[current_mass] and sink.form_star:
                         print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
