@@ -303,5 +303,5 @@ def merge_two_sinks(bodies, particles_in_encounter, time):
     print "old radius:", particles_in_encounter.radius.value_in(units.AU)
     print "new radius:", new_particle.radius.value_in(units.AU)
     bodies.add_particles(new_particle)
-    print "Two sinks (M=", particles_in_encounter.mass, particles_in_encounter.id, ") collided at d=", com_pos.length()
+    print "Two sinks (M=", particles_in_encounter.mass, ") collided at d=", com_pos.length()
     bodies.remove_particles(particles_in_encounter)
