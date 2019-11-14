@@ -16,7 +16,6 @@ COOL = True
 
 
 class Hydro:
-    sink_id = 0
 
     def __init__(self, hydro_code, particles, tstart=0 | units.Myr):
 
@@ -250,9 +249,6 @@ class Hydro:
 
             # Added this to keep track of sinks when forming stars
             for ns in newsinks:
-                ns.id = self.sink_id
-                #ns.merged_ids = ''
-                self.sink_id += 1
                 ns.form_star = True
 
                 sink_volume = (4. / 3) * numpy.pi * ns.radius ** 3
@@ -284,13 +280,12 @@ class Hydro:
             if len(cc) > 1:
                 nmerge += 1
                 print "Merge sinks: N= ", len(cc)
-                merge_two_sinks(self.sink_particles, cc.copy(), self.sink_id, self.model_time)
-                self.sink_id += 2  # To account for the merged sink formed with a new id
+                merge_two_sinks(self.sink_particles, cc.copy(), self.model_time)
                 self.sink_particles.synchronize_to(self.code.dm_particles)
                 print "sinks merged"
 
 
-def merge_two_sinks(bodies, particles_in_encounter, id, time):
+def merge_two_sinks(bodies, particles_in_encounter, time):
     com_pos = particles_in_encounter.center_of_mass()
     com_vel = particles_in_encounter.center_of_mass_velocity()
     new_particle = Particles(1)
@@ -302,16 +297,8 @@ def merge_two_sinks(bodies, particles_in_encounter, id, time):
     new_particle.name = "Sink"
     new_particle.radius = particles_in_encounter.radius.max()
 
-    new_particle.id = id + 1
     new_particle.form_star = True
     new_particle.time_threshold = time
-
-    #l = []
-    #for p in particles_in_encounter:
-    #    l.append(p.id)
-    #new_particle.merged_ids = numpy.pad(numpy.array(l), (0, newsinks - len(particles_in_encounter)), 'constant')
-
-
 
     print "old radius:", particles_in_encounter.radius.value_in(units.AU)
     print "new radius:", new_particle.radius.value_in(units.AU)
