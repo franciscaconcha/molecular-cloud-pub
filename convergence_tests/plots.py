@@ -5,7 +5,7 @@ import os
 from amuse.lab import *
 
 
-def Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
+def mean_sink_size_vs_Nsph(path, save_path, Mcloud, Rcloud):
 
     Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
@@ -45,7 +45,7 @@ def Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
     pyplot.show()
 
 
-def Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
+def mean_sink_mass_vs_Nsph(path, save_path, Mcloud, Rcloud):
 
     Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
@@ -88,7 +88,7 @@ def Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
     pyplot.show()
     
 
-def Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud):
+def Nsinks_tff_vs_Nsph(path, save_path, Mcloud, Rcloud):
 
     Mcloud = [int(Mcloud.value_in(units.MSun))]#, 7500, 15000]
     SFE = [40, 25, 10]
@@ -134,7 +134,7 @@ def Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud):
     #pyplot.show()
 
 
-def time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
+def mean_sink_size_vs_time(path, save_path, Mcloud, Rcloud):
 
     SFE = [40, 25, 10]
 
@@ -184,11 +184,11 @@ def time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud):
     pyplot.ylabel(r'$<R_\mathrm{sink}>$ [pc]')
     pyplot.title('SFE = 40\%')
     pyplot.legend(loc="upper right")
-    pyplot.savefig('{0}/time_vs_mean_sink_size.png'.format(save_path))
+    pyplot.savefig('{0}/mean_sink_size_vs_time.png'.format(save_path))
     pyplot.show()
 
 
-def time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
+def mean_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
 
     SFE = [40, 25, 10]
 
@@ -238,11 +238,56 @@ def time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud):
     pyplot.ylabel(r'$<M_\mathrm{sink}>$ [$M_{\odot}$]')
     pyplot.title('SFE = 40\%')
     pyplot.legend(loc="lower right")
-    pyplot.savefig('{0}/time_vs_mean_sink_mass.png'.format(save_path))
+    pyplot.savefig('{0}/mean_sink_mass_vs_time.png'.format(save_path))
     pyplot.show()
 
 
-def time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud):
+def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
+
+    from collections import defaultdict
+
+    Nsph = [4000, 8000, 16000, 32000]
+
+    for N in Nsph:
+
+        Nruns = int(32000 / N)
+
+        for r in range(1, Nruns + 1):
+            filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                              int(Mcloud.value_in(units.MSun)),
+                                                              int(Rcloud.value_in(units.parsec)),
+                                                              N,
+                                                              r)
+            files = os.listdir(filepath) #= '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+            sink_files = [x for x in files if 'sink' in x]
+            sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+            sink_masses = defaultdict(list)
+            sink_times = defaultdict(list)
+
+            for f in sink_files:
+                sinks = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+
+                for s in sinks:
+                    sink_masses[s.id].append(s.mass.value_in(units.MSun))
+                    sink_times[s.id].append(sinks.get_timestamp().value_in(units.Myr))
+
+            for key, val in sink_masses.items():
+                pyplot.plot(sink_times[key], val)
+
+                pyplot.xlabel(r'Time [Myr]')
+                pyplot.ylabel(r'Sink mass [$M_{\odot}$]')
+                pyplot.title('SFE = 40\%')
+                figname = '{0}/M{1}MSun_R{2}pc_N{3}_r{4}.png'.format(save_path,
+                                                                     int(Mcloud.value_in(units.MSun)),
+                                                                     int(Rcloud.value_in(units.parsec)),
+                                                                     N,
+                                                                     r)
+                pyplot.savefig(figname)
+                pyplot.show()
+
+
+def total_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
     Nsph = [4000, 8000, 16000, 32000]
     #Nruns = int(32000 / Nsph)
 
@@ -289,11 +334,11 @@ def time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud):
     pyplot.ylabel(r'$\sum M_\mathrm{sink}$ [$M_{\odot}$]')
     pyplot.title('SFE = 40\%')
     pyplot.legend(loc="lower right")
-    pyplot.savefig('{0}/time_vs_total_sink_mass.png'.format(save_path))
+    pyplot.savefig('{0}/total_sink_mass_vs_time.png'.format(save_path))
     pyplot.show()
 
 
-def time_vs_Nsinks(path, save_path, Mcloud, Rcloud):
+def Nsinks_vs_time(path, save_path, Mcloud, Rcloud):
 
     SFE = [40, 25, 10]
 
@@ -342,11 +387,11 @@ def time_vs_Nsinks(path, save_path, Mcloud, Rcloud):
     pyplot.ylabel(r'$N_\mathrm{sink}$')
     pyplot.title('SFE = 40\%')
     pyplot.legend(loc="best")
-    pyplot.savefig('{0}/time_vs_Nsinks.png'.format(save_path))
+    pyplot.savefig('{0}/Nsinks_vs_time.png'.format(save_path))
     pyplot.show()
 
 
-def time_vs_sink_location(path, save_path, Mcloud, Rcloud):
+def sink_location_vs_time(path, save_path, Mcloud, Rcloud):
 
     SFE = [40, 25, 10]
 
@@ -479,6 +524,7 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
     prev_stars = None
     times = []
     Nstars = []
+    Nstars_hm = []
 
     for s in sink_files:
         print s
@@ -514,6 +560,7 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
                     prev_stars = stars.key
                 times.append(stars.get_timestamp().value_in(units.Myr))
                 Nstars.append(len(stars))
+                Nstars_hm.append(len(stars[stars.mass >= 1.9 | units.MSun]))
 
         ax = fig.gca()
         ax.set_aspect('equal')
@@ -526,7 +573,9 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
         i += 1
 
     fig = pyplot.figure(figsize=(8, 8))
-    pyplot.plot(times, Nstars)
+    pyplot.plot(times, Nstars, label="All stars")
+    pyplot.plot(times, Nstars_hm, label=r"$M_* \geq 1.9 M_{\odot}$")
+    pyplot.legend(loc='lower right')
 
     ax = fig.gca()
     #ax.set_aspect('equal')
@@ -543,17 +592,20 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     pyplot.style.use('paper')
 
     #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
-    star_formation_movie(path, save_path, Rcloud, 4000, Mcloud)
+    #star_formation_movie(path, save_path, Rcloud, 4000, Mcloud)
 
-    #Nsph_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
-    #Nsph_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
-    #Nsph_vs_Nsinks_tff(path, save_path, Mcloud, Rcloud)
+    #mean_sink_size_vs_Nsph(path, save_path, Mcloud, Rcloud)
+    #mean_sink_mass_vs_Nsph(path, save_path, Mcloud, Rcloud)
+    #Nsinks_tff_vs_Nsph(path, save_path, Mcloud, Rcloud)
 
-    #time_vs_Nsinks(path, save_path, Mcloud, Rcloud)
-    #time_vs_mean_sink_size(path, save_path, Mcloud, Rcloud)
-    #time_vs_mean_sink_mass(path, save_path, Mcloud, Rcloud)
-    #time_vs_total_sink_mass(path, save_path, Mcloud, Rcloud)
-    #time_vs_sink_location(path, save_path, Mcloud, Rcloud)
+    #Nsinks_vs_time(path, save_path, Mcloud, Rcloud)
+    #mean_sink_size_vs_time(path, save_path, Mcloud, Rcloud)
+    #mean_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
+    #total_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
+    #sink_location_vs_time(path, save_path, Mcloud, Rcloud)
+
+    single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
+
 
 
 def new_option_parser():
