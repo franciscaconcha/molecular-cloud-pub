@@ -55,6 +55,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     gravity = None
     gravhydro = None
+
     dt = min(dt_diag, 0.1 | units.Myr)
     t_diag = 0 | units.Myr
 
@@ -85,9 +86,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             #                            hydro.code.dm_particles.mass.sum().in_(units.MSun),
             #                            (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
             #                                units.MSun))
+            if gravhydro is None:
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+                MC_SFE = hydro.sink_particles.mass.sum() / Mtot
+            else:
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum() + gravity.particles.mass.sum()
+                MC_SFE = gravity.particles.mass.sum() / Mtot
 
-            Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
-            MC_SFE = hydro.sink_particles.mass.sum() / Mtot
             if MC_SFE >= SFE:
                 print "SFE reached"
                 # TODO stop hydro code, kick out all gas, keep going with Nbody

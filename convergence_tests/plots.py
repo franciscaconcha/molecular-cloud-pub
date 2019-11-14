@@ -477,6 +477,8 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
     i = 0
 
     prev_stars = None
+    times = []
+    Nstars = []
 
     for s in sink_files:
         print s
@@ -510,16 +512,30 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
                             pyplot.scatter(star.x.value_in(units.parsec),
                                            star.y.value_in(units.parsec), marker="*", color='black')
                     prev_stars = stars.key
+                times.append(stars.get_timestamp().value_in(units.Myr))
+                Nstars.append(len(stars))
 
         ax = fig.gca()
         ax.set_aspect('equal')
-        ax.set_xlim([-1.0, 1.0])
-        ax.set_ylim([-1.0, 1.0])
+        ax.set_xlim([-2.0, 2.0])
+        ax.set_ylim([-2.0, 2.0])
         ax.set_xlabel(r'x [pc]')
         ax.set_ylabel(r'y [pc]')
 
         pyplot.savefig('{0}/{1}.png'.format(save_path, i))
         i += 1
+
+    fig = pyplot.figure(figsize=(8, 8))
+    pyplot.plot(times, Nstars)
+
+    ax = fig.gca()
+    #ax.set_aspect('equal')
+    #ax.set_xlim([-1.0, 1.0])
+    #ax.set_ylim([-1.0, 1.0])
+    ax.set_xlabel(r'Time [Myr]')
+    ax.set_ylabel(r'$N_*$')
+
+    pyplot.savefig('{0}/Nstars.png'.format(save_path))
 
 
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
