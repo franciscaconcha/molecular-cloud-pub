@@ -45,7 +45,7 @@ class Hydro:
 
         self.converter = nbody_system.nbody_to_si(1 | units.MSun, system_size)
         self.sink_attributes = ['name', 'birth_age', 'angular_momentum', 'mass', 'radius', 'x', 'y', 'z', 'vx', 'vy',
-                                'vz', 'Lx', 'Ly', 'Lz']
+                                'vz', 'Lx', 'Ly', 'Lz', 'id', 'form_star', 'tff', 'time_threshold']
 
         if hydro_code is Fi:
             self.code = hydro_code(self.converter, mode="openmp", redirection="file")
@@ -251,10 +251,15 @@ class Hydro:
             # Added this to keep track of sinks when forming stars
             for ns in newsinks:
                 ns.id = self.sink_id
-                #ns.merged_ids = numpy.zeros((1, ))
+                #ns.merged_ids = ''
                 self.sink_id += 1
                 ns.form_star = True
-                ns.time_threshold = self.model_time
+
+                sink_volume = (4. / 3) * numpy.pi * ns.radius ** 3
+                tff = 1. / numpy.sqrt(constants.G * (ns.mass / sink_volume))
+
+                ns.tff = tff
+                ns.time_threshold = self.code.model_time + tff
 
             print "pre N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
             # self.sink_particles.add_sinks(newsinks)
@@ -278,11 +283,11 @@ class Hydro:
         for cc in ccs:
             if len(cc) > 1:
                 nmerge += 1
-            print "Merge sinks: N= ", len(cc)
-            merge_two_sinks(self.sink_particles, cc.copy(), self.sink_id, self.model_time)
-            self.sink_id += 2  # To account for the merged sink formed with a new id
-            self.sink_particles.synchronize_to(self.code.dm_particles)
-            print "sinks merged"
+                print "Merge sinks: N= ", len(cc)
+                merge_two_sinks(self.sink_particles, cc.copy(), self.sink_id, self.model_time)
+                self.sink_id += 2  # To account for the merged sink formed with a new id
+                self.sink_particles.synchronize_to(self.code.dm_particles)
+                print "sinks merged"
 
 
 def merge_two_sinks(bodies, particles_in_encounter, id, time):
