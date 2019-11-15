@@ -53,7 +53,7 @@ def plot_molecular_cloud(filename, save_path, L=10.0):
     print "Ngas={0}, Nsinks={1}, Nstars={2}".format(len(gas), len(sinks), len(stars))
 
     sph = Hydro(Fi, gas)
-    time = 0 | units.Myr
+    time = str(sph.gas_particles.get_timestamp().value_in(units.Myr))
 
     rho = make_map(sph, N=200, L=L)
 
@@ -64,30 +64,44 @@ def plot_molecular_cloud(filename, save_path, L=10.0):
     cbar = fig.colorbar(cax, orientation='vertical', fraction=0.045)
     cbar.set_label('projected density [$amu/cm^3$]', rotation=270, labelpad=25)
 
-    cm = pyplot.cm.get_cmap('Greys')
+    #cm = pyplot.cm.get_cmap('Greys')
     if len(sinks):
         m = 100 * sinks.radius.value_in(units.parsec)
         #100 * numpy.log10(sinks.mass / sinks.mass.min())
         c = numpy.sqrt(sinks.mass / sinks.mass.max())
         pyplot.scatter(sinks.y.value_in(units.parsec), sinks.x.value_in(units.parsec),
-                       c=c, s=m, lw=0, cmap=cm)
+                       c='white', s=m, lw=0)#, cmap=cm)
 
-    cm = pyplot.cm.get_cmap('cool')
+    #cm = pyplot.cm.get_cmap('cool')
     if len(stars):
         m = 100 * numpy.log10(stars.mass / stars.mass.min())
         c = numpy.sqrt(stars.mass / stars.mass.max())
         pyplot.scatter(stars.y.value_in(units.parsec), stars.x.value_in(units.parsec),
-                       c=c, marker="*", alpha=0.5, lw=0, cmap=cm)
+                       c='cyan', marker="*", alpha=0.5, lw=0)#, cmap=cm)
 
     pyplot.xlim(-L / 2., L / 2.)
     pyplot.ylim(-L / 2., L / 2.)
-    pyplot.title("Molecular cloud at time=" + time.as_string_in(units.Myr))
+    pyplot.title("Molecular cloud at time=" + time)
     pyplot.xlabel("x [pc]")
     pyplot.ylabel("x [pc]")
-    pyplot.title("GMC at time=" + time.as_string_in(units.Myr))
     ff = filename.split('_')[-1]
-    #pyplot.savefig('{0}/{1}.png'.format(save_path, ff[1:].split('.')[0]))
-    pyplot.show()
+    pyplot.savefig('{0}/{1}.png'.format(save_path, ff[1:].split('.')[0]))
+    #pyplot.show()
+
+
+def main(filename, path, save_path):
+    if path is not None:
+        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+
+        gas_files = [x for x in files if 'gas' in x]
+        gas_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+        for g in gas_files:
+            filename = '{0}/{1}'.format(path, g)
+            plot_molecular_cloud(filename, save_path)
+
+    else:
+        plot_molecular_cloud(filename, save_path)
 
 
 def new_option_parser():
@@ -95,6 +109,8 @@ def new_option_parser():
     result = OptionParser()
     result.add_option("-f", dest="filename", default="GMC_R2pcN20k_SE_T45Myr.amuse",
                       help="input filename [%default]")
+    result.add_option("-p", dest="path", default=None,
+                      help="path for input files [%default]")
     result.add_option("-s", dest="save_path", default=".",
                       help="save path [%default]")
     return result
@@ -102,7 +118,7 @@ def new_option_parser():
 
 if __name__ in ('__main__', '__plot__'):
     o, arguments = new_option_parser().parse_args()
-    plot_molecular_cloud(**o.__dict__)
+    main(**o.__dict__)
 
 
 
