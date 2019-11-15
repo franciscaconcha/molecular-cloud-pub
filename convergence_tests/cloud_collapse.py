@@ -160,7 +160,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         stars_from_sink.vz = sink.vz
 
                         sink.form_star = False
-                        sink.time_threshold = time + delay_t  # Next time at which this sink should form a star
+                        sink.time_threshold = time + sink.tff  # Next time at which this sink should form a star
 
                         stars.add_particles(stars_from_sink)
                         Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
@@ -207,12 +207,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         #                                                                             Mcloud.in_(units.MSun))
         #    exit(-1)
 
-        if gravhydro is None:
-            hydro.evolve_model(time)
-        else:
-            print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
-            gravhydro.evolve_model(time - gravity_offset_time)
-            print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
+        #if gravhydro is None:
+        hydro.evolve_model(time)
+        #else:
+        #    print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
+        #    gravhydro.evolve_model(time - gravity_offset_time)
+        #    print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
@@ -233,7 +233,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             t_diag += dt_diag
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
-    print len(gravity.code.particles)
+    #print len(gravity.code.particles)
     hydro.stop()
     return gas_particles
 
