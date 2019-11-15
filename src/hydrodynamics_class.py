@@ -44,7 +44,7 @@ class Hydro:
 
         self.converter = nbody_system.nbody_to_si(1 | units.MSun, system_size)
         self.sink_attributes = ['name', 'birth_age', 'angular_momentum', 'mass', 'radius', 'x', 'y', 'z', 'vx', 'vy',
-                                'vz', 'Lx', 'Ly', 'Lz', 'id', 'form_star', 'tff', 'time_threshold']
+                                'vz', 'Lx', 'Ly', 'Lz', 'form_star', 'tff', 'time_threshold', 'merged_keys']
 
         if hydro_code is Fi:
             self.code = hydro_code(self.converter, mode="openmp", redirection="file")
@@ -256,6 +256,7 @@ class Hydro:
 
                 ns.tff = tff
                 ns.time_threshold = self.code.model_time + tff
+                ns.merged_keys = ''
 
             print "pre N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
             # self.sink_particles.add_sinks(newsinks)
@@ -299,6 +300,11 @@ def merge_two_sinks(bodies, particles_in_encounter, time):
 
     new_particle.form_star = True
     new_particle.time_threshold = time
+
+    print str(particles_in_encounter.key)
+    new_particle.merged_keys = str(particles_in_encounter.key) + str(particles_in_encounter.merged_keys)
+    print new_particle.merged_keys
+
 
     print "old radius:", particles_in_encounter.radius.value_in(units.AU)
     print "new radius:", new_particle.radius.value_in(units.AU)
