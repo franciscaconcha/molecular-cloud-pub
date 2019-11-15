@@ -31,6 +31,7 @@ def make_map(sph, N=100, L=1):
 def plot_molecular_cloud(filename, save_path, L=10.0):
     x_label = "x [pc]"
     y_label = "y [pc]"
+    pyplot.close('all')
     fig = single_frame(x_label, y_label, logx=False, logy=False, xsize=12, ysize=12)
 
     print "read file:", filename
@@ -53,7 +54,7 @@ def plot_molecular_cloud(filename, save_path, L=10.0):
     print "Ngas={0}, Nsinks={1}, Nstars={2}".format(len(gas), len(sinks), len(stars))
 
     sph = Hydro(Fi, gas)
-    time = str(sph.gas_particles.get_timestamp().value_in(units.Myr))
+    time = str('%.2f' % (sph.gas_particles.get_timestamp().value_in(units.Myr)))
 
     rho = make_map(sph, N=200, L=L)
 
@@ -81,7 +82,7 @@ def plot_molecular_cloud(filename, save_path, L=10.0):
 
     pyplot.xlim(-L / 2., L / 2.)
     pyplot.ylim(-L / 2., L / 2.)
-    pyplot.title("Molecular cloud at time=" + time)
+    pyplot.title("Molecular cloud at time={0} Myr".format(time))
     pyplot.xlabel("x [pc]")
     pyplot.ylabel("x [pc]")
     ff = filename.split('_')[-1]
