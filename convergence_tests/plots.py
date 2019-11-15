@@ -269,22 +269,22 @@ def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
                 sinks = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
 
                 for s in sinks:
-                    sink_masses[s.id].append(s.mass.value_in(units.MSun))
-                    sink_times[s.id].append(sinks.get_timestamp().value_in(units.Myr))
+                    sink_masses[s.key].append(s.mass.value_in(units.MSun))
+                    sink_times[s.key].append(sinks.get_timestamp().value_in(units.Myr))
 
             for key, val in sink_masses.items():
                 pyplot.plot(sink_times[key], val)
 
-                pyplot.xlabel(r'Time [Myr]')
-                pyplot.ylabel(r'Sink mass [$M_{\odot}$]')
-                pyplot.title('SFE = 40\%')
-                figname = '{0}/M{1}MSun_R{2}pc_N{3}_r{4}.png'.format(save_path,
-                                                                     int(Mcloud.value_in(units.MSun)),
-                                                                     int(Rcloud.value_in(units.parsec)),
-                                                                     N,
-                                                                     r)
-                pyplot.savefig(figname)
-                pyplot.show()
+            pyplot.xlabel(r'Time [Myr]')
+            pyplot.ylabel(r'Sink mass [$M_{\odot}$]')
+            pyplot.title('SFE = 40\%')
+            figname = '{0}/M{1}MSun_R{2}pc_N{3}_r{4}.png'.format(save_path,
+                                                                 int(Mcloud.value_in(units.MSun)),
+                                                                 int(Rcloud.value_in(units.parsec)),
+                                                                 N,
+                                                                 r)
+            pyplot.savefig(figname)
+            pyplot.show()
 
 
 def total_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
