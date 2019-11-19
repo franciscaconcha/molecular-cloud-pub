@@ -176,16 +176,21 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                         print "Sink is not massive enough to form this star."
                         sink.form_star = False
 
-                if gravity is None:  # TODO check time offset
-                    gravity_offset_time = time
-                    gravity = Gravity(ph4, stars)
-                    #gravity_from_framework = gravity.particles.new_channel_to(stars)
-                    gravity_to_framework = stars.new_channel_to(gravity.particles)
-                    gravhydro = Bridge()
-                    gravhydro.add_system(gravity, (hydro,))
-                    gravhydro.add_system(hydro, (gravity,))
-                    gravhydro.timestep = 0.1 * dt
+                if gravity is None:
+                    if stars_from_sink:  # TODO check time offset
+                        print 'Creating gravity code and Bridge'
+                        gravity_offset_time = time
+                        gravity = Gravity(ph4, stars)
+                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                        gravity_to_framework = stars.new_channel_to(gravity.particles)
+                        gravhydro = Bridge()
+                        gravhydro.add_system(gravity, (hydro,))
+                        gravhydro.add_system(hydro, (gravity,))
+                        gravhydro.timestep = 0.1 * dt
+                    else:
+                        pass
                 else:
+                    print 'else in gravhydro '
                     gravity.code.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
@@ -208,12 +213,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         #                                                                             Mcloud.in_(units.MSun))
         #    exit(-1)
 
-        #if gravhydro is None:
-        hydro.evolve_model(time)
-        #else:
-        #    print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
-        #    gravhydro.evolve_model(time - gravity_offset_time)
-        #    print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
+        if gravhydro is None:
+            hydro.evolve_model(time)
+        else:
+            print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
+            gravhydro.evolve_model(time - gravity_offset_time)
+            print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
