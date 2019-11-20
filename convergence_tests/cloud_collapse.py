@@ -65,9 +65,11 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = -numpy.sort(-new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun))  #Yep this sorts the array in descending order!
+    IMF_masses = -numpy.sort(-new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun))  #Yep this sorts the array in descending order!
     print IMF_masses
     current_mass = 0  # To keep track of formed stars in 'single' method
+
+    sink_formation = True  # To keep track of SFE
 
     while time < tend:
         time += dt
@@ -88,13 +90,18 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             #                            (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
             #                                units.MSun))
 
-            Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            if gravity is None:
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            else:  # If there's a gravity code running, we count the mass of the stars as well
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum() + gravity.particles.mass.sum()
+
             MC_SFE = hydro.sink_particles.mass.sum() / Mtot
 
             if MC_SFE >= SFE:
-                print "SFE reached"
+                print "SFE reached, sinks will stop forming"
+                sink_formation = False
                 # TODO stop hydro code, kick out all gas, keep going with Nbody
-                break
+                #break
 
             removed_sinks = Particles(0)
 
