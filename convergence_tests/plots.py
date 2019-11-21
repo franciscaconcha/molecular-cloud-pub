@@ -638,6 +638,43 @@ def final_imf(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
 
 
+def Nstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      int(Mcloud.value_in(units.MSun)),
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      N,
+                                                      r)
+    files = os.listdir(filepath)
+
+    star_files = [x for x in files if 'stars' in x]
+    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    Nstars, times = [], []
+
+    for f in star_files:
+        stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+        time = stars.get_timestamp().value_in(units.Myr)
+
+        times.append(time)
+        Nstars.append(len(stars))
+
+    import decimal
+    # Need to do this to round down the last time stamp properly
+    d = float(decimal.Decimal(times[0]).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
+
+    earlier_times = numpy.arange(0., d, 0.1)
+    times = numpy.concatenate((earlier_times, times))
+
+    Nstars = numpy.pad(Nstars, (len(times) - len(Nstars), 0), 'constant')
+
+    pyplot.plot(times, Nstars, lw=3)
+
+    pyplot.xlabel('Time [Myr]')
+    pyplot.ylabel(r'$N_*$')
+    pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+    pyplot.show()
+
+
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
@@ -657,7 +694,8 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     #single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
 
-    final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
+    #final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
+    Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
 
 
 def new_option_parser():
