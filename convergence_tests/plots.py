@@ -672,10 +672,9 @@ def Nstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$N_*$')
     pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+    pyplot.savefig('{0}/Nstars_vs_time.png'.format(path))
     pyplot.show()
 
-
-#fig, axes = pyplot.subplots(2, 1, sharex=True)
 
 def Mstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
     filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
@@ -706,6 +705,62 @@ def Mstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$M_*$')
     pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+    pyplot.savefig('{0}/Mstars_vs_time.png'.format(path))
+    pyplot.show()
+
+
+def stars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
+    fig, axes = pyplot.subplots(2, 1, sharex=True)
+    fig.subplots_adjust(hspace=0)
+
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      int(Mcloud.value_in(units.MSun)),
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      N,
+                                                      r)
+    files = os.listdir(filepath)
+
+    star_files = [x for x in files if 'stars' in x]
+    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    Nstars, times = [], []
+
+    for f in star_files:
+        stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+        star_masses = stars.mass.value_in(units.MSun)
+        time = stars.get_timestamp().value_in(units.Myr)
+
+        times.append(time)
+        Nstars.append(len(stars))
+
+        axes[1].scatter(time * numpy.ones(star_masses.shape), star_masses,
+                        marker='*',
+                        edgecolors='k',
+                        facecolors='k',
+                        alpha=0.5)
+
+    axes[1].axhline(1.9, color='r')
+    axes[1].text(0.01, 2, r'$1.9 M_{\odot}$', color='r')
+
+    import decimal
+    # Need to do this to round down the last time stamp properly
+    d = float(decimal.Decimal(times[0]).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
+
+    earlier_times = numpy.arange(0., d, 0.1)
+    times = numpy.concatenate((earlier_times, times))
+
+    Nstars = numpy.pad(Nstars, (len(times) - len(Nstars), 0), 'constant')
+
+    axes[0].plot(times, Nstars, lw=3, c='#348ABD')
+
+    axes[0].set_xlabel('Time [Myr]')
+    axes[0].set_ylabel(r'$N_*$')
+    axes[0].set_title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+
+    axes[1].set_xlim([0.0, 0.8])
+    axes[1].set_xlabel('Time [Myr]')
+    axes[1].set_ylabel(r'$M_*$')
+    pyplot.savefig('{0}/stars_vs_time.png'.format(path))
     pyplot.show()
 
 
@@ -731,7 +786,8 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     #final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
 
     #Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
-    Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+    #Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+    stars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
 
 
 def new_option_parser():
