@@ -258,7 +258,7 @@ def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
                                                               int(Rcloud.value_in(units.parsec)),
                                                               N,
                                                               r)
-            files = os.listdir(filepath) #= '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+            files = os.listdir(filepath)
             sink_files = [x for x in files if 'sink' in x]
             sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
@@ -267,7 +267,8 @@ def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
 
             for f in sink_files:
                 sinks = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
-                print sinks.tff.value_in(units.Myr)
+                #print sinks.tff.value_in(units.Myr)
+                print sinks.get_timestamp().value_in(units.Myr), f
 
                 for s in sinks:
                     sink_masses[s.key].append(s.mass.value_in(units.MSun))
@@ -277,6 +278,7 @@ def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
                 if len(val) == 1:
                     pyplot.plot(sink_times[key], val, ls='-', marker='o', markersize=4)
                 else:
+                    #print set([x for x in sink_times[key] if sink_times[key].count(x) > 1])
                     pyplot.plot(sink_times[key], val, ls='-')
 
             pyplot.xlabel(r'Time [Myr]')
@@ -290,6 +292,8 @@ def single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
                                                                  r)
             pyplot.savefig(figname)
             pyplot.show()
+            break
+        break
 
 
 def total_sink_mass_vs_time(path, save_path, Mcloud, Rcloud):
@@ -592,6 +596,48 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
     pyplot.savefig('{0}/Nstars.png'.format(save_path))
 
 
+def final_imf(path, save_path, Mcloud, Rcloud, N, r=1):
+    fig = pyplot.figure()
+    ax = pyplot.gca()
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      int(Mcloud.value_in(units.MSun)),
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      N,
+                                                      r)
+    files = os.listdir(filepath)
+    star_files = [x for x in files if 'star' in x]
+    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    final_stars = read_set_from_file('{0}/{1}'.format(filepath, star_files[-1]), "hdf5", close_file=True)
+    star_masses = final_stars.mass.value_in(units.MSun)
+    print star_masses
+
+    # Create a Kroupa 2001 distribution with the same number of stars, to compare
+    IMF_masses = new_kroupa_mass_distribution(len(final_stars),
+                                              mass_max=max(star_masses) | units.MSun).value_in(units.MSun)
+
+    kroupa_limits = [0.01, 0.08, 0.5, 1.0, 1.9, max(star_masses)]  # Added the 1.9 MSun 'bin' for photoevap
+
+    pyplot.hist(IMF_masses, bins=kroupa_limits, label='Kroupa IMF', histtype=u'step', edgecolor='r', lw=3)
+    pyplot.hist(star_masses, bins=kroupa_limits, label='Simulation', histtype=u'step', edgecolor='k', lw=3)
+
+    # 1.9 MSun limit, for photoevaporation
+    pyplot.axvline(1.9, lw=3, c='blue')
+    pyplot.text(0.666,
+                0.5,
+                r'$N_*(M_* >= 1.9 M_{{\odot}}$) = {0}$'.format(len(star_masses[star_masses >= 1.9])),
+                color='blue',
+                transform=ax.transAxes)
+
+    pyplot.xlabel(r'$M_*$ [$\mathrm{M}_{\odot}$]')
+    pyplot.ylabel(r'$N_*$')
+    pyplot.title(r'Total $N_*$ = {0}'.format(len(final_stars)))
+    pyplot.xscale('log')
+    pyplot.legend(loc='best')
+    pyplot.show()
+    pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
+
+
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
@@ -609,8 +655,9 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     #total_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
     #sink_location_vs_time(path, save_path, Mcloud, Rcloud)
 
-    single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
+    #single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
 
+    final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
 
 
 def new_option_parser():
@@ -633,18 +680,18 @@ def new_option_parser():
                       default=0.1 | units.Myr,
                       help="diagnosticstime step")
     result.add_option("--Ncloud", dest="Ncloud",
-                      default=1000,
+                      default=4000,
                       type="float",
                       help="number of gas particles.")
     result.add_option("--Mcloud", dest="Mcloud",
                       unit=units.MSun,
                       type="float",
-                      default=1000 | units.MSun,
+                      default=10000 | units.MSun,
                       help="cloud mass")
     result.add_option("--Rcloud", dest="Rcloud",
                       unit=units.parsec,
                       type="float",
-                      default=3 | units.parsec,
+                      default=2 | units.parsec,
                       help="cloud size")
 
     return result
