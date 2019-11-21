@@ -675,6 +675,40 @@ def Nstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.show()
 
 
+#fig, axes = pyplot.subplots(2, 1, sharex=True)
+
+def Mstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
+    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+                                                      int(Mcloud.value_in(units.MSun)),
+                                                      int(Rcloud.value_in(units.parsec)),
+                                                      N,
+                                                      r)
+    files = os.listdir(filepath)
+
+    star_files = [x for x in files if 'stars' in x]
+    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    for f in star_files:
+        stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+        star_masses = stars.mass.value_in(units.MSun)
+        time = stars.get_timestamp().value_in(units.Myr)
+
+        pyplot.scatter(time * numpy.ones(star_masses.shape), star_masses,
+                       marker='*',
+                       edgecolors='k',
+                       facecolors='k',
+                       alpha=0.5)
+
+    pyplot.axhline(1.9, color='r')
+    pyplot.text(0.01, 2, r'$1.9 M_{\odot}$', color='r')
+
+    pyplot.xlim([0.0, 0.8])
+    pyplot.xlabel('Time [Myr]')
+    pyplot.ylabel(r'$M_*$')
+    pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+    pyplot.show()
+
+
 def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
@@ -695,7 +729,9 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     #single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
 
     #final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
-    Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+
+    #Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+    Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
 
 
 def new_option_parser():
