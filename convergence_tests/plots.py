@@ -739,14 +739,15 @@ def stars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
                         facecolors='k',
                         alpha=0.5)
 
-    axes[1].axhline(1.9, color='r')
-    axes[1].text(0.01, 2, r'$1.9 M_{\odot}$', color='r')
+    axes[1].axhline(1.9, color='r', ls='--', alpha=0.5)
+    axes[1].text(0.01, 2, r'$1.9 M_{\odot}$', color='r', alpha=0.5)
 
     import decimal
     # Need to do this to round down the last time stamp properly
-    d = float(decimal.Decimal(times[0]).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
+    d = float(decimal.Decimal(times[0]).quantize(decimal.Decimal('.01'), rounding=decimal.ROUND_DOWN))
 
-    earlier_times = numpy.arange(0., d, 0.1)
+    dt = times[0] - d  # Have to do this so that earlier_times[-1] is always earlier than times[0]
+    earlier_times = numpy.arange(0., d + dt, dt)
     times = numpy.concatenate((earlier_times, times))
 
     Nstars = numpy.pad(Nstars, (len(times) - len(Nstars), 0), 'constant')
