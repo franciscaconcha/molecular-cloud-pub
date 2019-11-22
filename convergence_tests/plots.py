@@ -610,29 +610,31 @@ def final_imf(path, save_path, Mcloud, Rcloud, N, r=1):
 
     final_stars = read_set_from_file('{0}/{1}'.format(filepath, star_files[-1]), "hdf5", close_file=True)
     star_masses = final_stars.mass.value_in(units.MSun)
-    print star_masses
 
     # Create a Kroupa 2001 distribution with the same number of stars, to compare
     IMF_masses = new_kroupa_mass_distribution(len(final_stars),
                                               mass_max=max(star_masses) | units.MSun).value_in(units.MSun)
 
-    kroupa_limits = [0.01, 0.08, 0.5, 1.0, 1.9, max(star_masses)]  # Added the 1.9 MSun 'bin' for photoevap
+    kroupa_limits = [0.01, 0.08, 0.5, 1.0, 1.9, max(star_masses)]  # Added the 1.9 MSun 'bin' for photoevap limit
 
-    pyplot.hist(IMF_masses, bins=kroupa_limits, label='Kroupa IMF', histtype=u'step', edgecolor='r', lw=3)
-    pyplot.hist(star_masses, bins=kroupa_limits, label='Simulation', histtype=u'step', edgecolor='k', lw=3)
+    ax.hist(IMF_masses, bins=kroupa_limits, label='Kroupa IMF', histtype=u'step', edgecolor='r', lw=3)
+    ax.hist(star_masses, bins=kroupa_limits, label='Simulation', histtype=u'step', edgecolor='k', lw=3)
 
     # 1.9 MSun limit, for photoevaporation
-    pyplot.axvline(1.9, lw=3, c='blue')
-    pyplot.text(0.666,
-                0.5,
-                r'$N_*(M_* >= 1.9 M_{{\odot}}$) = {0}$'.format(len(star_masses[star_masses >= 1.9])),
-                color='blue',
-                transform=ax.transAxes)
+    ax.axvline(1.9,
+               lw=3,
+               ls='--',
+               c='blue')
+    ax.text(0.666,
+            0.5,
+            r'$N_*(M_* >= 1.9 M_{{\odot}}$) = {0}$'.format(len(star_masses[star_masses >= 1.9])),
+            color='blue',
+            transform=ax.transAxes)
 
-    pyplot.xlabel(r'$M_*$ [$\mathrm{M}_{\odot}$]')
-    pyplot.ylabel(r'$N_*$')
-    pyplot.title(r'Total $N_*$ = {0}'.format(len(final_stars)))
-    pyplot.xscale('log')
+    ax.set_xlabel(r'$M_*$ [$\mathrm{M}_{\odot}$]')
+    ax.set_ylabel(r'$N_*$')
+    ax.set_title(r'Total $N_*$ = {0}'.format(len(final_stars)))
+    ax.set_xscale('log')
     pyplot.legend(loc='best')
     pyplot.show()
     pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
@@ -784,11 +786,11 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     #single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
 
-    #final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
+    final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
 
     #Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
     #Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
-    stars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+    #stars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
 
 
 def new_option_parser():
