@@ -50,6 +50,7 @@ class Gravity:
         self.channel_from_framework = stars.new_channel_to(self.code.particles)
         
     def evolve_model(self, model_time):
+        #print ("evolve until {a} Myr".format(a=model_time.value_in(units.Myr)))
         self.channel_from_framework.copy()
         #for gi in self.channel_from_framework:
         #    gi.copy()

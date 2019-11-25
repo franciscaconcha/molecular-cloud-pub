@@ -1,5 +1,6 @@
 import time
 import numpy
+import matplotlib.pyplot as plt
 
 from amuse.lab import *
 from amuse.units import units, nbody_system
@@ -110,14 +111,38 @@ class Hydro:
 
         # Create a channel
         self.channel_to_gas = self.code.gas_particles.new_channel_to(self.gas_particles)
+        self.channel_from_gas = self.gas_particles.new_channel_to(self.code.gas_particles)
         self.channel_to_sinks = self.code.dm_particles.new_channel_to(self.sink_particles)
         self.channel_from_sinks = self.sink_particles.new_channel_to(self.code.dm_particles)
 
         # External Cooling
         print "Cooling flag:", self.cooling_flag
-        self.cooling = SimplifiedThermalModelEvolver(self.code.gas_particles)
+        self.cooling = SimplifiedThermalModelEvolver(self.gas_particles)
         # self.cooling = Cooling(self.code.gas_particles)
         self.cooling.model_time = self.model_time
+
+        # External heating
+        self.radiative = SimpleX()
+        self.radiative.parameters.blackbody_spectrum_flag = True
+        self.radiative.parameters.thermal_evolution_flag = True
+        self.radiative.parameters.recombination_radiation_flag = True
+        self.radiative.parameters.collisional_ionization_flag = True
+        self.radiative.parameters.hilbert_order = 1
+        self.radiative.parameters.box_size = 100.*system_size
+        self.radiative.parameters.timestep = 0.025 | units.Myr
+
+        self.radiative.particles.add_particles(self.gas_particles)
+        self.radiative.particles.add_particles(self.sink_particles)
+
+        self.radiative.commit_particles()
+
+        self.rad_particles_to_remove = Particles()
+        self.rad_particles_to_add = Particles()
+
+        self.channel_radiative_to_gas   = self.radiative.particles.new_channel_to(self.gas_particles)
+        self.channel_radiative_from_gas = self.gas_particles.new_channel_to(self.radiative.particles)
+        self.channel_radiative_to_sinks   = self.radiative.particles.new_channel_to(self.sink_particles)
+        self.channel_radiative_from_sinks = self.sink_particles.new_channel_to(self.radiative.particles)
 
     def print_diagnostics(self):
         print "Time=", self.model_time.in_(units.Myr)
@@ -173,11 +198,33 @@ class Hydro:
         print "Density threshold:", self.density_threshold.in_(
             units.g / units.cm ** 3), self.code.gas_particles.density.max().in_(units.g / units.cm ** 3)
 
+        self.update_radiative_particles()
+
         if COOL:
-            print "Cool gas for dt=", (dt / 2).in_(units.Myr)
+            print "Cool/heat gas for dt=", (dt / 2).in_(units.Myr)
+            self.channel_radiative_from_gas.copy()
+            print ('sink/gas/radiative: ', len(self.sink_particles), len(self.gas_particles), len(self.radiative.particles))
+            print (self.channel_radiative_from_sinks.attributes, len(self.channel_radiative_from_sinks.from_particles), len(self.channel_radiative_from_sinks.to_particles), len(self.channel_radiative_from_sinks.intersecting_keys()))
+            #for s in self.sink_particles:
+            #    print (self.radiative.particles.select_array(lambda key: key == s.key, ['key'])[0])
+            #    print (s)
+            self.channel_radiative_from_sinks.copy()
+            self.radiative.evolve_model(model_time_old + dt / 4)
+            self.channel_radiative_to_gas.copy()
+            self.channel_radiative_to_sinks.copy()
             self.cooling.evolve_for(dt / 2)
+            self.channel_radiative_from_gas.copy()
+            self.channel_radiative_from_sinks.copy()
+            self.radiative.evolve_model(model_time_old + dt / 2)
+            self.channel_radiative_to_gas.copy()
+            self.channel_radiative_to_sinks.copy()
+            self.channel_from_gas.copy()
+            self.channel_from_sinks.copy()
             # print "...done."
         self.code.evolve_model(hydro_time)
+
+        self.channel_to_gas.copy()
+        self.channel_to_sinks.copy
 
         # print "gas evolved."
         while density_limit_detection.is_set():
@@ -185,15 +232,41 @@ class Hydro:
 
             print "..done"
             self.code.evolve_model(hydro_time)
+
+            self.channel_to_gas.copy()
             self.channel_to_sinks.copy()
             print "end N=", len(self.sink_particles), len(self.code.dm_particles)
 
+        #self.channel_to_gas.copy()
+        #self.channel_to_sinks.copy()
+
         if COOL:
-            print "Cool gas for another dt=", (dt / 2).in_(units.Myr)
+            print "Cool/heat gas for another dt=", (dt / 2).in_(units.Myr)
+            self.channel_radiative_from_gas.copy()
+            self.channel_radiative_from_sinks.copy()
+            self.radiative.evolve_model(model_time_old + 3*dt / 4)
+            self.channel_radiative_to_gas.copy()
+            self.channel_radiative_to_sinks.copy()
             self.cooling.evolve_for(dt / 2)
+            self.channel_radiative_from_gas.copy()
+            self.channel_radiative_from_sinks.copy()
+            self.radiative.evolve_model(model_time_old + dt)
+            self.channel_radiative_to_gas.copy()
+            self.channel_radiative_to_sinks.copy()
+            self.channel_from_gas.copy()
+            self.channel_from_sinks.copy()
             # print "...done."
 
-        self.merge_sinks()
+        '''
+        temp = self.code.parameters.timestep
+        self.code.parameters.timestep = 1. | units.s
+        self.code.evolve_model(hydro_time+(2.|units.s))
+        self.code.parameters.timestep = temp
+        self.channel_to_gas.copy()
+        self.channel_to_sinks.copy()
+        '''
+
+        particles_to_remove, newsinks = self.merge_sinks()
 
         if len(self.sink_particles) > 0:
             sinks = new_sink_particles(self.sink_particles)
@@ -203,9 +276,28 @@ class Hydro:
                 self.sink_particles[si].Ly += sinks[si].angular_momentum[1]
                 self.sink_particles[si].Lz += sinks[si].angular_momentum[2]
 
+            gas_to_remove = (self.code.gas_particles.difference(self.gas_particles)).copy()
+            print ('accreting ', len(gas_to_remove), ' gas particles')
             self.gas_particles.synchronize_to(self.code.gas_particles)
             # make sure that the accreted mass is copied to the Hydro code..+++
             self.channel_from_sinks.copy()
+            self.channel_radiative_from_sinks.copy()
+            #print (len(self.radiative.particles))
+            #for g in gas_to_remove:
+            #    print (g.key in self.radiative.particles.key)
+            #self.radiative.particles.remove_particles(gas_to_remove)
+            particles_to_remove.add_particles(gas_to_remove)
+            #print (len(self.radiative.particles))
+
+        # Apparently, particles can only be removed before adding particles, and only once, between successive runs. Apologies for the ugly code
+        #self.radiative.particles.remove_particles(particles_to_remove)
+        self.rad_particles_to_remove.add_particles(particles_to_remove)
+
+        # New sinks may have accreted; add the new post-accretion sinks with the same keys as the pre-accretion sinks
+        particles_to_add = Particles()
+        for newsink in newsinks:
+            particles_to_add.add_particle( self.sink_particles.select_array(lambda key: key == newsink.key, ['key']) )
+        self.rad_particles_to_add.add_particles(particles_to_add)
 
         # self.code.evolve_model(model_time)
         print "final N=", len(self.sink_particles), len(self.code.dm_particles)
@@ -221,6 +313,7 @@ class Hydro:
 
             # print "Accrete from ambied gas"
             # self.accrete_sinks_from_ambiant_gas()
+
 
     def resolve_sinks(self):
         print "processing high dens particles...",
@@ -247,6 +340,11 @@ class Hydro:
             newsinks.Ly = 0 | (units.g * units.m ** 2) / units.s
             newsinks.Lz = 0 | (units.g * units.m ** 2) / units.s
 
+            newsinks.flux = candidate_sinks.flux
+            newsinks.xion = candidate_sinks.xion
+            newsinks.u = candidate_sinks.u
+            newsinks.rho = candidate_sinks.rho
+
             # Added this to keep track of sinks when forming stars
             for ns in newsinks:
                 ns.form_star = True
@@ -262,6 +360,7 @@ class Hydro:
             # self.sink_particles.add_sinks(newsinks)
             self.sink_particles.add_particles(newsinks)
             print "post N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)
+            #print (newsinks.key)
         else:
             print "N candidates:", len(candidate_sinks)
 
@@ -277,13 +376,64 @@ class Hydro:
             print "merging sink sets... "
         nmerge = 0
         newsinks = Particles()
+        oldsinks = Particles()
         for cc in ccs:
             if len(cc) > 1:
                 nmerge += 1
                 print "Merge sinks: N= ", len(cc)
-                merge_two_sinks(self.sink_particles, cc.copy(), self.model_time)
+                new_sink = merge_two_sinks(self.sink_particles, cc.copy(), self.model_time)
                 self.sink_particles.synchronize_to(self.code.dm_particles)
+
+                oldsinks.add_particles(cc)
+                newsinks.add_particles(new_sink)
+
+                '''
+                for c in cc:
+                    print (c.key in self.radiative.particles.key)
+                    #particle_to_remove = self.code.dm_particles.select_array(lambda key: key == c.key, ['key'])
+                    #particle_to_remove.x += 0.1 | units.parsec
+                    #self.channel_to_sink.copy()
+                    #self.channel_radiative_from_sinks.copy()
+                    #self.radiative.particles.remove_particle(c)
+
+                '''
+                #self.radiative.particles.remove_particles(cc)
+                #self.radiative.particles.add_particle(new_sink)
+
+                #self.radiative.recommit_particles()
+
+                '''
+                for c in cc:
+                    print (len(self.sink_particles))
+                    print (c.key)
+                    print (c.key in self.radiative.particles.key, c.key in self.sink_particles.key, c.key in self.gas_particles.key)
+                    particle_to_remove = self.sink_particles.select_array(lambda key: key == c.key, ['key'])
+                    print (particle_to_remove)
+                    #print (particle_to_remove.x)
+                    #particle_to_remove.x += 0.1 | units.parsec
+                    #print (particle_to_remove.x)
+                    #self.channel_radiative_from_sinks.copy()
+                    print (self.radiative.particles.select_array(lambda key: key == c.key, ['key']).x)
+                    self.radiative.particles.remove_particle(c)
+                    self.code.dm_particles.remove_particle(c)
+                self.radiative.particles.add_particle(new_sink)
+                '''
+
                 print "sinks merged"
+
+        #self.radiative.particles.remove_particles(oldsinks)
+        #self.radiative.particles.add_particles(newsinks)
+        return oldsinks, newsinks
+
+
+    def update_radiative_particles (self):
+
+        self.radiative.particles.remove_particles(self.rad_particles_to_remove)
+        self.radiative.particles.add_particles(self.rad_particles_to_add)
+        if len(self.rad_particles_to_remove) + len(self.rad_particles_to_add) > 0:
+            self.radiative.recommit_particles()
+        self.rad_particles_to_remove = Particles()
+        self.rad_particles_to_add = Particles()
 
 
 def merge_two_sinks(bodies, particles_in_encounter, time):
@@ -301,6 +451,11 @@ def merge_two_sinks(bodies, particles_in_encounter, time):
     new_particle.form_star = True
     new_particle.time_threshold = time
 
+    new_particle.rho = new_particle.mass / (4./3.*numpy.pi*new_particle.radius**3.)
+    new_particle.flux = particles_in_encounter.flux.sum()
+    new_particle.xion = numpy.sum(particles_in_encounter.xion*particles_in_encounter.mass)/particles_in_encounter.mass.sum()
+    new_particle.u = numpy.sum(particles_in_encounter.u*particles_in_encounter.mass)/particles_in_encounter.mass.sum()
+
     print str(particles_in_encounter.key)
     new_particle.merged_keys = str(particles_in_encounter.key) + str(particles_in_encounter.merged_keys)
     print new_particle.merged_keys
@@ -311,3 +466,4 @@ def merge_two_sinks(bodies, particles_in_encounter, time):
     bodies.add_particles(new_particle)
     print "Two sinks (M=", particles_in_encounter.mass, ") collided at d=", com_pos.length()
     bodies.remove_particles(particles_in_encounter)
+    return new_particle

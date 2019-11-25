@@ -42,6 +42,16 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
                           base_grid=body_centered_grid_unit_cube).result
     gas.name = "gas"
 
+    gas.xion = 0.
+    gas.flux = 0. | units.s**-1
+    gas.rho = Mcloud / (4./3.*numpy.pi*Rcloud**3.)
+
+    sigma = 0.01 | units.parsec
+
+    gas.x += numpy.random.normal(size=len(gas))*sigma
+    gas.y += numpy.random.normal(size=len(gas))*sigma
+    gas.z += numpy.random.normal(size=len(gas))*sigma
+
     return gas
 
 
@@ -111,8 +121,8 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                         #gravity_from_framework = gravity.particles.new_channel_to(stars)
                         gravity_to_framework = stars.new_channel_to(gravity.particles)
                         gravhydro = Bridge()
-                        gravhydro.add_system(gravity, (hydro.code,))
-                        gravhydro.add_system(hydro.code, (gravity,))
+                        gravhydro.add_system(gravity, (hydro,))
+                        gravhydro.add_system(hydro, (gravity,))
                         gravhydro.timestep = 0.1 * dt
                     else:
                         gravity.code.particles.add_particles(stars_from_sink)
@@ -123,6 +133,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                 print "Clean up hydro code by removing sink particles."
                 hydro.sink_particles.remove_particle(removed_sinks)
                 hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
+                hydro.rad_particles_to_remove.add_particles(removed_sinks)
                     
         else:
             print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
@@ -141,7 +152,7 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             hydro.evolve_model(time)
         else:
             print "EVOLVING GRAVHYDRO"
-            gravhydro.evolve_model(time)
+            gravhydro.evolve_model(time - gravity_offset_time)
             
         E = hydro.gas_particles.kinetic_energy() \
              + hydro.gas_particles.potential_energy() \
