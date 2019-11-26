@@ -66,8 +66,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     # Sample IMF for single star formation
     IMF_masses = new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun)  #Yep this sorts the array in descending order!
-    #IMF_masses = -numpy.sort(-new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun))  #Yep this sorts the array in descending order!
-    current_mass = 0  # To keep track of formed stars in 'single' method
+    current_mass = 0  # To keep track of formed stars
 
     sink_formation = True  # To keep track of SFE
 

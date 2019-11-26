@@ -245,7 +245,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # print_diagnostics(gravhydro)
         if time > t_diag:
             index += 1
-            t_diag += dt_diag
+            t_diag += dt
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
     #print len(gravity.code.particles)

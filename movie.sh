@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $1: framerate
+# $1: framerate, 5 or less looks good
 # $2: path for files
 # $3: output name (including extension)
 

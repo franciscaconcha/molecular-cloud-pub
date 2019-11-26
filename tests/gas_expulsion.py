@@ -20,7 +20,7 @@ def write_data(path, hydro, index=0, stars=Particles(0)):
                           append_to_file=False)
 
 
-def fill_mass_function_with_sink_mass(total_mass):
+def fill_mass_function_with_sink_mass(total_mass, method):
     # print "Make mass function for M=", total_mass.in_(units.MSun)
     masses = [] | units.MSun
 
@@ -43,7 +43,7 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
     return gas
 
 
-def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
     Mcloud = gas_particles.mass.sum()
 
     stars = Particles(0)
@@ -55,18 +55,20 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
 
     gravity = None
     gravhydro = None
+
     dt = min(dt_diag, 0.1 | units.Myr)
     t_diag = 0 | units.Myr
 
-    mass_treshold_for_star_formation = 10 | units.MSun
     E0 = hydro.gas_particles.kinetic_energy() \
          + hydro.gas_particles.potential_energy() \
          + hydro.gas_particles.thermal_energy()
     time = gas_particles.get_timestamp()
 
-    # Sample IMF
-    IMF_masses = numpy.sort(
-        new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun).value_in(units.MSun)) | units.MSun
+    # Sample IMF for single star formation
+    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun)  #Yep this sorts the array in descending order!
+    current_mass = 0  # To keep track of formed stars
+
+    sink_formation = True  # To keep track of SFE
 
     while time < tend:
         time += dt
@@ -74,61 +76,98 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         Mtot = 0 | units.MSun
 
         if len(hydro.sink_particles) > 0:
-            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
-            print "Slocal_gas = {0}, " \
-                  "Slocal_sinks = {1}, " \
-                  "sum = {2}".format(hydro.gas_particles.mass.sum().in_(units.MSun),
-                                     hydro.sink_particles.mass.sum().in_(units.MSun),
-                                     (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
-            print "Shydro_gas = {0}, " \
-                  "Shydro_sinks = {1}, " \
-                  "sum = {2}\n*".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
-                                        hydro.code.dm_particles.mass.sum().in_(units.MSun),
-                                        (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
-                                            units.MSun))
+            #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            #print "Slocal_gas = {0}, " \
+            #      "Slocal_sinks = {1}, " \
+            #      "sum = {2}".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            #                         hydro.sink_particles.mass.sum().in_(units.MSun),
+            #                         (hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()).in_(units.MSun))
+            #print "Shydro_gas = {0}, " \
+            #      "Shydro_sinks = {1}, " \
+            #      "sum = {2}\n*".format(hydro.code.gas_particles.mass.sum().in_(units.MSun),
+            #                            hydro.code.dm_particles.mass.sum().in_(units.MSun),
+            #                            (hydro.code.gas_particles.mass.sum() + hydro.code.dm_particles.mass.sum()).in_(
+            #                                units.MSun))
 
-            Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            if gravity is None:
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
+            else:  # If there's a gravity code running, we count the mass of the stars as well
+                Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum() + gravity.particles.mass.sum()
+
+            MC_SFE = hydro.sink_particles.mass.sum() / Mtot
+
+            if MC_SFE >= SFE:
+                print "SFE reached, sinks will stop forming"
+                sink_formation = False
+                # TODO stop hydro code, kick out all gas, keep going with Nbody
+                hydro.gas_particles = Particles(0)
+                #break
 
             removed_sinks = Particles(0)
-            star_i = 0
 
             for sink in hydro.sink_particles:
-                # if sink.mass > mass_treshold_for_star_formation:
-                print "Sink has formed"
-                print "Turn sink into cluster. Msink = {0}".format(sink.mass.in_(units.MSun))
-                print sink.mass, sink.radius, sink.x, sink.vx
-                star_from_sink_mass = IMF_masses[star_i]
-                star_i += 1
-                local_converter = nbody_system.nbody_to_si(star_from_sink_mass, sink.radius)
-                star_from_sink = Particles(1)
+                stars_from_sink = Particles(0)
 
-                star_from_sink.x = sink.x
-                star_from_sink.y = sink.y
-                star_from_sink.z = sink.z
-                star_from_sink.vx = sink.vx
-                star_from_sink.vy = sink.vy
-                star_from_sink.vz = sink.vz
-                star_from_sink.mass = star_from_sink_mass
-                # star_from_sink.radius = sink.radius
-                print sink.radius.value_in(units.RSun)
-                # star_from_sink.scale_to_standard(local_converter)
-                star_from_sink.age = time
-                removed_sinks.add_particle(sink)
+                print "Forming single stars from sink."
 
-                stars.add_particles(star_from_sink)
-                Mcloud = gas_particles.mass.sum() + star_from_sink_mass
+                # 'Delay' for star formation is sink's free-fall time (for now!)
+                sink_volume = (4. / 3) * numpy.pi * sink.radius**3
+                delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
+                sink.tff = delay_t
+                print "sink tff: {0}".format(delay_t.in_(units.Myr))
+
+                if sink.mass > IMF_masses[current_mass] and sink.form_star:
+                    print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
+                                                                                sink.mass.in_(units.MSun))
+                    # If sink is massive enough and it's time to form a star
+                    stars_from_sink = Particles(1)
+                    stars_from_sink.mass = IMF_masses[current_mass]
+                    current_mass += 1
+                    sink.mass -= stars_from_sink.mass
+
+                    # Find position offset inside sink radius
+                    Rsink = sink.radius.value_in(units.parsec)
+                    offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+                    stars_from_sink.x = sink.x + offset
+                    stars_from_sink.y = sink.y + offset
+                    stars_from_sink.z = sink.z + offset
+
+                    stars_from_sink.vx = sink.vx
+                    stars_from_sink.vy = sink.vy
+                    stars_from_sink.vz = sink.vz
+
+                    sink.form_star = False
+                    sink.time_threshold = time + sink.tff  # Next time at which this sink should form a star
+
+                    stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+
+                elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
+                    print "Sink is massive enough, but it's not yet time to form a star."
+                    if time >= sink.time_threshold:
+                        sink.form_star = True
+                        # sink will form a star in the next timestep
+
+                elif sink.mass < IMF_masses[current_mass] and sink.form_star:
+                    print "Sink is not massive enough to form this star."
+                    sink.form_star = False
 
                 if gravity is None:
-                    gravity_offset_time = time
-                    gravity = Gravity(ph4, stars)
-                    # gravity_from_framework = gravity.particles.new_channel_to(stars)
-                    gravity_to_framework = stars.new_channel_to(gravity.particles)
-                    gravhydro = Bridge()
-                    gravhydro.add_system(gravity, (hydro.code,))
-                    gravhydro.add_system(hydro.code, (gravity,))
-                    gravhydro.timestep = 0.1 * dt
+                    if len(stars_from_sink) > 0:  # TODO check time offset
+                        print 'Creating gravity code and Bridge'
+                        gravity_offset_time = time
+                        gravity = Gravity(ph4, stars)
+                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                        gravity_to_framework = stars.new_channel_to(gravity.particles)
+                        gravhydro = Bridge()
+                        gravhydro.add_system(gravity, (hydro,))
+                        gravhydro.add_system(hydro, (gravity,))
+                        gravhydro.timestep = 0.1 * dt
+                    else:
+                        pass
                 else:
-                    gravity.code.particles.add_particles(star_from_sink)
+                    print 'else in gravhydro '
+                    gravity.code.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
             if len(removed_sinks) > 0:
@@ -138,13 +177,13 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
                 hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
 
         else:
-            print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
-            print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
-                                                    hydro.code.gas_particles.mass.sum().in_(units.MSun))
+            #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
+            #print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
+            #                                        hydro.code.gas_particles.mass.sum().in_(units.MSun))
             Mtot = hydro.gas_particles.mass.sum()
-            print Mtot
+            #print Mtot
 
-        print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
+        #print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
         # if Mcloud - Mtot > (1E-2 | units.MSun):
         #    print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
         #                                                                             Mcloud.in_(units.MSun))
@@ -153,8 +192,9 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
         if gravhydro is None:
             hydro.evolve_model(time)
         else:
-            print "EVOLVING GRAVHYDRO"
-            gravhydro.evolve_model(time)
+            print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
+            gravhydro.evolve_model(time - gravity_offset_time)
+            print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
@@ -172,16 +212,25 @@ def run_molecular_cloud(gas_particles, sink_particles, tstart, tend, dt_diag, sa
             # print_diagnostics(gravhydro)
         if time > t_diag:
             index += 1
-            t_diag += dt_diag
+            t_diag += dt
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
-    print len(gravity.code.particles)
+    #print len(gravity.code.particles)
     hydro.stop()
     return gas_particles
 
 
-def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
     if len(filename) == 0:
+        try:
+            import os
+            os.makedirs(save_path)
+        except OSError, e:
+            if e.errno != 17:
+                raise
+            # time.sleep might help here
+            pass
+
         gas_particles = generate_initial_conditions_for_molecular_cloud(o.Ncloud,
                                                                         Mcloud=o.Mcloud,
                                                                         Rcloud=o.Rcloud)
@@ -190,7 +239,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
         print "Freefall timescale=", tff.in_(units.Myr)
         rho_cloud = 3. * o.Mcloud / (4. * numpy.pi * o.Rcloud ** 3)
         print rho_cloud
-        tend = 10 * tff
+
+        #tend = 10 * tff
         dt_diag = 0.1 * tff
         hydro = Hydro(Fi, gas_particles)
         write_data(save_path, hydro)
@@ -212,7 +262,11 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, start_time, tend, dt_diag, save_path, index)
+    SFE = 0.4
+    #method = 'cluster'
+    #method = 'single'
+
+    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
 
 
 def new_option_parser():
@@ -248,6 +302,10 @@ def new_option_parser():
                       type="float",
                       default=3 | units.parsec,
                       help="cloud size")
+    result.add_option("-m", dest="method",
+                      type="string",
+                      default='cluster',
+                      help="method for star formation, single or cluster")
 
     return result
 
