@@ -226,7 +226,6 @@ class Hydro:
         print "processing high dens particles...",
         highdens = self.gas_particles.select_array(lambda rho: rho > self.density_threshold, ["rho"])
         print "N=", len(highdens)
-        print "sinks mass: ", highdens.mass.value_in(units.MSun)
         candidate_sinks = highdens.copy()
         self.gas_particles.remove_particles(highdens)
         self.gas_particles.synchronize_to(self.code.gas_particles)
@@ -301,9 +300,7 @@ def merge_two_sinks(bodies, particles_in_encounter, time):
     new_particle.form_star = True
     new_particle.time_threshold = time
 
-    print str(particles_in_encounter.key)
     new_particle.merged_keys = str(particles_in_encounter.key) + str(particles_in_encounter.merged_keys)
-    print new_particle.merged_keys
 
 
     print "old radius:", particles_in_encounter.radius.value_in(units.AU)
