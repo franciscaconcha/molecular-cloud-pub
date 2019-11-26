@@ -106,78 +106,75 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             removed_sinks = Particles(0)
 
             for sink in hydro.sink_particles:
+                stars_from_sink = Particles(0)
 
-                if time > 0.5 | units.Myr:
+                print "Forming single stars from sink."
 
-                    stars_from_sink = Particles(0)
+                # 'Delay' for star formation is sink's free-fall time (for now!)
+                sink_volume = (4. / 3) * numpy.pi * sink.radius**3
+                delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
+                sink.tff = delay_t
+                print "sink tff: {0}".format(delay_t.in_(units.Myr))
 
-                    print "Forming single stars from sink."
+                if sink.mass > IMF_masses[current_mass] and sink.form_star:
+                    print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
+                                                                                sink.mass.in_(units.MSun))
+                    # If sink is massive enough and it's time to form a star
+                    stars_from_sink = Particles(1)
+                    stars_from_sink.mass = IMF_masses[current_mass]
+                    current_mass += 1
+                    sink.mass -= stars_from_sink.mass
 
-                    # 'Delay' for star formation is sink's free-fall time (for now!)
-                    sink_volume = (4. / 3) * numpy.pi * sink.radius**3
-                    delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
-                    sink.tff = delay_t
-                    print "sink tff: {0}".format(delay_t.in_(units.Myr))
+                    # Find position offset inside sink radius
+                    Rsink = sink.radius.value_in(units.parsec)
+                    offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+                    stars_from_sink.x = sink.x + offset
+                    stars_from_sink.y = sink.y + offset
+                    stars_from_sink.z = sink.z + offset
 
-                    if sink.mass > IMF_masses[current_mass] and sink.form_star:
-                        print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
-                                                                                    sink.mass.in_(units.MSun))
-                        # If sink is massive enough and it's time to form a star
-                        stars_from_sink = Particles(1)
-                        stars_from_sink.mass = IMF_masses[current_mass]
-                        current_mass += 1
-                        sink.mass -= stars_from_sink.mass
+                    stars_from_sink.vx = sink.vx
+                    stars_from_sink.vy = sink.vy
+                    stars_from_sink.vz = sink.vz
 
-                        # Find position offset inside sink radius
-                        Rsink = sink.radius.value_in(units.parsec)
-                        offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-                        stars_from_sink.x = sink.x + offset
-                        stars_from_sink.y = sink.y + offset
-                        stars_from_sink.z = sink.z + offset
+                    sink.form_star = False
+                    sink.time_threshold = time + sink.tff  # Next time at which this sink should form a star
 
-                        stars_from_sink.vx = sink.vx
-                        stars_from_sink.vy = sink.vy
-                        stars_from_sink.vz = sink.vz
+                    stars.add_particles(stars_from_sink)
+                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
-                        sink.form_star = False
-                        sink.time_threshold = time + sink.tff  # Next time at which this sink should form a star
+                elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
+                    print "Sink is massive enough, but it's not yet time to form a star."
+                    if time >= sink.time_threshold:
+                        sink.form_star = True
+                        # sink will form a star in the next timestep
 
-                        stars.add_particles(stars_from_sink)
-                        Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
+                elif sink.mass < IMF_masses[current_mass] and sink.form_star:
+                    print "Sink is not massive enough to form this star."
+                    sink.form_star = False
 
-                    elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
-                        print "Sink is massive enough, but it's not yet time to form a star."
-                        if time >= sink.time_threshold:
-                            sink.form_star = True
-                            # sink will form a star in the next timestep
-
-                    elif sink.mass < IMF_masses[current_mass] and sink.form_star:
-                        print "Sink is not massive enough to form this star."
-                        sink.form_star = False
-
-                    if gravity is None:
-                        if len(stars_from_sink) > 0:  # TODO check time offset
-                            print 'Creating gravity code and Bridge'
-                            gravity_offset_time = time
-                            gravity = Gravity(ph4, stars)
-                            #gravity_from_framework = gravity.particles.new_channel_to(stars)
-                            gravity_to_framework = stars.new_channel_to(gravity.particles)
-                            gravhydro = Bridge()
-                            gravhydro.add_system(gravity, (hydro,))
-                            gravhydro.add_system(hydro, (gravity,))
-                            gravhydro.timestep = 0.1 * dt
-                        else:
-                            pass
+                if gravity is None:
+                    if len(stars_from_sink) > 0:  # TODO check time offset
+                        print 'Creating gravity code and Bridge'
+                        gravity_offset_time = time
+                        gravity = Gravity(ph4, stars)
+                        #gravity_from_framework = gravity.particles.new_channel_to(stars)
+                        gravity_to_framework = stars.new_channel_to(gravity.particles)
+                        gravhydro = Bridge()
+                        gravhydro.add_system(gravity, (hydro,))
+                        gravhydro.add_system(hydro, (gravity,))
+                        gravhydro.timestep = 0.1 * dt
                     else:
-                        print 'else in gravhydro '
-                        gravity.code.particles.add_particles(stars_from_sink)
-                        gravity_to_framework.copy()
+                        pass
+                else:
+                    print 'else in gravhydro '
+                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity_to_framework.copy()
 
-                if len(removed_sinks) > 0:
-                    # clean up hydro code by removing sink particles.
-                    print "Clean up hydro code by removing sink particles."
-                    hydro.sink_particles.remove_particle(removed_sinks)
-                    hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
+            if len(removed_sinks) > 0:
+                # clean up hydro code by removing sink particles.
+                print "Clean up hydro code by removing sink particles."
+                hydro.sink_particles.remove_particle(removed_sinks)
+                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
 
         else:
             #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
@@ -215,7 +212,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # print_diagnostics(gravhydro)
         if time > t_diag:
             index += 1
-            t_diag += dt_diag
+            t_diag += dt
             write_data(save_path, hydro=hydro, index=index, stars=stars)
 
     #print len(gravity.code.particles)
