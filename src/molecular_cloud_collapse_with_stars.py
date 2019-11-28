@@ -11,12 +11,12 @@ from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
 
-def write_data(path, hydro, index=0, stars=Particles(0)):
+def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
     hydro.write_set_to_file(path, index=index)
     filename = "{0}/hydro_stars_particles_i{1:04}.amuse".format(path, index)
     if len(stars) > 0:
         write_set_to_file(stars, filename, "hdf5",
-                          timestamp=hydro.model_time,
+                          timestamp=timestamp,
                           append_to_file=False)
 
 
@@ -226,7 +226,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         if time > t_diag:
             index += 1
             t_diag += dt
-            write_data(save_path, hydro=hydro, index=index, stars=stars)
+            write_data(save_path, time, hydro=hydro, index=index, stars=stars)
 
     #print len(gravity.code.particles)
     hydro.stop()
@@ -256,7 +256,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
         #tend = 10 * tff
         dt_diag = 0.1 * tff
         hydro = Hydro(Fi, gas_particles)
-        write_data(save_path, hydro)
+        write_data(save_path, hydro.model_time, hydro)
         filename = "hydro_gas_particles_i{0:04}.amuse".format(0)
         hydro.stop()
 
