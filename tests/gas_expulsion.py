@@ -69,6 +69,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     current_mass = 0  # To keep track of formed stars
 
     sink_formation = True  # To keep track of SFE
+    local_sinks = Particles(0)
+    hydro.sink_particles.synchronize_to(local_sinks)
+
+    #channel_from_famework_to_hydro =
 
     while time < tend:
         time += dt
@@ -100,7 +104,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     print "SFE reached, sinks will stop forming"
                     sink_formation = False
                     # TODO stop hydro code, kick out all gas, keep going with Nbody
-                    hydro.gas_particles.remove_particle(hydro.code.gas_particles)
+                    hydro.sink_particles.synchronize_to(local_sinks)
+                    #hydro.stop()
+                    gravity.code.particles.add_particles(local_sinks)
                     #break
 
 #            else:
@@ -195,9 +201,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             print "evolving hydro"
             hydro.evolve_model(time)
         else:
-            print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
-            gravhydro.evolve_model(time - gravity_offset_time)
-            print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
+            if sink_formation:
+                print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
+                gravhydro.evolve_model(time - gravity_offset_time)
+                print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
+            else:
+                print "EVOLVING GRAVITY ONLY"
+                gravity.evolve_model(time - gravity_offset_time)
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
