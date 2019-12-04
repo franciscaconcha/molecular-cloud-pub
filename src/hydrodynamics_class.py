@@ -254,7 +254,8 @@ class Hydro:
                 tff = 1. / numpy.sqrt(constants.G * (ns.mass / sink_volume))
 
                 ns.tff = tff
-                ns.time_threshold = self.code.model_time + tff
+                decay_time = tff * numpy.exp(-0.1 * self.code.model_time.value_in(units.Myr))
+                ns.time_threshold = self.code.model_time + decay_time
                 ns.merged_keys = ''
 
             print "pre N=", len(self.sink_particles), len(newsinks), len(self.code.dm_particles)

@@ -101,12 +101,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 MC_SFE = hydro.sink_particles.mass.sum() / Mtot
 
                 if MC_SFE >= SFE:
-                    print "SFE reached, sinks will stop forming"
+                    print "************** SFE reached, sinks will stop forming **************"
                     sink_formation = False
                     # TODO stop hydro code, kick out all gas, keep going with Nbody
                     hydro.sink_particles.synchronize_to(local_sinks)
-                    #hydro.stop()
-                    gravity.code.particles.add_particles(local_sinks)
+                    #hydro.gas_particles = Particles(0)
+                    gravity.code.particles.add_particles(hydro.code.dm_particles)
+                    hydro.gas_particles = Particles(0)
                     #break
 
 #            else:
@@ -158,7 +159,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                 elif sink.mass < IMF_masses[current_mass] and sink.form_star:
                     print "Sink is not massive enough to form this star."
-                    sink.form_star = False
+                    #sink.form_star = False
 
                 if gravity is None:
                     if len(stars_from_sink) > 0:  # TODO check time offset
