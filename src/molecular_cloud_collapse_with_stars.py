@@ -43,6 +43,32 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
     return gas
 
 
+def make_stars_from_sink(sink, stellar_mass, time):
+
+    # Delay time for next star formation is a decay from the tff of the sink
+    delay_time = sink.tff * numpy.exp(-0.1 * time.value_in(units.Myr))
+
+    print "Forming star of mass {0} from sink mass {1}".format(stellar_mass.in_(units.MSun),
+                                                               sink.mass.in_(units.MSun))
+    # If sink is massive enough and it's time to form a star
+    stars_from_sink = Particles(1)
+    stars_from_sink.mass = stellar_mass
+    sink.mass -= stars_from_sink.mass
+
+    # Find position offset inside sink radius
+    Rsink = sink.radius.value_in(units.parsec)
+    offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+    stars_from_sink.x = sink.x + offset
+    stars_from_sink.y = sink.y + offset
+    stars_from_sink.z = sink.z + offset
+
+    stars_from_sink.vx = sink.vx
+    stars_from_sink.vy = sink.vy
+    stars_from_sink.vz = sink.vz
+
+    return stars_from_sink, delay_time
+
+
 def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
     Mcloud = gas_particles.mass.sum()
 
@@ -105,9 +131,16 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     sink_formation = False
                     # TODO stop hydro code, kick out all gas, keep going with Nbody
                     hydro.sink_particles.synchronize_to(local_sinks)
+                    hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
                     #hydro.gas_particles = Particles(0)
-                    gravity.code.particles.add_particles(hydro.code.dm_particles)
-                    hydro.gas_particles = Particles(0)
+                    print len(hydro.sink_particles)
+                    print len(gravity.code.particles)
+                    #break
+                    gravity.code.particles.add_particles(hydro.sink_particles)
+                    #hydro.gas_particles.remove_particle(hydro.gas_particles)
+                    #hydro.sink_particles.remove_particle(hydro.sink_particles)
+                    #hydro.gas_particles = Particles(0)
+                    hydro.sink_particles = Particles(0)
                     #break
 
 #            else:
@@ -115,41 +148,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             removed_sinks = Particles(0)
 
             for sink in hydro.sink_particles:
-                stars_from_sink = Particles(0)
-
-                print "Forming single stars from sink."
-
-                # 'Delay' for star formation is sink's free-fall time (for now!)
-                sink_volume = (4. / 3) * numpy.pi * sink.radius**3
-                delay_t = 1. / numpy.sqrt(constants.G * (sink.mass / sink_volume))
-                sink.tff = delay_t
-                print "sink tff: {0}".format(delay_t.in_(units.Myr))
-
-                if sink.mass > IMF_masses[current_mass] and sink.form_star:
-                    print "Forming star of mass {0} from sink mass {1}".format(IMF_masses[current_mass].in_(units.MSun),
-                                                                                sink.mass.in_(units.MSun))
-                    # If sink is massive enough and it's time to form a star
-                    stars_from_sink = Particles(1)
-                    stars_from_sink.mass = IMF_masses[current_mass]
-                    current_mass += 1
-                    sink.mass -= stars_from_sink.mass
-
-                    # Find position offset inside sink radius
-                    Rsink = sink.radius.value_in(units.parsec)
-                    offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-                    stars_from_sink.x = sink.x + offset
-                    stars_from_sink.y = sink.y + offset
-                    stars_from_sink.z = sink.z + offset
-
-                    stars_from_sink.vx = sink.vx
-                    stars_from_sink.vy = sink.vy
-                    stars_from_sink.vz = sink.vz
-
+                if sink.mass > stellar_mass and sink.form_star:
+                    stars_from_sink, delay_time = make_stars_from_sink(sink, IMF_masses[current_mass], time)
                     sink.form_star = False
-                    sink.time_threshold = time + sink.tff  # Next time at which this sink should form a star
+                    sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
 
                     stars.add_particles(stars_from_sink)
-                    Mcloud = gas_particles.mass.sum() + stars_from_sink.mass.sum()
 
                 elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
                     print "Sink is massive enough, but it's not yet time to form a star."
@@ -159,7 +163,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                 elif sink.mass < IMF_masses[current_mass] and sink.form_star:
                     print "Sink is not massive enough to form this star."
-                    #sink.form_star = False
+                    # sink.form_star = False
+
+                if len(stars_from_sink) >= 1:  # TODO check this but works for now
+                    current_mass += 1
 
                 if gravity is None:
                     if len(stars_from_sink) > 0:  # TODO check time offset
