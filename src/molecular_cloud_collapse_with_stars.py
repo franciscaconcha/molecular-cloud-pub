@@ -79,6 +79,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     gravity = None
     gravhydro = None
+    gravity_sinks = None
 
     dt = min(dt_diag, 0.1 | units.Myr)
     t_diag = 0 | units.Myr
@@ -106,17 +107,18 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         print "Evolve to time=", time.in_(units.Myr)
         Mtot = 0 | units.MSun
 
-        if sink_formation:
+        if sink_formation:  # This means that SPH code is still active. Might rename this variable later.
             if gravity is None:
                 if len(hydro.sink_particles) > 0:
                     Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum()
                 else:
                     Mtot = hydro.gas_particles.mass.sum()
             else:  # If there's a gravity code running, we count the mass of the stars as well
+                # TODO fix this for when gravity_sinks is running
                 Mtot = hydro.gas_particles.mass.sum() + hydro.sink_particles.mass.sum() + gravity.particles.mass.sum()
 
-            if len(hydro.sink_particles) > 0:
-                MC_SFE = hydro.sink_particles.mass.sum() / Mtot
+            if len(local_sinks) > 0:
+                MC_SFE = local_sinks.mass.sum() / Mtot
             else:
                 MC_SFE = 0
 
@@ -124,40 +126,37 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print "************** SFE reached, sinks will stop forming **************"
                 sink_formation = False
                 # TODO stop hydro code, kick out all gas, keep going with Nbody
+
+                # Final synchro and copy of hydro sinks to local sinks
                 hydro.sink_particles.synchronize_to(local_sinks)
-                hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
-                print len(hydro.sink_particles)
-                print len(local_sinks)
-                #hydro.gas_particles = Particles(0)
-                print len(hydro.sink_particles)
-                print len(gravity.code.particles)
-                #break
-                #gravity.code.particles.add_particles(hydro.code.dm_particles)
-                #hydro.gas_particles.remove_particle(hydro.gas_particles)
-                #hydro.sink_particles.remove_particle(hydro.sink_particles)
-                #hydro.gas_particles = Particles(0)
-                #hydro.sink_particles = Particles(0)
-                print hydro.sink_particles[-1].key
-                print local_sinks[-1].key
-                break
+                hydro_sinks_to_framework.copy()
 
-        # Synchronize sinks, then update local sinks
-        hydro.sink_particles.synchronize_to(local_sinks)
-        hydro_sinks_to_framework.copy()
+                # Create new gravity code for sinks only # TODO check: is this a good idea?
+                gravity_sinks = Gravity(ph4, local_sinks)
+                gravity_sinks_to_framework = gravity_sinks.code.particles.new_channel_to(local_sinks)
+                framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.code.particles)
 
-        print "HYDRO SINKS: {0}".format(len(hydro.sink_particles))
-        print "LOCAL SINKS: {0}".format(len(local_sinks))
+                # From this point on I will simply keep evolving the gravity and gravity_sinks codes
 
         for sink in local_sinks:
+            # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
+            # sinks can still form stars after the gas code is stopped.
+
             if sink.mass > IMF_masses[current_mass] and sink.form_star:
                 stars_from_sink, delay_time = make_stars_from_sink(sink, IMF_masses[current_mass], time)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
-                framework_to_hydro_sinks.copy()
+
+                # Update sink masses and delay times from framework to codes
+                if gravity_sinks is None:
+                    framework_to_hydro_sinks.copy()
+                else:
+                    framework_to_gravity_sinks.copy()
 
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
 
+                # I don't care about gravity_sinks for this block
                 if gravity is None:
                     print 'Starting gravity code and Bridge'
                     gravity_offset_time = time
@@ -178,7 +177,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
                     sink.form_star = True
-                    framework_to_hydro_sinks.copy()
+
+                    # Update sink.form_star in corresponding code
+                    if gravity_sinks is None:
+                        framework_to_hydro_sinks.copy()
+                    else:
+                        framework_to_gravity_sinks.copy()
                     # sink will form a star in the next timestep
 
             elif sink.mass < IMF_masses[current_mass] and sink.form_star:
@@ -186,23 +190,33 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 # sink.form_star = False
 
             gravity_to_framework.copy()
-            framework_to_hydro_sinks.copy()
+            if gravity_sinks is None:
+                framework_to_hydro_sinks.copy()
+            else:
+                framework_to_gravity_sinks.copy()
 
         if gravhydro is None:
             print "Evolving hydro only"
             hydro.evolve_model(time)
+            # Synchronize sinks, then update local sinks
+            hydro.sink_particles.synchronize_to(local_sinks)
             hydro_sinks_to_framework.copy()
         else:
             if sink_formation:
                 print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
                 gravhydro.evolve_model(time - gravity_offset_time)
+                # Synchronize sinks, then update local sinks
+                hydro.sink_particles.synchronize_to(local_sinks)
+                gravity.particles.synchronize_to(stars)
+                hydro_sinks_to_framework.copy()
+                gravity_to_framework.copy()
                 print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
             else:
-                print "EVOLVING GRAVITY ONLY"
+                print "EVOLVING GRAVITY AND GRAVITY_SINKS ONLY"
                 gravity.evolve_model(time - gravity_offset_time)
-
-            gravity_to_framework.copy()
-            hydro_sinks_to_framework.copy()
+                gravity_sinks.evolve_model(time - gravity_offset_time)
+                gravity_to_framework.copy()
+                gravity_sinks_to_framework.copy()
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
