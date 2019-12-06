@@ -71,8 +71,6 @@ def make_stars_from_sink(sink, stellar_mass, time):
 
 def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
 
-
-    stars = Particles(0)
     hydro = Hydro(Fi, gas_particles, tstart)
 
     if len(sink_particles) > 0:
@@ -91,14 +89,17 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun)  #Yep this sorts the array in descending order!
+    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun)
     current_mass = 0  # To keep track of formed stars
+
+    stars = Particles(0)
 
     sink_formation = True  # To keep track of SFE
     local_sinks = Particles(0)
-    hydro.sink_particles.synchronize_to(local_sinks)
 
-    #channel_from_famework_to_hydro =
+    # Channels from hydro to local sinks and viceversa
+    hydro_sinks_to_framework = hydro.sink_particles.new_channel_to(local_sinks)
+    framework_to_hydro_sinks = local_sinks.new_channel_to(hydro.sink_particles)
 
     while time < tend:
         time += dt
@@ -131,88 +132,66 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print len(hydro.sink_particles)
                 print len(gravity.code.particles)
                 #break
-                gravity.code.particles.add_particles(hydro.code.dm_particles)
+                #gravity.code.particles.add_particles(hydro.code.dm_particles)
                 #hydro.gas_particles.remove_particle(hydro.gas_particles)
                 #hydro.sink_particles.remove_particle(hydro.sink_particles)
                 #hydro.gas_particles = Particles(0)
-                hydro.sink_particles = Particles(0)
+                #hydro.sink_particles = Particles(0)
+                print hydro.sink_particles[-1].key
+                print local_sinks[-1].key
                 break
 
-#            else:
+        # Synchronize sinks, then update local sinks
+        hydro.sink_particles.synchronize_to(local_sinks)
+        hydro_sinks_to_framework.copy()
 
-        removed_sinks = Particles(0)
-        stars_from_sink = Particles(0)
+        print "HYDRO SINKS: {0}".format(len(hydro.sink_particles))
+        print "LOCAL SINKS: {0}".format(len(local_sinks))
 
-        for sink in hydro.sink_particles:
+        for sink in local_sinks:
             if sink.mass > IMF_masses[current_mass] and sink.form_star:
                 stars_from_sink, delay_time = make_stars_from_sink(sink, IMF_masses[current_mass], time)
-                print "len(stars_from_sink)=", len(stars_from_sink)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
+                framework_to_hydro_sinks.copy()
 
                 current_mass += 1
+                stars.add_particles(stars_from_sink)
 
                 if gravity is None:
-                    print 'Creating gravity code and Bridge'
+                    print 'Starting gravity code and Bridge'
                     gravity_offset_time = time
-                    stars.add_particles(stars_from_sink)
                     gravity = Gravity(ph4, stars)
-                    #gravity.code.particles.add_particles(stars_from_sink)
                     gravity_to_framework = gravity.code.particles.new_channel_to(stars)
                     framework_to_gravity = stars.new_channel_to(gravity.code.particles)
-
-                    print "framework stars, before copy: {0}".format(len(stars))
-                    #gravity.particles.synchronize_to(stars)
                     gravity_to_framework.copy()
-                    print "framework stars, after copy: {0}".format(len(stars))
 
                     gravhydro = Bridge()
                     gravhydro.add_system(gravity, (hydro,))
                     gravhydro.add_system(hydro, (gravity,))
                     gravhydro.timestep = 0.1 * dt
-                    print "GRAVITY PARTICLES: {0}".format(len(gravity.code.particles))
                 else:
-                    stars.add_particles(stars_from_sink)
                     gravity.code.particles.add_particles(stars_from_sink)
-                    print "framework stars, before copy: {0}".format(len(stars))
                     gravity_to_framework.copy()
-                    print "framework stars, after copy: {0}".format(len(stars))
-                    print "GRAVITY PARTICLES: {0}".format(len(gravity.code.particles))
-
-
 
             elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
                 print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
                     sink.form_star = True
+                    framework_to_hydro_sinks.copy()
                     # sink will form a star in the next timestep
 
             elif sink.mass < IMF_masses[current_mass] and sink.form_star:
                 print "Sink is not massive enough to form this star."
                 # sink.form_star = False
 
-        if len(removed_sinks) > 0:
-            # clean up hydro code by removing sink particles.
-            print "Clean up hydro code by removing sink particles."
-            hydro.sink_particles.remove_particle(removed_sinks)
-            hydro.sink_particles.synchronize_to(hydro.code.dm_particles)
-
-        #else:
-            #print "Mass conservation at t = {0}:".format(time.in_(units.Myr))
-            #print "Local: {0}, Hydro: {1}\n".format(hydro.gas_particles.mass.sum().in_(units.MSun),
-            #                                        hydro.code.gas_particles.mass.sum().in_(units.MSun))
-            #Mtot = hydro.gas_particles.mass.sum()
-            #print Mtot
-
-        #print "diff: ", (Mcloud - Mtot).value_in(units.MSun)
-        # if Mcloud - Mtot > (1E-2 | units.MSun):
-        #    print "Mass is not conserved: Mtot = {0} MSun, Mcloud = {1} MSun".format(Mtot.in_(units.MSun),
-        #                                                                             Mcloud.in_(units.MSun))
-        #    exit(-1)
+            gravity_to_framework.copy()
+            framework_to_hydro_sinks.copy()
 
         if gravhydro is None:
-            print "evolving hydro"
+            print "Evolving hydro only"
             hydro.evolve_model(time)
+            hydro_sinks_to_framework.copy()
         else:
             if sink_formation:
                 print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
@@ -221,6 +200,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             else:
                 print "EVOLVING GRAVITY ONLY"
                 gravity.evolve_model(time - gravity_offset_time)
+
+            gravity_to_framework.copy()
+            hydro_sinks_to_framework.copy()
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
