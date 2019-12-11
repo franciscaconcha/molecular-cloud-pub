@@ -242,12 +242,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # Saving stars and local sinks separately from the Hydro files
             # Saving star particles
             write_set_to_file(stars,
-                              '{0}/stars_{1}Myr.hdf5'.format(save_path,
+                              '{0}/gravity_stars_t{1}Myr.hdf5'.format(save_path,
                                                              time.value_in(units.Myr)),
                               'hdf5')
             # Saving local sink particles
             write_set_to_file(local_sinks,
-                              '{0}/sinks_{1}Myr.hdf5'.format(save_path,
+                              '{0}/gravity_sinks_t{1}Myr.hdf5'.format(save_path,
                                                              time.value_in(units.Myr)),
                               'hdf5')
 
