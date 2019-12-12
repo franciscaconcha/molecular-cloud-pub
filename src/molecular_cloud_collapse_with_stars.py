@@ -1,4 +1,5 @@
 import numpy
+from scipy import interpolate
 
 from amuse.lab import *
 from amuse.ext.molecular_cloud import molecular_cloud
@@ -10,6 +11,22 @@ from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 
+######## FRIED grid ########
+# Yes doing this with global variables is bad practice... but practical since
+# these values will be immutable and I will use them 100s of times
+
+# Read FRIED grid
+grid = numpy.loadtxt('data/friedgrid.dat', skiprows=2)
+
+# Getting only the useful parameters from the grid (not including Mdot)
+FRIED_grid = grid[:, [0, 1, 2, 4]]
+grid_log10Mdot = grid[:, 5]
+
+grid_stellar_mass = FRIED_grid[:, 0]
+grid_FUV = FRIED_grid[:, 1]
+grid_disk_mass = FRIED_grid[:, 2]
+grid_disk_radius = FRIED_grid[:, 3]
+
 
 def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
     hydro.write_set_to_file(path, index=index)
@@ -18,20 +35,6 @@ def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
         write_set_to_file(stars, filename, "hdf5",
                           timestamp=timestamp,
                           append_to_file=False)
-
-
-def fill_mass_function_with_sink_mass(total_mass, method):
-    # print "Make mass function for M=", total_mass.in_(units.MSun)
-    masses = [] | units.MSun
-
-    while total_mass > 0 | units.MSun:
-        mass = new_kroupa_mass_distribution(1, mass_max=100 | units.MSun)[0]
-        if mass > total_mass:
-            mass = total_mass
-        total_mass -= mass
-        masses.append(mass)
-
-    return masses
 
 
 def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
@@ -52,8 +55,12 @@ def make_stars_from_sink(sink, stellar_mass, time):
                                                                sink.mass.in_(units.MSun))
     # If sink is massive enough and it's time to form a star
     stars_from_sink = Particles(1)
-    stars_from_sink.mass = stellar_mass
+    stars_from_sink.stellar_mass = stellar_mass
+    stars_from_sink.disk_mass = 0.1 * stars_from_sink.stellar_mass
+    stars_from_sink.mass = stars_from_sink.stellar_mass + stars_from_sink.disk_mass
     sink.mass -= stars_from_sink.mass
+
+    # TODO create disks here, or ourside this function? disk_codes could be global
 
     # Find position offset inside sink radius
     Rsink = sink.radius.value_in(units.parsec)
@@ -67,6 +74,157 @@ def make_stars_from_sink(sink, stellar_mass, time):
     stars_from_sink.vz = sink.vz
 
     return stars_from_sink, delay_time
+
+
+def find_indices(column,
+                 val):
+    """
+    Return indices of column values in between which val is located.
+    Return i,j such that column[i] < val < column[j]
+
+    :param column: column where val is to be located
+    :param val: number to be located in column
+    :return: i, j indices
+    """
+
+    # The largest element of column less than val
+    try:
+        value_below = column[column < val].max()
+    except ValueError:
+        # If there are no values less than val in column, return smallest element of column
+        value_below = column.min()
+    # Find index
+    index_i = numpy.where(column == value_below)[0][0]
+
+    # The smallest element of column greater than val
+    try:
+        value_above = column[column > val].min()
+    except ValueError:
+        # If there are no values larger than val in column, return largest element of column
+        value_above = column.max()
+    # Find index
+    index_j = numpy.where(column == value_above)[0][0]
+
+    return int(index_i), int(index_j)
+
+
+def get_disk_radius(disk,
+                    density_limit=1E-10):
+    """ Calculate the radius of a disk in a vader grid.
+
+    :param disk: vader disk
+    :param density_limit: density limit to designate disk border
+    :return: disk radius in units.au
+    """
+    prev_r = disk.grid[0].r
+
+    for i in range(len(disk.grid.r)):
+        cell_density = disk.grid[i].column_density.value_in(units.g / units.cm ** 2)
+        if cell_density < density_limit:
+            return prev_r.value_in(units.au) | units.au
+        prev_r = disk.grid[i].r
+
+    return prev_r.value_in(units.au) | units.au
+
+
+def get_disk_mass(disk,
+                  radius):
+    """ Calculate the mass of a vader disk inside a certain radius.
+
+    :param disk: vader disk
+    :param radius: disk radius to consider for mass calculation
+    :return: disk mass in units.MJupiter
+    """
+    mass_cells = disk.grid.r[disk.grid.r <= radius]
+    total_mass = 0
+
+    for m, d, a in zip(mass_cells, disk.grid.column_density, disk.grid.area):
+        total_mass += d.value_in(units.MJupiter / units.cm**2) * a.value_in(units.cm**2)
+
+    return total_mass | units.MJupiter
+
+
+def get_disk_density(disk):
+    """ Calculate the mean density of the disk, not considering the outer, low density limit.
+
+    :param disk: vader disk
+    :return: mean disk density in g / cm**2
+    """
+    radius = get_disk_radius(disk)
+    radius_index = numpy.where(disk.grid.r.value_in(units.au) == radius.value_in(units.au))
+    density = disk.grid[:radius_index[0][0]].column_density.value_in(units.g / units.cm**2)
+    return numpy.mean(density) | (units.g / units.cm**2)
+
+
+# TODO write separate function to calculate total radiation over star
+def photoevaporation_mass_loss(star, radiation, dt):
+    global FRIED_grid, grid_log10Mdot, grid_stellar_mass, grid_FUV, grid_disk_mass, grid_disk_radius
+
+    if star.EUV:
+        # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
+        # From the paper: e ~ 3, x ~ 1.5
+        photoevap_Mdot = 2. * 1E-9 * 3 * 4.12 * (star.disk_radius.value_in(units.cm) / 1E14)
+
+        # Calculate total mass lost due to EUV photoevaporation during dt, in MSun
+        total_photoevap_mass_loss_euv = float(photoevap_Mdot * dt.value_in(units.yr)) | units.MSun
+
+        # Back to False for next time
+        star.EUV = False  # TODO after calling photoevaporation_mass_loss, stars' EUV should be set to False
+    else:
+        total_photoevap_mass_loss_euv = 0.0 | units.MSun
+
+    # FUV regime -- Use FRIED grid
+
+    # For the small star, I want to interpolate the photoevaporation mass loss
+    # xi will be the point used for the interpolation. Adding star values...
+    xi = numpy.ndarray(shape=(1, 4), dtype=float)
+    xi[0][0] = star.stellar_mass.value_in(units.MSun)
+    xi[0][1] = radiation
+    # TODO should disk_codes also be global in this script?
+    xi[0][3] = get_disk_radius(disk_codes[disk_codes_indices[star.key]]).value_in(units.au)
+    xi[0][2] = get_disk_mass(disk_codes[disk_codes_indices[star.key]], xi[0][3] | units.au).value_in(units.MJupiter)
+
+    # Building the subgrid (of FRIED grid) over which I will perform the interpolation
+    subgrid = numpy.ndarray(shape=(8, 4), dtype=float)
+
+    # Finding indices between which star.mass is located in the grid
+    stellar_mass_i, stellar_mass_j = find_indices(grid_stellar_mass, star.stellar_mass.value_in(units.MSun))
+
+    subgrid[0] = FRIED_grid[stellar_mass_i]
+    subgrid[1] = FRIED_grid[stellar_mass_j]
+
+    # Finding indices between which the radiation over the small star is located in the grid
+    FUV_i, FUV_j = find_indices(grid_FUV, total_radiation[star.key])
+    subgrid[2] = FRIED_grid[FUV_i]
+    subgrid[3] = FRIED_grid[FUV_j]
+
+    # Finding indices between which star.disk_mass is located in the grid
+    disk_mass_i, disk_mass_j = find_indices(grid_disk_mass, star.disk_mass.value_in(units.MJupiter))
+    subgrid[4] = FRIED_grid[disk_mass_i]
+    subgrid[5] = FRIED_grid[disk_mass_j]
+
+    # Finding indices between which star.disk_radius is located in the grid
+    disk_radius_i, disk_radius_j = find_indices(grid_disk_radius, star.disk_radius.value_in(units.au))
+    subgrid[6] = FRIED_grid[disk_radius_i]
+    subgrid[7] = FRIED_grid[disk_radius_j]
+
+    # Adding known values of Mdot, in the indices found above, to perform interpolation
+    Mdot_values = numpy.ndarray(shape=(8,), dtype=float)
+    indices_list = [stellar_mass_i, stellar_mass_j,
+                    FUV_i, FUV_j,
+                    disk_mass_i, disk_mass_j,
+                    disk_radius_i, disk_radius_j]
+    for x in indices_list:
+        Mdot_values[indices_list.index(x)] = grid_log10Mdot[x]
+
+    # Interpolate!
+    # Photoevaporative mass loss in log10(MSun/yr)
+    photoevap_Mdot = interpolate.griddata(subgrid, Mdot_values, xi, method="nearest")
+
+    # Calculate total mass lost due to photoevaporation during dt, in MSun
+    total_photoevap_mass_loss_fuv = float(numpy.power(10, photoevap_Mdot) * dt.value_in(units.yr)) | units.MSun
+
+    return total_photoevap_mass_loss_euv + total_photoevap_mass_loss_fuv
 
 
 def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
@@ -101,6 +259,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     # Channels from hydro to local sinks and viceversa
     hydro_sinks_to_framework = hydro.sink_particles.new_channel_to(local_sinks)
     framework_to_hydro_sinks = local_sinks.new_channel_to(hydro.sink_particles)
+
+    # To keep track of low mass (disked) and high mass (radiating) stars
+    low_mass, high_mass = [], []
 
     while time < tend:
         time += dt
@@ -155,6 +316,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
+
+                # TODO add disk parameters to stars_from_sink (do it in make_stars_from_sink)
+                # TODO create disk codes... here or in make_stars_from_sink?
+
 
                 # I don't care about gravity_sinks for this block
                 if gravity is None:
@@ -214,10 +379,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             else:
                 print "EVOLVING GRAVITY AND GRAVITY_SINKS ONLY"
                 gravity.evolve_model(time - gravity_offset_time)
-                gravity_sinks.evolve_model(time - gravity_offset_time)
+                gravity_sinks.evolve_model(time)
                 gravity_to_framework.copy()
                 gravity_sinks_to_framework.copy()
                 #local_sinks.synchronize_to(hydro.sink_particles)
+
+            # TODO also here add stellar evolution, disk evolution, etc
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
@@ -236,7 +403,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         if time > t_diag:
             index += 1
             t_diag += dt
-            write_data(save_path, time, hydro=hydro, index=index, stars=stars)
+
+            if sink_formation:
+                write_data(save_path, time, hydro=hydro, index=index, stars=stars)
 
             # Saving stars and local sinks separately from the Hydro files
             # Saving star particles
@@ -251,7 +420,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                               'hdf5')
 
     #print len(gravity.code.particles)
-    hydro.stop()
+    hydro.stop(), gravity.stop(), gravity_sinks.stop()
     return gas_particles
 
 
