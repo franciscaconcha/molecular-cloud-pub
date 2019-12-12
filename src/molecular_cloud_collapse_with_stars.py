@@ -215,7 +215,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print "EVOLVING GRAVITY AND GRAVITY_SINKS ONLY"
                 gravity.evolve_model(time - gravity_offset_time)
                 gravity_sinks.evolve_model(time - gravity_offset_time)
-                print gravity_sinks.particles
                 gravity_to_framework.copy()
                 gravity_sinks_to_framework.copy()
                 #local_sinks.synchronize_to(hydro.sink_particles)
@@ -242,13 +241,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # Saving stars and local sinks separately from the Hydro files
             # Saving star particles
             write_set_to_file(stars,
-                              '{0}/gravity_stars_t{1}Myr.hdf5'.format(save_path,
-                                                             time.value_in(units.Myr)),
+                              '{0}/gravity_stars_t{1:.2f}Myr.hdf5'.format(save_path,
+                                                                          time.value_in(units.Myr)),
                               'hdf5')
             # Saving local sink particles
             write_set_to_file(local_sinks,
-                              '{0}/gravity_sinks_t{1}Myr.hdf5'.format(save_path,
-                                                             time.value_in(units.Myr)),
+                              '{0}/gravity_sinks_t{1:.2f}Myr.hdf5'.format(save_path,
+                                                                          time.value_in(units.Myr)),
                               'hdf5')
 
     #print len(gravity.code.particles)
