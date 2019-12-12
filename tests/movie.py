@@ -1,11 +1,12 @@
 import numpy
-import os.path
+import os
 from matplotlib import pyplot
+from matplotlib.colors import LogNorm
 
 from amuse.lab import *
+from amuse.community.fi.interface import *
 from prepare_figure import single_frame
 from hydrodynamics_class import Hydro
-
 
 def make_map(sph, N=100, L=1):
     x, y = numpy.indices((N + 1, N + 1))
@@ -28,28 +29,15 @@ def make_map(sph, N=100, L=1):
     return rho
 
 
-def plot_molecular_cloud(filename, save_path, L=10.0):
+def plot_molecular_cloud(gasfile, sinksfile, starsfile, path, save_path, prev_file, L=10.0):
     x_label = "x [pc]"
     y_label = "y [pc]"
     pyplot.close('all')
     fig = single_frame(x_label, y_label, logx=False, logy=False, xsize=12, ysize=12)
 
-    print "read file:", filename
-    gas = read_set_from_file(filename, "amuse")
-    sinkfile = filename.split("_gas_")[0] + "_sink_" + filename.split("_gas_")[1]
-    starfile = filename.split("_gas_")[0] + "_stars_" + filename.split("_gas_")[1]
-    print sinkfile
-    print starfile
-
-    if os.path.isfile(sinkfile):
-        sinks = read_set_from_file(sinkfile, "hdf5", close_file=True)
-    else:
-        sinks = Particles(0)
-
-    if os.path.isfile(starfile):
-        stars = read_set_from_file(starfile, "hdf5", close_file=True)
-    else:
-        stars = Particles(0)
+    gas = read_set_from_file(path + gasfile, "amuse")
+    sinks = read_set_from_file(path + sinksfile, "hdf5", close_file=True)
+    stars = read_set_from_file(path + starsfile, "hdf5", close_file=True)
 
     print "Ngas={0}, Nsinks={1}, Nstars={2}".format(len(gas), len(sinks), len(stars))
 
@@ -58,51 +46,67 @@ def plot_molecular_cloud(filename, save_path, L=10.0):
 
     rho = make_map(sph, N=200, L=L)
 
-    cax = pyplot.imshow(numpy.log10(1.e-5 + rho.value_in(units.amu / units.cm ** 3)),
+    cax = pyplot.imshow(numpy.log10(1.e-5 + numpy.transpose(rho).value_in(units.amu / units.cm ** 3)),
                         extent=[-L / 2, L / 2, -L / 2, L / 2],
                         vmin=1, vmax=5, origin="lower", cmap=pyplot.get_cmap('YlOrBr'))
+
+    """delta = 0.025
+    x = y = numpy.arange(-3.0, 3.0, delta)
+    X, Y = numpy.meshgrid(x, y)
+    Z = numpy.exp(-(X-1) ** 2 - (Y) ** 2)
+    #Z2 = numpy.exp(-(X + 2 - 1) ** 2 - (Y - 1) ** 2)
+    #Z = (Z1 - Z2) * 2
+
+    cax = pyplot.imshow(Z, interpolation='bilinear', cmap=pyplot.get_cmap('YlOrBr'),
+                   origin='upper', extent=[-L / 2, L / 2, -L / 2, L / 2],
+                   vmax=abs(Z).max(), vmin=-abs(Z).max())"""
+
 
     cbar = fig.colorbar(cax, orientation='vertical', fraction=0.045)
     cbar.set_label('projected density [$amu/cm^3$]', rotation=270, labelpad=25)
 
-    #cm = pyplot.cm.get_cmap('Greys')
     if len(sinks):
-        m = 100 * sinks.radius.value_in(units.parsec)
-        #100 * numpy.log10(sinks.mass / sinks.mass.min())
-        c = numpy.sqrt(sinks.mass / sinks.mass.max())
-        pyplot.scatter(sinks.y.value_in(units.parsec), sinks.x.value_in(units.parsec),
-                       c='white', s=m, lw=0)#, cmap=cm)
+        pyplot.scatter(sinks.x.value_in(units.parsec),
+                       sinks.y.value_in(units.parsec),
+                       c='white', alpha=0.5)
 
-    #cm = pyplot.cm.get_cmap('cool')
     if len(stars):
-        m = 100 * numpy.log10(stars.mass / stars.mass.min())
-        c = numpy.sqrt(stars.mass / stars.mass.max())
-        pyplot.scatter(stars.y.value_in(units.parsec), stars.x.value_in(units.parsec),
-                       c='cyan', marker="*", alpha=0.5, lw=0)#, cmap=cm)
+        pyplot.scatter(stars.x.value_in(units.parsec),
+                       stars.y.value_in(units.parsec),
+                       c='blue', marker="*", alpha=0.5)
 
     pyplot.xlim(-L / 2., L / 2.)
     pyplot.ylim(-L / 2., L / 2.)
     pyplot.title("Molecular cloud at time={0} Myr".format(time))
     pyplot.xlabel("x [pc]")
-    pyplot.ylabel("x [pc]")
-    ff = filename.split('_')[-1]
+    pyplot.ylabel("y [pc]")
+    ff = gasfile.split('_')[-1]
     pyplot.savefig('{0}/{1}.png'.format(save_path, ff[1:].split('.')[0]))
     #pyplot.show()
 
 
 def main(filename, path, save_path):
+    prev_file = None
+
     if path is not None:
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
 
         gas_files = [x for x in files if 'gas' in x]
         gas_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
-        for g in gas_files:
+        sink_files = [x for x in files if 'gravity_sinks' in x]
+        sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+        star_files = [x for x in files if 'gravity_stars' in x]
+        star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+        for g, si, ss in zip(gas_files, sink_files, star_files):
             filename = '{0}/{1}'.format(path, g)
-            plot_molecular_cloud(filename, save_path)
+            plot_molecular_cloud(g, si, ss, path, save_path, prev_file)
+            prev_file = filename
 
     else:
-        plot_molecular_cloud(filename, save_path)
+        plot_molecular_cloud(filename, save_path, prev_file)
 
 
 def new_option_parser():
