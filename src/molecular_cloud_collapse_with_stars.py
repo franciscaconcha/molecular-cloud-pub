@@ -320,6 +320,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 # TODO add disk parameters to stars_from_sink (do it in make_stars_from_sink)
                 # TODO create disk codes... here or in make_stars_from_sink?
 
+                # To keep track of "disked" and "FUV-radiating" stars
+                if stars_from_sink.stellar_mass > 1.9 | units.MSun:
+                    high_mass.append(stars_from_sink.key)
+                else:
+                    low_mass.append(stars_from_sink.key)  # TODO ojo: Mstar < 0.05 MSun will not have disks
+
 
                 # I don't care about gravity_sinks for this block
                 if gravity is None:
