@@ -10,6 +10,7 @@ from amuse.ic.fractalcluster import new_fractal_cluster_model
 from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
 from gravity_class import Gravity
+from disks_class import Disk
 
 ######## FRIED grid ########
 # Yes doing this with global variables is bad practice... but practical since
@@ -55,7 +56,7 @@ def accretion_rate(mass):
     return numpy.power(10, (1.89 * numpy.log10(mass.value_in(units.MSun)) - 8.35)) | units.MSun / units.yr
 
 
-def make_stars_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
+def make_star_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
 
     # Delay time for next star formation is a decay from the tff of the sink
     delay_time = sink.tff * numpy.exp(-0.1 * time.value_in(units.Myr))
@@ -92,12 +93,14 @@ def make_stars_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
 
         # Creating disk for new star
         global disk_codes, disk_codes_indices, diverged_disks
-        s_code = initialize_vader_code(new_star.disk_radius, new_star.disk_mass, alpha, n_cells=ncells, linear=False)
+        new_disk = Disk(new_star.disk_radius, new_star.disk_mass, alpha, n_cells=ncells, linear=False)
+        s_code = new_disk.code
+        print s_code
 
         s_code.parameters.inner_pressure_boundary_mass_flux = accretion_rate(new_star.stellar_mass)
 
         disk_codes.append(s_code)
-        disk_codes_indices[new_star.key] = len(disk_codes) - 1
+        disk_codes_indices[new_star.key[0]] = len(disk_codes) - 1
         diverged_disks[s_code] = False
 
         # Saving these values to keep track of dispersed disks later on
@@ -113,9 +116,15 @@ def make_stars_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
         new_star.EUV = False  # For photoevaporation regime
         new_star.nearby_supernovae = False
 
+        # Copy these back because the disk radius and mass differ slightly from the actual numbers given
+        new_star.disk_radius = new_disk.get_radius()
+        new_star.disk_mass = new_disk.get_mass(new_star.disk_radius)
+
         # Initial values of disks
-        new_star.initial_disk_size = get_disk_radius(s_code)
-        new_star.initial_disk_mass = get_disk_mass(s_code, new_star.initial_disk_size)
+        new_star.initial_disk_size = new_disk.get_radius()
+        new_star.initial_disk_mass = new_disk.get_mass(new_star.disk_radius)
+        print "disk radius: ", new_star.disk_radius.in_(units.au), new_disk.get_radius()
+        print "disk mass: ", new_star.disk_mass.in_(units.MSun), new_disk.get_mass(new_disk.get_radius())
 
         # Value to keep track of disk sizes and masses as not influenced by photoevaporation
         new_star.disk_size_np = new_star.initial_disk_size
@@ -126,43 +135,7 @@ def make_stars_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
         new_star.disk_mass = 0 | units.MSun
         new_star.code = False
 
-    # Create individual instances of vader codes for each disk
-    for s in stars:
-        if s in small_stars:
-            s.code = True
-            s_code = initialize_vader_code(s.disk_radius, s.disk_mass, alpha, n_cells=ncells, linear=False)
-
-            s_code.parameters.inner_pressure_boundary_mass_flux = accretion_rate(s.stellar_mass)
-
-            disk_codes.append(s_code)
-            disk_codes_indices[s.key] = len(disk_codes) - 1
-            diverged_disks[s_code] = False
-
-            # Saving these values to keep track of dispersed disks later on
-            s.dispersed_disk_mass = 0.01 * s.disk_mass  # Disk is dispersed if it has lost 99% of its initial mass
-            s.dispersion_threshold = 1E-5 | units.g / units.cm**2  # Density threshold for dispersed disks, Ingleby+ 2009
-            s.dispersed = False
-            s.checked = False  # I need this to keep track of dispersed disk checks
-            s.dispersal_time = t
-            s.photoevap_mass_loss = 0 | units.MJupiter
-            s.cumulative_photoevap_mass_loss = 0 | units.MJupiter
-            s.truncation_mass_loss = 0 | units.MJupiter
-            s.cumulative_truncation_mass_loss = 0 | units.MJupiter
-            s.EUV = False  # For photoevaporation regime
-            s.nearby_supernovae = False
-
-            # Initial values of disks
-            s.initial_disk_size = get_disk_radius(s_code)
-            s.initial_disk_mass = get_disk_mass(s_code, s.initial_disk_size)
-
-            # Value to keep track of disk sizes and masses as not influenced by photoevaporation
-            s.disk_size_np = s.initial_disk_size
-            s.disk_mass_np = s.initial_disk_mass
-
-        else:  # Bright stars don't have an associated disk code
-            s.code = False
-
-    return stars_from_sink, delay_time
+    return new_star, delay_time
 
 
 def find_indices(column,
@@ -444,7 +417,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 gravity_sinks = Gravity(ph4, local_sinks)
                 gravity_sinks_to_framework = gravity_sinks.code.particles.new_channel_to(local_sinks)
                 framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.code.particles)
-
+                break
                 # From this point on I will simply keep evolving the gravity and gravity_sinks codes
 
         for sink in local_sinks:
@@ -452,7 +425,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # sinks can still form stars after the gas code is stopped.
 
             if sink.mass > IMF_masses[current_mass] and sink.form_star:
-                stars_from_sink, delay_time = make_stars_from_sink(sink, IMF_masses[current_mass], time)
+                stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
 
@@ -575,6 +548,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     #print len(gravity.code.particles)
     hydro.stop(), gravity.stop(), gravity_sinks.stop()
+    print stars.disk_radius.in_(units.au)
     return gas_particles
 
 
@@ -620,7 +594,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    SFE = 0.4
+    SFE = 0.01
     #method = 'cluster'
     #method = 'single'
 
