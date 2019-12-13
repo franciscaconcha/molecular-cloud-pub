@@ -16,16 +16,20 @@ from gravity_class import Gravity
 # these values will be immutable and I will use them 100s of times
 
 # Read FRIED grid
-grid = numpy.loadtxt('data/friedgrid.dat', skiprows=2)
+grid_data = numpy.loadtxt('data/friedgrid.dat', skiprows=2)
 
 # Getting only the useful parameters from the grid (not including Mdot)
-FRIED_grid = grid[:, [0, 1, 2, 4]]
-grid_log10Mdot = grid[:, 5]
+FRIED_grid = grid_data[:, [0, 1, 2, 4]]
+grid_log10Mdot = grid_data[:, 5]
 
 grid_stellar_mass = FRIED_grid[:, 0]
 grid_FUV = FRIED_grid[:, 1]
 grid_disk_mass = FRIED_grid[:, 2]
 grid_disk_radius = FRIED_grid[:, 3]
+
+diverged_disks = {}
+disk_codes_indices = {}
+disk_codes = []
 
 
 def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
@@ -46,7 +50,12 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
     return gas
 
 
-def make_stars_from_sink(sink, stellar_mass, time):
+def accretion_rate(mass):
+
+    return numpy.power(10, (1.89 * numpy.log10(mass.value_in(units.MSun)) - 8.35)) | units.MSun / units.yr
+
+
+def make_stars_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
 
     # Delay time for next star formation is a decay from the tff of the sink
     delay_time = sink.tff * numpy.exp(-0.1 * time.value_in(units.Myr))
@@ -54,24 +63,104 @@ def make_stars_from_sink(sink, stellar_mass, time):
     print "Forming star of mass {0} from sink mass {1}".format(stellar_mass.in_(units.MSun),
                                                                sink.mass.in_(units.MSun))
     # If sink is massive enough and it's time to form a star
-    stars_from_sink = Particles(1)
-    stars_from_sink.stellar_mass = stellar_mass
-    stars_from_sink.disk_mass = 0.1 * stars_from_sink.stellar_mass
-    stars_from_sink.mass = stars_from_sink.stellar_mass + stars_from_sink.disk_mass
-    sink.mass -= stars_from_sink.mass
+    new_star = Particles(1)
+    new_star.stellar_mass = stellar_mass
+    new_star.disk_mass = 0.1 * new_star.stellar_mass
+    new_star.mass = new_star.stellar_mass + new_star.disk_mass
+    sink.mass -= new_star.mass
 
-    # TODO create disks here, or ourside this function? disk_codes could be global
-
+    # 'Normal' star parameters: location, velocity, etc
     # Find position offset inside sink radius
     Rsink = sink.radius.value_in(units.parsec)
     offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-    stars_from_sink.x = sink.x + offset
-    stars_from_sink.y = sink.y + offset
-    stars_from_sink.z = sink.z + offset
+    new_star.x = sink.x + offset
+    new_star.y = sink.y + offset
+    new_star.z = sink.z + offset
 
-    stars_from_sink.vx = sink.vx
-    stars_from_sink.vy = sink.vy
-    stars_from_sink.vz = sink.vz
+    new_star.vx = sink.vx
+    new_star.vy = sink.vy
+    new_star.vz = sink.vz
+
+    # Star parameters needed for photoevaporation routines
+    new_star.bright = new_star.stellar_mass > 1.9 | units.MSun
+
+    if not new_star.bright:
+        new_star.disk_radius = 100 * (new_star.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+        new_star.g0 = 0.0
+
+        new_star.code = True
+
+        # Creating disk for new star
+        global disk_codes, disk_codes_indices, diverged_disks
+        s_code = initialize_vader_code(new_star.disk_radius, new_star.disk_mass, alpha, n_cells=ncells, linear=False)
+
+        s_code.parameters.inner_pressure_boundary_mass_flux = accretion_rate(new_star.stellar_mass)
+
+        disk_codes.append(s_code)
+        disk_codes_indices[new_star.key] = len(disk_codes) - 1
+        diverged_disks[s_code] = False
+
+        # Saving these values to keep track of dispersed disks later on
+        new_star.dispersed_disk_mass = 0.01 * new_star.disk_mass  # Disk is dispersed if it has lost 99% of its initial mass
+        new_star.dispersion_threshold = 1E-5 | units.g / units.cm ** 2  # Density threshold for dispersed disks, Ingleby+ 2009
+        new_star.dispersed = False
+        new_star.checked = False  # I need this to keep track of dispersed disk checks
+        new_star.dispersal_time = time
+        new_star.photoevap_mass_loss = 0 | units.MJupiter
+        new_star.cumulative_photoevap_mass_loss = 0 | units.MJupiter
+        new_star.truncation_mass_loss = 0 | units.MJupiter
+        new_star.cumulative_truncation_mass_loss = 0 | units.MJupiter
+        new_star.EUV = False  # For photoevaporation regime
+        new_star.nearby_supernovae = False
+
+        # Initial values of disks
+        new_star.initial_disk_size = get_disk_radius(s_code)
+        new_star.initial_disk_mass = get_disk_mass(s_code, new_star.initial_disk_size)
+
+        # Value to keep track of disk sizes and masses as not influenced by photoevaporation
+        new_star.disk_size_np = new_star.initial_disk_size
+        new_star.disk_mass_np = new_star.initial_disk_mass
+
+    else:
+        new_star.disk_radius = 100 * (new_star.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+        new_star.disk_mass = 0 | units.MSun
+        new_star.code = False
+
+    # Create individual instances of vader codes for each disk
+    for s in stars:
+        if s in small_stars:
+            s.code = True
+            s_code = initialize_vader_code(s.disk_radius, s.disk_mass, alpha, n_cells=ncells, linear=False)
+
+            s_code.parameters.inner_pressure_boundary_mass_flux = accretion_rate(s.stellar_mass)
+
+            disk_codes.append(s_code)
+            disk_codes_indices[s.key] = len(disk_codes) - 1
+            diverged_disks[s_code] = False
+
+            # Saving these values to keep track of dispersed disks later on
+            s.dispersed_disk_mass = 0.01 * s.disk_mass  # Disk is dispersed if it has lost 99% of its initial mass
+            s.dispersion_threshold = 1E-5 | units.g / units.cm**2  # Density threshold for dispersed disks, Ingleby+ 2009
+            s.dispersed = False
+            s.checked = False  # I need this to keep track of dispersed disk checks
+            s.dispersal_time = t
+            s.photoevap_mass_loss = 0 | units.MJupiter
+            s.cumulative_photoevap_mass_loss = 0 | units.MJupiter
+            s.truncation_mass_loss = 0 | units.MJupiter
+            s.cumulative_truncation_mass_loss = 0 | units.MJupiter
+            s.EUV = False  # For photoevaporation regime
+            s.nearby_supernovae = False
+
+            # Initial values of disks
+            s.initial_disk_size = get_disk_radius(s_code)
+            s.initial_disk_mass = get_disk_mass(s_code, s.initial_disk_size)
+
+            # Value to keep track of disk sizes and masses as not influenced by photoevaporation
+            s.disk_size_np = s.initial_disk_size
+            s.disk_mass_np = s.initial_disk_mass
+
+        else:  # Bright stars don't have an associated disk code
+            s.code = False
 
     return stars_from_sink, delay_time
 
@@ -108,68 +197,127 @@ def find_indices(column,
     return int(index_i), int(index_j)
 
 
-def get_disk_radius(disk,
-                    density_limit=1E-10):
-    """ Calculate the radius of a disk in a vader grid.
+def column_density(grid,
+                   rc,
+                   mass,
+                   lower_density=1E-12 | units.g / units.cm**2):
+    """ Disk column density definition as in Eqs. 1, 2, and 3 of the paper.
+        (Lynden-Bell & Pringle, 1974: Anderson et al. 2013)
 
-    :param disk: vader disk
-    :param density_limit: density limit to designate disk border
-    :return: disk radius in units.au
+    :param grid: disk grid
+    :param rc: characteristic disk radius
+    :param mass: disk mass
+    :param lower_density: density limit for defining disk edge
+    :return: disk column density in g / cm**2
     """
-    prev_r = disk.grid[0].r
+    r = grid.value_in(units.au) | units.au
+    rd = rc  # Anderson et al. 2013
+    Md = mass
 
-    for i in range(len(disk.grid.r)):
-        cell_density = disk.grid[i].column_density.value_in(units.g / units.cm ** 2)
-        if cell_density < density_limit:
-            return prev_r.value_in(units.au) | units.au
-        prev_r = disk.grid[i].r
-
-    return prev_r.value_in(units.au) | units.au
+    Sigma_0 = Md / (2 * numpy.pi * rc ** 2 * (1 - numpy.exp(-rd / rc)))
+    Sigma = Sigma_0 * (rc / r) * numpy.exp(-r / rc) * (r <= rc) + lower_density
+    return Sigma
 
 
-def get_disk_mass(disk,
-                  radius):
-    """ Calculate the mass of a vader disk inside a certain radius.
+def distance(star1,
+             star2):
+    """ Return distance between star1 and star2
 
-    :param disk: vader disk
-    :param radius: disk radius to consider for mass calculation
-    :return: disk mass in units.MJupiter
+    :param star1: AMUSE particle
+    :param star2: AMUSE particle
+    :return: distance in units.parsec
     """
-    mass_cells = disk.grid.r[disk.grid.r <= radius]
-    total_mass = 0
-
-    for m, d, a in zip(mass_cells, disk.grid.column_density, disk.grid.area):
-        total_mass += d.value_in(units.MJupiter / units.cm**2) * a.value_in(units.cm**2)
-
-    return total_mass | units.MJupiter
+    return numpy.sqrt((star2.x - star1.x)**2 + (star2.y - star1.y)**2 + (star2.z - star1.z)**2)
 
 
-def get_disk_density(disk):
-    """ Calculate the mean density of the disk, not considering the outer, low density limit.
-
-    :param disk: vader disk
-    :return: mean disk density in g / cm**2
+def luminosity_fit(mass):
     """
-    radius = get_disk_radius(disk)
-    radius_index = numpy.where(disk.grid.r.value_in(units.au) == radius.value_in(units.au))
-    density = disk.grid[:radius_index[0][0]].column_density.value_in(units.g / units.cm**2)
-    return numpy.mean(density) | (units.g / units.cm**2)
+    Return stellar luminosity (in LSun) for corresponding mass, as calculated with Martijn's fit
+
+    :param mass: stellar mass in MSun
+    :return: stellar luminosity in LSun
+    """
+    if 0.12 < mass < 0.24:
+        return (1.70294E16 * numpy.power(mass, 42.557)) | units.LSun
+    elif 0.24 < mass < 0.56:
+        return (9.11137E-9 * numpy.power(mass, 3.8845)) | units.LSun
+    elif 0.56 < mass < 0.70:
+        return (1.10021E-6 * numpy.power(mass, 12.237)) | units.LSun
+    elif 0.70 < mass < 0.91:
+        return (2.38690E-4 * numpy.power(mass, 27.199)) | units.LSun
+    elif 0.91 < mass < 1.37:
+        return (1.02477E-4 * numpy.power(mass, 18.465)) | units.LSun
+    elif 1.37 < mass < 2.07:
+        return (9.66362E-4 * numpy.power(mass, 11.410)) | units.LSun
+    elif 2.07 < mass < 3.72:
+        return (6.49335E-2 * numpy.power(mass, 5.6147)) | units.LSun
+    elif 3.72 < mass < 10.0:
+        return (6.99075E-1 * numpy.power(mass, 3.8058)) | units.LSun
+    elif 10.0 < mass < 20.2:
+        return (9.73664E0 * numpy.power(mass, 2.6620)) | units.LSun
+    elif 20.2 < mass:
+        return (1.31175E2 * numpy.power(mass, 1.7974)) | units.LSun
+    else:
+        return 0 | units.LSun
 
 
-# TODO write separate function to calculate total radiation over star
-def photoevaporation_mass_loss(star, radiation, dt):
+def radiation_at_distance(rad, d):
+    """ Return radiation rad at distance d
+
+    :param rad: total radiation from star in erg/s
+    :param d: distance in cm
+    :return: radiation of star at distance d, in erg * s^-1 * cm^-2
+    """
+    return rad / (4 * numpy.pi * d**2) | (units.erg / (units.s * units.cm**2))
+
+
+def FUV_radiation_on_star(star, bright_stars):
+    """ Calculate the total FUV radiation over a low mass star, in units of G0
+
+    :param star: star (AMUSE particle) to calculate radiation on
+    :param bright_stars: AMUSE particle set of radiating (high mass) stars
+    :return: total FUV radiation in G0 units and EUV=True is star if also subject to EUV photoevaporation
+    """
+    total_radiation = 0
+    EUV = False
+
+    for bs in bright_stars:  # For each massive/bright star
+        # Calculate FUV luminosity of the bright star, in LSun
+        lum = luminosity_fit(bs.stellar_mass.value_in(units.MSun))
+
+        # Calculate distance to bright star
+        dist = distance(bs, star)
+
+        # EUV regime -- Use Johnstone, Hollenbach, & Bally 1998
+        dmin = 5. * 1E17 * 0.25 * numpy.sqrt(star.disk_radius.value_in(units.cm) / 1E14) | units.cm
+
+        if dist < dmin:
+            EUV = True
+
+        else:
+            # Other bright stars can still contribute FUV radiation
+            radiation_ss = radiation_at_distance(lum.value_in(units.erg / units.s),
+                                                 dist.value_in(units.cm)
+                                                 )
+
+            radiation_ss_G0 = radiation_ss.value_in(units.erg / (units.s * units.cm ** 2)) / 1.6E-3
+            total_radiation += radiation_ss_G0
+
+    return total_radiation, EUV
+
+
+def photoevaporation_mass_loss(star, bright_stars, dt):
     global FRIED_grid, grid_log10Mdot, grid_stellar_mass, grid_FUV, grid_disk_mass, grid_disk_radius
 
-    if star.EUV:
+    radiation_G0, EUV = FUV_radiation_on_star(star, bright_stars)
+
+    if EUV:
         # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
         # From the paper: e ~ 3, x ~ 1.5
         photoevap_Mdot = 2. * 1E-9 * 3 * 4.12 * (star.disk_radius.value_in(units.cm) / 1E14)
 
         # Calculate total mass lost due to EUV photoevaporation during dt, in MSun
         total_photoevap_mass_loss_euv = float(photoevap_Mdot * dt.value_in(units.yr)) | units.MSun
-
-        # Back to False for next time
-        star.EUV = False  # TODO after calling photoevaporation_mass_loss, stars' EUV should be set to False
     else:
         total_photoevap_mass_loss_euv = 0.0 | units.MSun
 
@@ -179,7 +327,7 @@ def photoevaporation_mass_loss(star, radiation, dt):
     # xi will be the point used for the interpolation. Adding star values...
     xi = numpy.ndarray(shape=(1, 4), dtype=float)
     xi[0][0] = star.stellar_mass.value_in(units.MSun)
-    xi[0][1] = radiation
+    xi[0][1] = radiation_G0
     # TODO should disk_codes also be global in this script?
     xi[0][3] = get_disk_radius(disk_codes[disk_codes_indices[star.key]]).value_in(units.au)
     xi[0][2] = get_disk_mass(disk_codes[disk_codes_indices[star.key]], xi[0][3] | units.au).value_in(units.MJupiter)
@@ -194,7 +342,7 @@ def photoevaporation_mass_loss(star, radiation, dt):
     subgrid[1] = FRIED_grid[stellar_mass_j]
 
     # Finding indices between which the radiation over the small star is located in the grid
-    FUV_i, FUV_j = find_indices(grid_FUV, total_radiation[star.key])
+    FUV_i, FUV_j = find_indices(grid_FUV, radiation_G0)
     subgrid[2] = FRIED_grid[FUV_i]
     subgrid[3] = FRIED_grid[FUV_j]
 
@@ -321,7 +469,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 # TODO create disk codes... here or in make_stars_from_sink?
 
                 # To keep track of "disked" and "FUV-radiating" stars
-                if stars_from_sink.stellar_mass > 1.9 | units.MSun:
+                if stars_from_sink.bright:
                     high_mass.append(stars_from_sink.key)
                 else:
                     low_mass.append(stars_from_sink.key)  # TODO ojo: Mstar < 0.05 MSun will not have disks
@@ -390,7 +538,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 gravity_sinks_to_framework.copy()
                 #local_sinks.synchronize_to(hydro.sink_particles)
 
-            # TODO also here add stellar evolution, disk evolution, etc
+            # TODO also here add stellar evolution, disk evolution, photoevap, etc
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
