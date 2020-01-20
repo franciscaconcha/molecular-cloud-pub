@@ -113,16 +113,16 @@ def make_star_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
         new_star.cumulative_photoevap_mass_loss = 0 | units.MJupiter
         new_star.truncation_mass_loss = 0 | units.MJupiter
         new_star.cumulative_truncation_mass_loss = 0 | units.MJupiter
-        new_star.EUV = False  # For photoevaporation regime
+        new_star.EUV = False  # For photoevaporation regime  # TODO I think this is not needed anymore
         new_star.nearby_supernovae = False
 
-        # Copy these back because the disk radius and mass differ slightly from the actual numbers given
+        # Copying these back because the disk radius and mass differ slightly from the actual numbers given
         new_star.disk_radius = new_disk.get_radius()
         new_star.disk_mass = new_disk.get_mass(new_star.disk_radius)
 
         # Initial values of disks
-        new_star.initial_disk_size = new_disk.get_radius()
-        new_star.initial_disk_mass = new_disk.get_mass(new_star.disk_radius)
+        new_star.initial_disk_size = new_star.disk_radius
+        new_star.initial_disk_mass = new_star.disk_mass
         print "disk radius: ", new_star.disk_radius.in_(units.au), new_disk.get_radius()
         print "disk mass: ", new_star.disk_mass.in_(units.MSun), new_disk.get_mass(new_disk.get_radius())
 
@@ -131,7 +131,7 @@ def make_star_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
         new_star.disk_mass_np = new_star.initial_disk_mass
 
     else:
-        new_star.disk_radius = 100 * (new_star.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+        new_star.disk_radius = 0 | units.au
         new_star.disk_mass = 0 | units.MSun
         new_star.code = False
 
@@ -438,9 +438,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
 
-                # TODO add disk parameters to stars_from_sink (do it in make_stars_from_sink)
-                # TODO create disk codes... here or in make_stars_from_sink?
-
                 # To keep track of "disked" and "FUV-radiating" stars
                 if stars_from_sink.bright:
                     high_mass.append(stars_from_sink.key)
@@ -452,9 +449,22 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 if gravity is None:
                     print 'Starting gravity code and Bridge'
                     gravity_offset_time = time
-                    gravity = Gravity(ph4, stars)
-                    gravity_to_framework = gravity.code.particles.new_channel_to(stars)
-                    framework_to_gravity = stars.new_channel_to(gravity.code.particles)
+                    #gravity = Gravity(ph4, stars, number_of_workers=12)
+
+                    converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
+                    gravity = ph4(converter, number_of_workers=12)
+                    gravity.parameters.timestep_parameter = 0.01
+                    gravity.parameters.epsilon_squared = (100 | units.au) ** 2
+                    gravity.particles.add_particles(stars_from_sink)
+
+                    # Enable stopping condition for dynamical encounters
+                    dynamical_encounter = gravity.stopping_conditions.collision_detection
+                    dynamical_encounter.enable()
+
+                    #gravity_to_framework = gravity.code.particles.new_channel_to(stars)
+                    gravity_to_framework = gravity.particles.new_channel_to(stars)
+                    #framework_to_gravity = stars.new_channel_to(gravity.code.particles)
+                    framework_to_gravity = stars.new_channel_to(gravity.particles)
                     gravity_to_framework.copy()
 
                     gravhydro = Bridge()
@@ -462,7 +472,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     gravhydro.add_system(hydro, (gravity,))
                     gravhydro.timestep = 0.1 * dt
                 else:
-                    gravity.code.particles.add_particles(stars_from_sink)
+                    #gravity.code.particles.add_particles(stars_from_sink)
+                    gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
             elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
