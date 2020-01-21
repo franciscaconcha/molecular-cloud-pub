@@ -12,6 +12,7 @@ from hydrodynamics_class import Hydro
 from gravity_class import Gravity
 from disks_class import Disk
 
+
 ######## FRIED grid ########
 # Yes doing this with global variables is bad practice... but practical since
 # these values will be immutable and I will use them 100s of times
@@ -414,10 +415,21 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 hydro_sinks_to_framework.copy()
 
                 # Create new gravity code for sinks only # TODO check: is this a good idea?
-                gravity_sinks = Gravity(ph4, local_sinks)
-                gravity_sinks_to_framework = gravity_sinks.code.particles.new_channel_to(local_sinks)
-                framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.code.particles)
-                break
+                #gravity_sinks = Gravity(ph4, local_sinks)
+                #gravity_sinks_to_framework = gravity_sinks.code.particles.new_channel_to(local_sinks)
+                #framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.code.particles)
+
+                converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
+                gravity_sinks = ph4(converter, number_of_workers=12)
+                gravity_sinks.parameters.timestep_parameter = 0.01
+                gravity_sinks.parameters.epsilon_squared = (100 | units.au) ** 2
+                gravity_sinks.particles.add_particles(local_sinks)
+
+                gravity_sinks_to_framework = gravity_sinks.particles.new_channel_to(local_sinks)
+                framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.particles)
+
+
+                #break
                 # From this point on I will simply keep evolving the gravity and gravity_sinks codes
 
         for sink in local_sinks:
