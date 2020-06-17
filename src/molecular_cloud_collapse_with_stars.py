@@ -157,8 +157,15 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 gravity_sinks_to_framework = gravity_sinks.particles.new_channel_to(local_sinks)
                 framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.particles)
 
-                break
+                #break
+            else:
+                print "Evolving hydro only"
+                hydro.evolve_model(time)
+                # Synchronize sinks, then update local sinks
+                hydro.sink_particles.synchronize_to(local_sinks)
+                hydro_sinks_to_framework.copy()
 
+        # This loop will be executed regardless if the hydro code is active or not (sink_formation)
         for sink in local_sinks:
             # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
             # sinks can still form stars after the gas code is stopped.
@@ -223,35 +230,15 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 print "Sink is not massive enough to form this star."
                 # sink.form_star = False
 
-            gravity_to_framework.copy()
+            #gravity_to_framework.copy()
             #if gravity_sinks is None:
             framework_to_hydro_sinks.copy()
             #else:
             #    framework_to_gravity_sinks.copy()
 
-        #if gravhydro is None:
-        print "Evolving hydro only"
-        hydro.evolve_model(time)
-        # Synchronize sinks, then update local sinks
-        hydro.sink_particles.synchronize_to(local_sinks)
-        hydro_sinks_to_framework.copy()
-        """else:
-            if sink_formation:
-                print "EVOLVING GRAVHYDRO with {0} particles".format(len(gravity.particles))
-                gravhydro.evolve_model(time - gravity_offset_time)
-                # Synchronize sinks, then update local sinks
-                hydro.sink_particles.synchronize_to(local_sinks)
-                gravity.particles.synchronize_to(stars)
-                hydro_sinks_to_framework.copy()
-                gravity_to_framework.copy()
-                print "GRAVHYDRO.MODEL_TIME: {0}".format(gravhydro.model_time.in_(units.Myr))
-            else:
-                print "EVOLVING GRAVITY AND GRAVITY_SINKS ONLY"
-                gravity.evolve_model(time - gravity_offset_time)
-                gravity_sinks.evolve_model(time)
-                gravity_to_framework.copy()
-                gravity_sinks_to_framework.copy()
-                #local_sinks.synchronize_to(hydro.sink_particles)"""
+        if local_sinks.mass.sum() <= IMF_masses[current_mass:].sum():
+            print "Not enough mass in sinks to keep forming stars"
+            break
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
@@ -274,17 +261,17 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             if sink_formation:
                 write_data(save_path, time, hydro=hydro, index=index, stars=stars)
 
-            # Saving stars and local sinks separately from the Hydro files
-            # Saving star particles
-            write_set_to_file(stars,
-                              '{0}/gravity_stars_t{1:.2f}Myr.hdf5'.format(save_path,
-                                                                          time.value_in(units.Myr)),
-                              'hdf5')
-            # Saving local sink particles
-            write_set_to_file(local_sinks,
-                              '{0}/gravity_sinks_t{1:.2f}Myr.hdf5'.format(save_path,
-                                                                          time.value_in(units.Myr)),
-                              'hdf5')
+    # Saving stars and local sinks separately from the Hydro files
+    # Saving star particles
+    write_set_to_file(stars,
+                      '{0}/gravity_stars_t{1:.2f}Myr.hdf5'.format(save_path,
+                                                                  time.value_in(units.Myr)),
+                      'hdf5')
+    # Saving local sink particles
+    write_set_to_file(local_sinks,
+                      '{0}/gravity_sinks_t{1:.2f}Myr.hdf5'.format(save_path,
+                                                                  time.value_in(units.Myr)),
+                      'hdf5')
 
     #print len(gravity.code.particles)
     hydro.stop()#, gravity.stop(), gravity_sinks.stop()
