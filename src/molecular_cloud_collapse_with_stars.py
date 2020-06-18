@@ -209,7 +209,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 sinks_masses = [s.mass for s in local_sinks]
 
                 # No sink has enough mass to form this star
-                if not sink_formation and all(i >= IMF_masses[current_mass] for i in sinks_masses):
+                if not sink_formation and all(i < IMF_masses[current_mass] for i in sinks_masses):
                     # If the sinks are not accreting anymore, I keep moving through the IMF
                     # so that we don't get stuck trying to form a massive star with low mass sinks
                     current_mass += 1
