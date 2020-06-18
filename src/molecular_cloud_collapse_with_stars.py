@@ -215,6 +215,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     current_mass += 1
                 # sink.form_star = False
 
+            # Stopping condition for star formation -- if this is reached the code finishes
+            sinks_masses = [s.mass for s in local_sinks]
+            if not sink_formation and all(i < min(IMF_masses[current_mass:]) for i in sinks_masses):
+                print "All mass in sinks has ran out -- all possible stars have been formed!"
+                print "Made {0} stars.".format(len(stars))
+                break
+
             #gravity_to_framework.copy()
             #if gravity_sinks is None:
             framework_to_hydro_sinks.copy()
