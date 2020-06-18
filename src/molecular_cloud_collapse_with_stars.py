@@ -244,6 +244,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
         Eerr = (E - E0) / E0
         print 'energy=', E, 'energy_error=', Eerr, 'e_th=', E_th
         print "maximal_density:", gas_particles.rho.max().in_(units.MSun / units.parsec ** 3)
+        for s in local_sinks:
+            print s.mass.value_in(units.MSun)
 
         #hydro.print_diagnostics()
         #if gravhydro is None:
