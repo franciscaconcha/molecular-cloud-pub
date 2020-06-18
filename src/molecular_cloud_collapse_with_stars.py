@@ -170,6 +170,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
             # sinks can still form stars after the gas code is stopped.
 
+            print "Trying to form a star of mass ", IMF_masses[current_mass]
+
             if sink.mass > IMF_masses[current_mass] and sink.form_star:
                 # Make a star!
                 stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time)
