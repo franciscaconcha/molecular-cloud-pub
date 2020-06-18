@@ -172,7 +172,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
             print "Trying to form a star of mass ", IMF_masses[current_mass]
 
-            if sink.mass > IMF_masses[current_mass] and sink.form_star:
+            if sink.mass >= IMF_masses[current_mass] and sink.form_star:
                 # Make a star!
                 stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time)
                 sink.form_star = False
@@ -216,7 +216,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                     gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()"""
 
-            elif sink.mass > IMF_masses[current_mass] and not sink.form_star:
+            elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
                 print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
                     sink.form_star = True
@@ -230,6 +230,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
             elif sink.mass < IMF_masses[current_mass] and sink.form_star:
                 print "Sink is not massive enough to form this star."
+                if not sink_formation:
+                    # If the sinks are not accreting anymore, I keep moving through the IMF
+                    # so that we don't get stuck trying to form a massive star with low mass sinks
+                    current_mass += 1
                 # sink.form_star = False
 
             #gravity_to_framework.copy()
