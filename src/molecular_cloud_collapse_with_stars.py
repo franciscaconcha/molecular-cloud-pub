@@ -174,6 +174,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
             if sink.mass >= IMF_masses[current_mass] and sink.form_star:
                 # Make a star!
+                print "Making a star"
+                print "Sink mass before: ", sink.mass.value_in(units.MSun)
                 stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
@@ -186,35 +188,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
+                print "Sink mass after: ", sink.mass.value_in(units.MSun)
 
-                # For when the first star is created
-                """if gravity is None:
-                    print 'Starting gravity code and Bridge'
-                    gravity_offset_time = time
-                    converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
-                    gravity = ph4(converter, number_of_workers=12)
-                    gravity.parameters.timestep_parameter = 0.01
-                    gravity.parameters.epsilon_squared = (100 | units.au) ** 2
-                    gravity.particles.add_particles(stars_from_sink)
 
-                    # Enable stopping condition for dynamical encounters
-                    dynamical_encounter = gravity.stopping_conditions.collision_detection
-                    dynamical_encounter.enable()
-
-                    #gravity_to_framework = gravity.code.particles.new_channel_to(stars)
-                    gravity_to_framework = gravity.particles.new_channel_to(stars)
-                    #framework_to_gravity = stars.new_channel_to(gravity.code.particles)
-                    framework_to_gravity = stars.new_channel_to(gravity.particles)
-                    gravity_to_framework.copy()
-
-                    gravhydro = Bridge()
-                    gravhydro.add_system(gravity, (hydro,))
-                    gravhydro.add_system(hydro, (gravity,))
-                    gravhydro.timestep = 0.1 * dt
-                else:
-                    #gravity.code.particles.add_particles(stars_from_sink)
-                    gravity.particles.add_particles(stars_from_sink)
-                    gravity_to_framework.copy()"""
 
             elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
                 print "Sink is massive enough, but it's not yet time to form a star."
