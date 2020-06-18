@@ -236,13 +236,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
             #else:
             #    framework_to_gravity_sinks.copy()
 
-        local_sinks_mass = 0.0
-        for s in local_sinks:
-            local_sinks_mass += s.mass
-
-        if local_sinks_mass <= IMF_masses[current_mass:].sum().value_in(units.MSun):
-            print "Not enough mass in sinks to keep forming stars"
-            break
 
         E = hydro.gas_particles.kinetic_energy() \
             + hydro.gas_particles.potential_energy() \
