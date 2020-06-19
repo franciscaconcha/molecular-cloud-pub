@@ -190,8 +190,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 stars.add_particles(stars_from_sink)
                 print "Sink mass after: ", sink.mass.value_in(units.MSun)
 
-
-
             elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
                 print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
@@ -266,6 +264,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
 
     #print len(gravity.code.particles)
     hydro.stop()#, gravity.stop(), gravity_sinks.stop()
+    print "Made {0} stars.".format(len(stars))
     #print stars.disk_radius.in_(units.au)
     return gas_particles
 
@@ -312,7 +311,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    SFE = 0.01
+    SFE = 0.3
     #method = 'cluster'
     #method = 'single'
 
