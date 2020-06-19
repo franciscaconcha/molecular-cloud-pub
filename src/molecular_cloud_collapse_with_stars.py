@@ -245,9 +245,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
 
 def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
-
-    # This is to use Kong's code
-
+    import datetime
+    print("START: {0}".format(datetime.datetime.now()))
 
     if len(filename) == 0:  # Start a new run
         try:
@@ -292,6 +291,8 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     SFE = 0.3  # Star formation efficienty 30%
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, start_time, tend, dt_diag, save_path, index)
+
+    print("END: {0}".format(datetime.datetime.now()))
 
 
 def new_option_parser():
