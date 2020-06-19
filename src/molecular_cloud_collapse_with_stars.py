@@ -1,37 +1,11 @@
 import numpy
-from scipy import interpolate
 
 from amuse.lab import *
 from amuse.ext.molecular_cloud import molecular_cloud
 from amuse.ext.evrard_test import body_centered_grid_unit_cube
-from amuse.couple.bridge import Bridge
-from amuse.ic.fractalcluster import new_fractal_cluster_model
 
 from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
-from gravity_class import Gravity
-from disks_class import Disk
-
-
-######## FRIED grid ########
-# Yes doing this with global variables is bad practice... but practical since
-# these values will be immutable and I will use them 100s of times
-
-# Read FRIED grid
-grid_data = numpy.loadtxt('data/friedgrid.dat', skiprows=2)
-
-# Getting only the useful parameters from the grid (not including Mdot)
-FRIED_grid = grid_data[:, [0, 1, 2, 4]]
-grid_log10Mdot = grid_data[:, 5]
-
-grid_stellar_mass = FRIED_grid[:, 0]
-grid_FUV = FRIED_grid[:, 1]
-grid_disk_mass = FRIED_grid[:, 2]
-grid_disk_radius = FRIED_grid[:, 3]
-
-diverged_disks = {}
-disk_codes_indices = {}
-disk_codes = []
 
 
 def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
@@ -53,22 +27,20 @@ def generate_initial_conditions_for_molecular_cloud(N, Mcloud, Rcloud):
 
 
 def accretion_rate(mass):
-
     return numpy.power(10, (1.89 * numpy.log10(mass.value_in(units.MSun)) - 8.35)) | units.MSun / units.yr
 
 
-def make_star_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
+def make_star_from_sink(sink, stellar_mass, time):
 
     # Delay time for next star formation is a decay from the tff of the sink
     delay_time = sink.tff * numpy.exp(-0.1 * time.value_in(units.Myr))
 
     print "Forming star of mass {0} from sink mass {1}".format(stellar_mass.in_(units.MSun),
                                                                sink.mass.in_(units.MSun))
-    # If sink is massive enough and it's time to form a star
+
     new_star = Particles(1)
     new_star.stellar_mass = stellar_mass
-    #new_star.disk_mass = 0.1 * new_star.stellar_mass
-    #new_star.mass = new_star.stellar_mass + new_star.disk_mass
+
     if new_star.stellar_mass <= 1.9 | units.MSun:
         sink.mass -= 1.1 * new_star.stellar_mass  # Also removing mass of the future disk
     else:
@@ -91,7 +63,7 @@ def make_star_from_sink(sink, stellar_mass, time, alpha=1E-4, ncells=50):
     return new_star, delay_time
 
 
-def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_diag, save_path, index=0):
 
     hydro = Hydro(Fi, gas_particles, tstart)
 
@@ -112,10 +84,11 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=50 | units.MSun)
+    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=150 | units.MSun)  # Randomized order
+    IMF_masses = [m for m in IMF_masses if m >= 0.08 | units.MSun]
     current_mass = 0  # To keep track of formed stars
 
-    stars = Particles(0)
+    stars = Particles(0)  # Here we keep the newly formed stars
 
     sink_formation = True  # To keep track of SFE
     local_sinks = Particles(0)
@@ -149,6 +122,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 hydro_sinks_to_framework.copy()
 
                 converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
+
+                # This gravity_sinks code was to keep the sinks in the gravity code, so that they
+                # gravitationally interact with the stars. Won't be using it anymore (for now...)
                 gravity_sinks = ph4(converter, number_of_workers=12)
                 gravity_sinks.parameters.timestep_parameter = 0.01
                 gravity_sinks.parameters.epsilon_squared = (100 | units.au) ** 2
@@ -157,7 +133,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
                 gravity_sinks_to_framework = gravity_sinks.particles.new_channel_to(local_sinks)
                 framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.particles)
 
-                #break
             else:
                 print "Evolving hydro only"
                 hydro.evolve_model(time)
@@ -269,24 +244,27 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, method, tstart, tend
     return gas_particles
 
 
-def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
-    if len(filename) == 0:
+def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+
+    # This is to use Kong's code
+
+
+    if len(filename) == 0:  # Start a new run
         try:
             import os
             os.makedirs(save_path)
         except OSError, e:
             if e.errno != 17:
                 raise
-            # time.sleep might help here
             pass
 
-        gas_particles = generate_initial_conditions_for_molecular_cloud(o.Ncloud,
-                                                                        Mcloud=o.Mcloud,
-                                                                        Rcloud=o.Rcloud)
-        rho_cloud = o.Mcloud / o.Rcloud ** 3
+        gas_particles = generate_initial_conditions_for_molecular_cloud(Ncloud,
+                                                                        Mcloud=Mcloud,
+                                                                        Rcloud=Rcloud)
+        rho_cloud = Mcloud / Rcloud ** 3
         tff = 0.5427 / numpy.sqrt(constants.G * rho_cloud)
         print "Freefall timescale=", tff.in_(units.Myr)
-        rho_cloud = 3. * o.Mcloud / (4. * numpy.pi * o.Rcloud ** 3)
+        rho_cloud = 3. * Mcloud / (4. * numpy.pi * Rcloud ** 3)
         print rho_cloud
 
         #tend = 10 * tff
@@ -311,11 +289,9 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, method):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    SFE = 0.3
-    #method = 'cluster'
-    #method = 'single'
+    SFE = 0.3  # Star formation efficienty 30%
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, method, start_time, tend, dt_diag, save_path, index)
+    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, start_time, tend, dt_diag, save_path, index)
 
 
 def new_option_parser():
@@ -351,10 +327,6 @@ def new_option_parser():
                       type="float",
                       default=3 | units.parsec,
                       help="cloud size")
-    result.add_option("-m", dest="method",
-                      type="string",
-                      default='cluster',
-                      help="method for star formation, single or cluster")
 
     return result
 
