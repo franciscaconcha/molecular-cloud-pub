@@ -725,10 +725,10 @@ def main(N,
             resolve_encounter([s0, s1],
                               encountering_disks,
                               gravity.model_time + t_ini)
-            print "After encounter, inside cond, pre-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                      gravity.model_time.value_in(units.Myr))
+            #print "After encounter, inside cond, pre-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
+            #                                                          gravity.model_time.value_in(units.Myr))
 
-            print "t + dt = {0}".format(t + dt)
+            #print "t + dt = {0}".format(t + dt)
             #while gravity.model_time < t + dt:
             gravity.evolve_model(t + dt)
             #channel_from_gravity_to_framework.copy()
@@ -736,8 +736,8 @@ def main(N,
         """print "After encounter, inside cond, post-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
                                                                       gravity.model_time.value_in(units.Myr))"""
 
-        print "After encounter, outside cond: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                  gravity.model_time.value_in(units.Myr))
+        #print "After encounter, outside cond: t = {0}, model time = {1:.3f}, {1}".format(t,
+        #                                                         gravity.model_time.value_in(units.Myr))
 
         # Copy stars' new collisional radii (updated in resolve_encounter) to gravity
         channel_from_framework_to_gravity.copy()
