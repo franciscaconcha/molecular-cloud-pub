@@ -1,9 +1,7 @@
-import numpy as np
+import numpy
 
 import Queue
 import threading
-import multiprocessing
-import time
 
 from amuse.community.vader.interface import vader
 from amuse.units import units, constants
@@ -38,14 +36,14 @@ class Disk:
             Tm = (100. | units.K) * (central_mass.value_in(units.MSun)) ** (1. / 4.)  # Tm ~ L^1/4 ~ (M^3)^1/4
         self.Tm = Tm  # Midplane temperature at 1 AU
         self.mu = mu  # Mean molecular mass, in hydrogen masses
-        T = Tm / np.sqrt(grid.r.value_in(units.AU))  # Disk midplane temperature at 1 AU is Tm, T(r)~r^-1/2
+        T = Tm / numpy.sqrt(grid.r.value_in(units.AU))  # Disk midplane temperature at 1 AU is Tm, T(r)~r^-1/2
 
         # Compute viscous timescale, used for modulating accretion rate
         if critical_radius is None:
             R1 = disk_radius
         else:
             R1 = critical_radius
-        nu = alpha * constants.kB / constants.u * self.Tm / np.sqrt(R1.value_in(units.AU)) * (
+        nu = alpha * constants.kB / constants.u * self.Tm / numpy.sqrt(R1.value_in(units.AU)) * (
                     R1 ** 3 / (constants.G * central_mass)) ** 0.5
         self.t_viscous = R1 * R1 / (3. * nu)
 
@@ -152,8 +150,8 @@ class Disk:
         # Follows the prescription of Haworth et al. 2018 (MNRAS 475)
 
         # Thermal speed of particles
-        v_th = (8. * constants.kB * self.Tm / np.sqrt(self.disk_radius.value_in(units.AU)) / (
-                    np.pi * self.mu * 1.008 * constants.u)) ** (1. / 2.)
+        v_th = (8. * constants.kB * self.Tm / numpy.sqrt(self.disk_radius.value_in(units.AU)) / (
+                    numpy.pi * self.mu * 1.008 * constants.u)) ** (1. / 2.)
         # Disk scale height at disk edge
         Hd = (constants.kB * self.Tm * (1. | units.AU) ** (1. / 2.) * self.disk_radius ** (5. / 2.) / (
                     self.mu * 1.008 * constants.u * self.central_mass * constants.G)) ** (1. / 2.)
@@ -162,9 +160,9 @@ class Disk:
 
         self.dust_photoevap_rate = self.external_photoevap_flag * self.delta * self.outer_photoevap_rate ** (3. / 2.) * \
                                    (v_th / (
-                                               4. * np.pi * F * constants.G * self.central_mass * self.rho_g * self.a_min)) ** (
+                                               4. * numpy.pi * F * constants.G * self.central_mass * self.rho_g * self.a_min)) ** (
                                                1. / 2.) * \
-                                   np.exp(-self.delta * (constants.G * self.central_mass) ** (
+                                   numpy.exp(-self.delta * (constants.G * self.central_mass) ** (
                                                1. / 2.) * self.model_time / (2. * self.disk_radius ** (3. / 2.)))
 
         # Can't entrain more dust than is available
@@ -225,7 +223,7 @@ class Disk:
         # Relative error in disk mass after step, compared to prescribed change rates
         # Causes of error can be choked accretion (potentially big) and numerical errors in
         # internal photoevaporation (~1% or less)
-        self.mass_error = np.abs((self.disk_gas_mass - target_gas_mass) / self.disk_gas_mass)
+        self.mass_error = numpy.abs((self.disk_gas_mass - target_gas_mass) / self.disk_gas_mass)
 
     def column_density(self,
                        rd,
@@ -250,8 +248,8 @@ class Disk:
 
         r = self.grid.r.copy()
 
-        Sigma_0 = disk_gas_mass / (2. * np.pi * rc ** 2 * (1. - np.exp(-rd / rc)))
-        Sigma = Sigma_0 * (rc / r) * np.exp(-r / rc) * (r <= rd) + lower_density
+        Sigma_0 = disk_gas_mass / (2. * numpy.pi * rc ** 2 * (1. - numpy.exp(-rd / rc)))
+        Sigma = Sigma_0 * (rc / r) * numpy.exp(-r / rc) * (r <= rd) + lower_density
 
         return Sigma
 
@@ -261,7 +259,7 @@ class Disk:
         Mass-dependent accretion rate of T-Tauri stars according to Alcala et al. 2014
         Modulated by viscous timescale (following Lynden-Bell & Pringle 1974)
         '''
-        return 10. ** (1.81 * np.log10(self.central_mass.value_in(units.MSun)) - 8.25) \
+        return 10. ** (1.81 * numpy.log10(self.central_mass.value_in(units.MSun)) - 8.25) \
                * (1. + self.model_time / self.t_viscous) ** (-3. / 2.) | units.MSun / units.yr
         # return 6.4e-11 | units.MSun / units.yr
 
@@ -271,7 +269,7 @@ class Disk:
         Internal photoevaporation rate of protoplanetary disks from Picogna et al. 2019, with mass scaling following Owen et al. 2012
         '''
         Lx = self.xray_luminosity.value_in(units.erg / units.s)
-        return 10. ** (-2.7326 * np.exp(-(np.log(np.log10(Lx)) - 3.3307) ** 2 / 2.9868e-3) - 7.2580) \
+        return 10. ** (-2.7326 * numpy.exp(-(numpy.log(numpy.log10(Lx)) - 3.3307) ** 2 / 2.9868e-3) - 7.2580) \
                * (self.central_mass / (0.7 | units.MSun)) ** -0.068 | units.MSun / units.yr
 
     @property
@@ -279,7 +277,7 @@ class Disk:
         '''
         Mass-dependent X-ray luminosity of classical T-Tauri stars according to Flaccomio et al. 2012 (typical luminosities)
         '''
-        return 10. ** (1.7 * np.log10(self.central_mass.value_in(units.MSun)) + 30.) | units.erg / units.s
+        return 10. ** (1.7 * numpy.log10(self.central_mass.value_in(units.MSun)) + 30.) | units.erg / units.s
 
     @property
     def disk_radius(self, f=0.999):
@@ -325,7 +323,7 @@ class Disk:
         '''
         Column density at disk radius
         '''
-        return self.grid.column_density[np.argmax(self.disk_radius == self.grid.r)]
+        return self.grid.column_density[numpy.argmax(self.disk_radius == self.grid.r)]
 
     @property
     def disk_density(self):
@@ -512,12 +510,12 @@ if __name__ == '__main__':
 
     interpolator = FRIED_interp.Haworth2018_interpolator(verbosity=False, folder='forMartijn/forMartijn/')
 
-    disk_radii = np.zeros((N_steps, 8))
-    dust_masses = np.zeros((N_steps, 8))
-    gas_masses = np.zeros((N_steps, 8))
+    disk_radii = numpy.zeros((N_steps, 8))
+    dust_masses = numpy.zeros((N_steps, 8))
+    gas_masses = numpy.zeros((N_steps, 8))
 
-    Mdot_gas = np.zeros((N_steps, 8))
-    Mdot_dust = np.zeros((N_steps, 8))
+    Mdot_gas = numpy.zeros((N_steps, 8))
+    Mdot_dust = numpy.zeros((N_steps, 8))
 
     PLOT = True
 
@@ -559,12 +557,12 @@ if __name__ == '__main__':
 
     print ('Evolved {a} disks for {b} Myr in {c} s'.format(a=number_of_disks, b=t_end.value_in(units.Myr),
                                                            c=end2 - start2))
-    print ('Dispersed disks:', np.sum([disk.dispersed for disk in disks]))
-    print ('Convergence failures:', np.sum([disk.disk_convergence_failure for disk in disks]))
+    print ('Dispersed disks:', numpy.sum([disk.dispersed for disk in disks]))
+    print ('Convergence failures:', numpy.sum([disk.disk_convergence_failure for disk in disks]))
 
     stop_codes(codes)
 
-    t_array = (np.arange(N_steps) + 1) * dt.value_in(units.kyr)
+    t_array = (numpy.arange(N_steps) + 1) * dt.value_in(units.kyr)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -632,9 +630,9 @@ if __name__ == '__main__':
     number_of_cells  = 330
     number_of_disks  = 2
 
-    stellar_masses = np.ones(number_of_disks)*1. | units.MSun#np.logspace(np.log10(1.9), np.log10(1.9), num=number_of_disks) | units.MSun
+    stellar_masses = numpy.ones(number_of_disks)*1. | units.MSun#numpy.logspace(numpy.log10(1.9), numpy.log10(1.9), num=number_of_disks) | units.MSun
     disk_masses    = 0.1 * stellar_masses / stellar_masses.value_in(units.MSun)**0.5
-    disk_radii     = np.ones(number_of_disks)*150. | units.AU
+    disk_radii     = numpy.ones(number_of_disks)*150. | units.AU
 
     fluxes = [1000.]*10 | G0#[30., 100., 300., 1000., 3000.]*10 | G0
 
@@ -659,15 +657,15 @@ if __name__ == '__main__':
 
     interpolator = FRIED_interp.FRIED_interpolator(verbosity=False)
 
-    dust_masses = np.zeros((N_steps, number_of_disks))
-    gas_masses  = np.zeros((N_steps, number_of_disks))
-    accreted_mass = np.zeros((N_steps, number_of_disks))
+    dust_masses = numpy.zeros((N_steps, number_of_disks))
+    gas_masses  = numpy.zeros((N_steps, number_of_disks))
+    accreted_mass = numpy.zeros((N_steps, number_of_disks))
 
-    disk_radii  = np.zeros((N_steps, number_of_disks))
+    disk_radii  = numpy.zeros((N_steps, number_of_disks))
 
-    mass_error = np.zeros((N_steps, number_of_disks))
+    mass_error = numpy.zeros((N_steps, number_of_disks))
 
-    disk_profiles = np.zeros((number_of_cells, N_steps//20))
+    disk_profiles = numpy.zeros((number_of_cells, N_steps//20))
     counter = 0
 
 
@@ -711,8 +709,8 @@ if __name__ == '__main__':
     end2 = time.time()
 
     print ('Evolved {a} disks for {b} Myr in {c} s'.format(a=number_of_disks, b=t_end.value_in(units.Myr), c=end2-start2))
-    print ('Dispersed disks:', np.sum([ disk.disk_dispersed for disk in disks ]))
-    print ('Convergence failures:', np.sum([ disk.disk_convergence_failure for disk in disks ]))
+    print ('Dispersed disks:', numpy.sum([ disk.disk_dispersed for disk in disks ]))
+    print ('Convergence failures:', numpy.sum([ disk.disk_convergence_failure for disk in disks ]))
 
 
     stop_codes(codes)
@@ -729,7 +727,7 @@ if __name__ == '__main__':
 
     ax.set_title('Photoevaporation of Protoplanetary Disks (Solid is gas, Dotted is dust, color is Host Mass (0.08-1.9 MSun))')
 
-    t_array = (np.arange(N_steps)+1)*dt.value_in(units.kyr)
+    t_array = (numpy.arange(N_steps)+1)*dt.value_in(units.kyr)
     cmap = plt.get_cmap('jet')
     cmap_norm = clr.Normalize(vmin=0, vmax=number_of_disks)
     scalarmap = cm.ScalarMappable(norm=cmap_norm, cmap=cmap)
@@ -772,7 +770,7 @@ if __name__ == '__main__':
 
     ax.set_title('Disk Radius Evolution of Protoplanetary Disks (Color is Host Mass (0.08-1.9 MSun))')
 
-    t_array = (np.arange(N_steps)+1)*dt.value_in(units.kyr)
+    t_array = (numpy.arange(N_steps)+1)*dt.value_in(units.kyr)
     cmap = plt.get_cmap('jet')
     cmap_norm = clr.Normalize(vmin=0, vmax=number_of_disks)
     scalarmap = cm.ScalarMappable(norm=cmap_norm, cmap=cmap)
@@ -794,7 +792,7 @@ if __name__ == '__main__':
 
     ax.set_title('Cumulative Accreted Mass of Protoplanetary Disks (Color is Host Mass (0.08-1.9 MSun))')
 
-    t_array = (np.arange(N_steps)+1)*dt.value_in(units.kyr)
+    t_array = (numpy.arange(N_steps)+1)*dt.value_in(units.kyr)
     cmap = plt.get_cmap('jet')
     cmap_norm = clr.Normalize(vmin=0, vmax=number_of_disks)
     scalarmap = cm.ScalarMappable(norm=cmap_norm, cmap=cmap)
@@ -816,7 +814,7 @@ if __name__ == '__main__':
 
     ax.set_title('Relative Mass Error in Step (Color is Host Mass (0.08-1.9 MSun))')
 
-    t_array = (np.arange(N_steps)+1)*dt.value_in(units.kyr)
+    t_array = (numpy.arange(N_steps)+1)*dt.value_in(units.kyr)
     cmap = plt.get_cmap('jet')
     cmap_norm = clr.Normalize(vmin=0, vmax=number_of_disks)
     scalarmap = cm.ScalarMappable(norm=cmap_norm, cmap=cmap)
