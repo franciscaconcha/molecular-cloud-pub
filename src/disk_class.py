@@ -253,6 +253,16 @@ class Disk:
 
         return Sigma
 
+    def truncate(self,
+                 new_radius,
+                 lower_density=1E-12 | units.g / units.cm ** 2):
+        """ Truncate a disk.
+        :param new_radius: new radius of disk
+        :param lower_density: lowerdensity limit for disk boundary definition
+        """
+        self.grid[self.grid.r > new_radius].column_density = lower_density
+        return self
+
     @property
     def accretion_rate(self):
         '''
