@@ -327,6 +327,10 @@ class Disk:
         '''
         return self.grid.column_density[np.argmax(self.disk_radius == self.grid.r)]
 
+    @property
+    def disk_density(self):
+        return self.disk_mass / (numpy.pi * self.disk_radius**2)
+
 
 def setup_disks_and_codes(star_keys, disk_radii, disk_masses, stellar_masses,
                           dispersed_mass_threshold,
