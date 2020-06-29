@@ -777,8 +777,8 @@ def main(N,
         channel_from_stellar_to_gravity.copy()
         channel_from_stellar_to_framework.copy()
 
-        print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                   gravity.model_time.value_in(units.Myr))
+        """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
+                                                                   gravity.model_time.value_in(units.Myr))"""
         t += dt
 
         active_disks = len([d for d in disks if not d.dispersed])
