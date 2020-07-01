@@ -10,7 +10,7 @@ from amuse.lab import *
 from amuse.community.fractalcluster.interface import new_fractal_cluster_model
 from amuse.ic.kingmodel import new_king_model
 
-from disk_class import setup_disks_and_codes
+from disk_class import setup_disks_and_codes, run_disks
 import FRIED_interp
 
 G0 = 1.6e-3 * units.erg / units.s / units.cm**2
@@ -306,7 +306,7 @@ def resolve_encounter(stars,
     return viscous_codes, disks"""
 
 
-def run_disks(viscous_codes, disks, dt):
+"""def run_disks(viscous_codes, disks, dt):
     '''
     Evolve a set of disks for a time step, using a set of viscous codes
 
@@ -394,7 +394,7 @@ def remote_worker_code():
         disk.viscous = code
         disk.evolve_disk_for(dt)
 
-    code_queue.task_done()
+    code_queue.task_done()"""
 
 
 def map_disk_indices_to_stars(disks):
@@ -561,49 +561,21 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
-    # Start gravity code, add all stars
-    if galaxy:  # If galactic potential is to be used
-        print("Creating galactic potential + bridge")
-        from amuse.couple import bridge
-        from MilkyWayGalaxy import MilkyWayGalaxy
+    # Set up gravity code for cluster
+    gravity = ph4(converter, number_of_workers=ncores)
+    gravity.parameters.timestep_parameter = 0.01
+    gravity.parameters.epsilon_squared = (100 | units.au) ** 2
+    gravity.particles.add_particles(stars)
+    #gravity.model_time = t
 
-        stars.position += distance_to_galactic_center | units.parsec
+    # Enable stopping condition for dynamical encounters
+    dynamical_encounter = gravity.stopping_conditions.collision_detection
+    dynamical_encounter.enable()
 
-        cluster = ph4(converter, number_of_workers=ncores)
-        cluster.parameters.timestep_parameter = 0.01
-        cluster.parameters.epsilon_squared = (100 | units.au) ** 2
-        cluster.particles.add_particles(stars)
-
-        # Enable stopping condition for dynamical encounters
-        dynamical_encounter = cluster.stopping_conditions.collision_detection
-        dynamical_encounter.enable()
-
-        galaxy_potential = MilkyWayGalaxy()
-
-        gravity = bridge.Bridge()#use_threading=False)
-        gravity.add_system(cluster, (galaxy_potential,))
-        gravity.timestep = 0.01 | units.Myr
-
-        channel_from_gravity_to_framework = cluster.particles.new_channel_to(stars)
-        channel_from_framework_to_gravity = stars.new_channel_to(cluster.particles,
-                                                                 attributes=['collisional_radius'],
-                                                                 target_names=['radius'])
-
-    else:  # Cluster only, no galaxy
-        gravity = ph4(converter, number_of_workers=ncores)
-        gravity.parameters.timestep_parameter = 0.01
-        gravity.parameters.epsilon_squared = (100 | units.au) ** 2
-        gravity.particles.add_particles(stars)
-        #gravity.model_time = t
-
-        # Enable stopping condition for dynamical encounters
-        dynamical_encounter = gravity.stopping_conditions.collision_detection
-        dynamical_encounter.enable()
-
-        channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
-        channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
-                                                                 attributes=['collisional_radius'],
-                                                                 target_names=['radius'])
+    channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
+    channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
+                                                             attributes=['collisional_radius'],
+                                                             target_names=['radius'])
 
     # Start stellar evolution code, add only massive stars
     stellar = SeBa()

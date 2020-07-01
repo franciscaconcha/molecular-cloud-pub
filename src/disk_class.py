@@ -28,6 +28,8 @@ class Disk:
         self.dispersed = False  # Disk is dispersed if the mass is lower than some value (1% of 0.08 MSun)
         self.disk_convergence_failure = False  # Viscous code can fail to converge, catch and do not involve further
         self.disk_active = True  # Disk is only evolved if it is not dispersed or failed to evolve
+        self.disk_born = False  # Using this to track when a star+disk system has been "born" and added to the gravity code.
+        # Could probably get around this using self.disk_active but didn't want to accidentally mess something up.
 
         self.internal_photoevap_flag = internal_photoevap_flag
         self.external_photoevap_flag = external_photoevap_flag
@@ -66,164 +68,167 @@ class Disk:
     def evolve_disk_for(self, dt):
         '''
         Evolve a protoplanetary disk for a time step. Gas evolution is done through VADER, dust evaporation through
-        the proscription of Haworth et al. 2018 (MNRAS 475). Note that before calling this function, a VADER code must
+        the prescription of Haworth et al. 2018 (MNRAS 475). Note that before calling this function, a VADER code must
         be assigned to the 'viscous' property.
 
         dt: time step to evolve the disk for (scalar, units of time)
         '''
+        if not self.disk_born:  # This star+disk hasn't been born yet... do nothing
+            pass
 
-        # Adjust rotation curves to current central mass
-        self.viscous.update_keplerian_grid(self.central_mass)
+        else:
+            # Adjust rotation curves to current central mass
+            self.viscous.update_keplerian_grid(self.central_mass)
 
-        # Specified mass flux, using VADER function
-        self.viscous.parameters.inner_pressure_boundary_type = 1
-        self.viscous.parameters.inner_boundary_function = True
+            # Specified mass flux, using VADER function
+            self.viscous.parameters.inner_pressure_boundary_type = 1
+            self.viscous.parameters.inner_boundary_function = True
 
-        self.viscous.set_parameter(0,
-                                   self.internal_photoevap_flag * self.inner_photoevap_rate.value_in(
-                                       units.g / units.s))  # Internal photoevaporation rate
-        self.viscous.set_parameter(1,
-                                   self.external_photoevap_flag * self.outer_photoevap_rate.value_in(
-                                       units.g / units.s))  # External photoevaporation rate
-        self.viscous.set_parameter(3, self.Tm.value_in(units.K))  # Disk midplane temperature at 1 AU in K
-        self.viscous.set_parameter(5, self.accretion_rate.value_in(units.g / units.s))  # Nominal accretion rate
-        self.viscous.set_parameter(6, self.central_mass.value_in(units.MSun))  # Stellar mass in MSun
+            self.viscous.set_parameter(0,
+                                       self.internal_photoevap_flag * self.inner_photoevap_rate.value_in(
+                                           units.g / units.s))  # Internal photoevaporation rate
+            self.viscous.set_parameter(1,
+                                       self.external_photoevap_flag * self.outer_photoevap_rate.value_in(
+                                           units.g / units.s))  # External photoevaporation rate
+            self.viscous.set_parameter(3, self.Tm.value_in(units.K))  # Disk midplane temperature at 1 AU in K
+            self.viscous.set_parameter(5, self.accretion_rate.value_in(units.g / units.s))  # Nominal accretion rate
+            self.viscous.set_parameter(6, self.central_mass.value_in(units.MSun))  # Stellar mass in MSun
 
-        target_gas_mass = self.disk_gas_mass - (
-                    self.internal_photoevap_flag * self.inner_photoevap_rate + self.external_photoevap_flag * self.outer_photoevap_rate + self.accretion_rate) * dt
+            target_gas_mass = self.disk_gas_mass - (
+                        self.internal_photoevap_flag * self.inner_photoevap_rate + self.external_photoevap_flag * self.outer_photoevap_rate + self.accretion_rate) * dt
 
-        initial_accreted_mass = -self.viscous.inner_boundary_mass_out  # As codes are re-used, need to remember initial state
+            initial_accreted_mass = -self.viscous.inner_boundary_mass_out  # As codes are re-used, need to remember initial state
 
-        # Channels to efficiently transfer data to and from code
-        ch_fram_to_visc = self.grid.new_channel_to(self.viscous.grid)  # class to code
-        ch_visc_to_fram = self.viscous.grid.new_channel_to(self.grid)  # code to class
+            # Channels to efficiently transfer data to and from code
+            ch_fram_to_visc = self.grid.new_channel_to(self.viscous.grid)  # class to code
+            ch_visc_to_fram = self.viscous.grid.new_channel_to(self.grid)  # code to class
 
-        # Copy disk data to code
-        ch_fram_to_visc.copy()
-
-        # Gas and dust evaporation are coupled in a leapfrog-like method
-        # (half step gas, full step dust, half step gas)
-        try:
-            self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
-
-        except:
-            print ("Partial convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
-            # Failure is often due to excessive accretion, so switch to zero-torque and restart
-            self.viscous.parameters.inner_pressure_boundary_type = 3
-            self.viscous.parameters.inner_boundary_function = False
-
-            initial_accreted_mass = -self.viscous.inner_boundary_mass_out
-
+            # Copy disk data to code
             ch_fram_to_visc.copy()
+
+            # Gas and dust evaporation are coupled in a leapfrog-like method
+            # (half step gas, full step dust, half step gas)
+            try:
+                self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
+
+            except:
+                print ("Partial convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
+                # Failure is often due to excessive accretion, so switch to zero-torque and restart
+                self.viscous.parameters.inner_pressure_boundary_type = 3
+                self.viscous.parameters.inner_boundary_function = False
+
+                initial_accreted_mass = -self.viscous.inner_boundary_mass_out
+
+                ch_fram_to_visc.copy()
+
+                try:
+                    self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
+
+                except:
+                    # If still fails, give up hope
+                    print ("Absolute convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
+                    self.disk_convergence_failure = True
+
+            self.model_time += dt / 2.
+
+            # Copy disk data to class
+            ch_visc_to_fram.copy()
+
+            # Lower limit of disk masses is 1% of the mass of a 10% mass ratio disk around a 0.08 MSun star
+            # About 27 MEarth, and 0.08 MJupiter
+            # if self.disk_gas_mass < 0.00008 | units.MSun:
+            if self.disk_gas_mass < self.dispersed_mass_threshold or self.disk_density < self.dispersed_density_threshold:
+                self.dispersed = True
+                self.disk_radius = 0.0 | units.au
+                self.disk_mass = 0.0 | units.MSun
+                print ('Disk dispersal at {a} Myr'.format(a=self.model_time.value_in(units.Myr)))
+
+            # Keep track of mass accreted from the disk, as in the code this is the sum of all past mass accretions (including from other disks)
+            if self.disk_convergence_failure == False:
+                self.accreted_mass += -self.viscous.inner_boundary_mass_out - initial_accreted_mass
+                initial_accreted_mass = -self.viscous.inner_boundary_mass_out
+
+            # Flag to decide whether or not to evolve the disk
+            self.disk_active = (not self.dispersed) * (not self.disk_convergence_failure)
+
+            # Remove dust in a leapfrog-like integration
+            # Follows the prescription of Haworth et al. 2018 (MNRAS 475)
+
+            # Thermal speed of particles
+            v_th = (8. * constants.kB * self.Tm / numpy.sqrt(self.disk_radius.value_in(units.AU)) / (
+                        numpy.pi * self.mu * 1.008 * constants.u)) ** (1. / 2.)
+            # Disk scale height at disk edge
+            Hd = (constants.kB * self.Tm * (1. | units.AU) ** (1. / 2.) * self.disk_radius ** (5. / 2.) / (
+                        self.mu * 1.008 * constants.u * self.central_mass * constants.G)) ** (1. / 2.)
+            # Disk filling factor of sphere at disk edge
+            F = Hd / (Hd ** 2 + self.disk_radius ** 2) ** (1. / 2.)
+
+            self.dust_photoevap_rate = self.external_photoevap_flag * self.delta * self.outer_photoevap_rate ** (3. / 2.) * \
+                                       (v_th / (
+                                                   4. * numpy.pi * F * constants.G * self.central_mass * self.rho_g * self.a_min)) ** (
+                                                   1. / 2.) * \
+                                       numpy.exp(-self.delta * (constants.G * self.central_mass) ** (
+                                                   1. / 2.) * self.model_time / (2. * self.disk_radius ** (3. / 2.)))
+
+            # Can't entrain more dust than is available
+            if self.dust_photoevap_rate > self.delta * self.outer_photoevap_rate:
+                self.dust_photoevap_rate = self.delta * self.outer_photoevap_rate
+
+            # Eulerian integration
+            dM_dust = self.dust_photoevap_rate * dt
+            if self.dispersed:  # If disk is dispersed, do only half a step
+                dM_dust /= 2.
+            self.disk_dust_mass -= dM_dust
+
+            # Can't have negative mass
+            if self.disk_dust_mass < 0. | units.MSun:
+                self.disk_dust_mass = 0. | units.MSun
+
+            if not self.disk_active:
+                return
+
+            # Back to fixed accretion rate, has potentially switched above
+            self.viscous.parameters.inner_pressure_boundary_type = 1
+            self.viscous.parameters.inner_boundary_function = True
 
             try:
                 self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
 
             except:
-                # If still fails, give up hope
-                print ("Absolute convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
-                self.disk_convergence_failure = True
+                print ("Partial convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
+                self.viscous.parameters.inner_pressure_boundary_type = 3
+                self.viscous.parameters.inner_boundary_function = False
 
-        self.model_time += dt / 2.
+                initial_accreted_mass = -self.viscous.inner_boundary_mass_out
 
-        # Copy disk data to class
-        ch_visc_to_fram.copy()
+                ch_fram_to_visc.copy()
 
-        # Lower limit of disk masses is 1% of the mass of a 10% mass ratio disk around a 0.08 MSun star
-        # About 27 MEarth, and 0.08 MJupiter
-        # if self.disk_gas_mass < 0.00008 | units.MSun:
-        if self.disk_gas_mass < self.dispersed_mass_threshold or self.disk_density < self.dispersed_density_threshold:
-            self.dispersed = True
-            self.disk_radius = 0.0 | units.au
-            self.disk_mass = 0.0 | units.MSun
-            print ('Disk dispersal at {a} Myr'.format(a=self.model_time.value_in(units.Myr)))
+                try:
+                    self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
 
-        # Keep track of mass accreted from the disk, as in the code this is the sum of all past mass accretions (including from other disks)
-        if self.disk_convergence_failure == False:
-            self.accreted_mass += -self.viscous.inner_boundary_mass_out - initial_accreted_mass
-            initial_accreted_mass = -self.viscous.inner_boundary_mass_out
+                except:
+                    print ("Absolute convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
+                    self.disk_convergence_failure = True
 
-        # Flag to decide whether or not to evolve the disk
-        self.disk_active = (not self.dispersed) * (not self.disk_convergence_failure)
+            self.model_time += dt / 2.
 
-        # Remove dust in a leapfrog-like integration
-        # Follows the prescription of Haworth et al. 2018 (MNRAS 475)
+            ch_visc_to_fram.copy()
 
-        # Thermal speed of particles
-        v_th = (8. * constants.kB * self.Tm / numpy.sqrt(self.disk_radius.value_in(units.AU)) / (
-                    numpy.pi * self.mu * 1.008 * constants.u)) ** (1. / 2.)
-        # Disk scale height at disk edge
-        Hd = (constants.kB * self.Tm * (1. | units.AU) ** (1. / 2.) * self.disk_radius ** (5. / 2.) / (
-                    self.mu * 1.008 * constants.u * self.central_mass * constants.G)) ** (1. / 2.)
-        # Disk filling factor of sphere at disk edge
-        F = Hd / (Hd ** 2 + self.disk_radius ** 2) ** (1. / 2.)
+            if self.disk_gas_mass < self.dispersed_mass_threshold or self.disk_density < self.dispersed_density_threshold:
+                self.dispersed = True
+                self.disk_radius = 0.0 | units.au
+                self.disk_mass = 0.0 | units.MSun
+                print ('Disk dispersal at {a} Myr'.format(a=self.model_time.value_in(units.Myr)))
 
-        self.dust_photoevap_rate = self.external_photoevap_flag * self.delta * self.outer_photoevap_rate ** (3. / 2.) * \
-                                   (v_th / (
-                                               4. * numpy.pi * F * constants.G * self.central_mass * self.rho_g * self.a_min)) ** (
-                                               1. / 2.) * \
-                                   numpy.exp(-self.delta * (constants.G * self.central_mass) ** (
-                                               1. / 2.) * self.model_time / (2. * self.disk_radius ** (3. / 2.)))
+            if self.disk_convergence_failure == False:
+                self.accreted_mass += -self.viscous.inner_boundary_mass_out - initial_accreted_mass
 
-        # Can't entrain more dust than is available
-        if self.dust_photoevap_rate > self.delta * self.outer_photoevap_rate:
-            self.dust_photoevap_rate = self.delta * self.outer_photoevap_rate
+            self.disk_active = (not self.dispersed) * (not self.disk_convergence_failure)
 
-        # Eulerian integration
-        dM_dust = self.dust_photoevap_rate * dt
-        if self.dispersed:  # If disk is dispersed, do only half a step
-            dM_dust /= 2.
-        self.disk_dust_mass -= dM_dust
-
-        # Can't have negative mass
-        if self.disk_dust_mass < 0. | units.MSun:
-            self.disk_dust_mass = 0. | units.MSun
-
-        if not self.disk_active:
-            return
-
-        # Back to fixed accretion rate, has potentially switched above
-        self.viscous.parameters.inner_pressure_boundary_type = 1
-        self.viscous.parameters.inner_boundary_function = True
-
-        try:
-            self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
-
-        except:
-            print ("Partial convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
-            self.viscous.parameters.inner_pressure_boundary_type = 3
-            self.viscous.parameters.inner_boundary_function = False
-
-            initial_accreted_mass = -self.viscous.inner_boundary_mass_out
-
-            ch_fram_to_visc.copy()
-
-            try:
-                self.viscous.evolve_model(self.viscous.model_time + dt / 2.)
-
-            except:
-                print ("Absolute convergence failure at {a} Myr".format(a=self.model_time.value_in(units.Myr)))
-                self.disk_convergence_failure = True
-
-        self.model_time += dt / 2.
-
-        ch_visc_to_fram.copy()
-
-        if self.disk_gas_mass < self.dispersed_mass_threshold or self.disk_density < self.dispersed_density_threshold:
-            self.dispersed = True
-            self.disk_radius = 0.0 | units.au
-            self.disk_mass = 0.0 | units.MSun
-            print ('Disk dispersal at {a} Myr'.format(a=self.model_time.value_in(units.Myr)))
-
-        if self.disk_convergence_failure == False:
-            self.accreted_mass += -self.viscous.inner_boundary_mass_out - initial_accreted_mass
-
-        self.disk_active = (not self.dispersed) * (not self.disk_convergence_failure)
-
-        # Relative error in disk mass after step, compared to prescribed change rates
-        # Causes of error can be choked accretion (potentially big) and numerical errors in
-        # internal photoevaporation (~1% or less)
-        self.mass_error = numpy.abs((self.disk_gas_mass - target_gas_mass) / self.disk_gas_mass)
+            # Relative error in disk mass after step, compared to prescribed change rates
+            # Causes of error can be choked accretion (potentially big) and numerical errors in
+            # internal photoevaporation (~1% or less)
+            self.mass_error = numpy.abs((self.disk_gas_mass - target_gas_mass) / self.disk_gas_mass)
 
     def column_density(self,
                        rd,
