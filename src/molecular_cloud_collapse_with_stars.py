@@ -190,6 +190,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
             # Stopping condition for star formation -- if this is reached the code finishes
             sinks_masses = [s.mass for s in local_sinks]
+            print "Remaining stars to make: ", len(IMF_masses[current_mass:])
             if not sink_formation and all(i < min(IMF_masses[current_mass:]) for i in sinks_masses):
                 print "All mass in sinks has ran out -- all possible stars have been formed!"
                 print "Made {0} stars.".format(len(stars))
@@ -288,14 +289,14 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print "Time= {0}".format(start_time.in_(units.Myr))
     print "index = {0}, Ngas = {1}, Nsinks = {2}".format(index, len(gas_particles), len(sink_particles))
 
-    SFE = 0.3  # Star formation efficienty 30%
+    SFE = 0.3  # Star formation efficiency 30%
 
     parts = run_molecular_cloud(gas_particles, sink_particles, SFE, start_time, tend, dt_diag, save_path, index)
 
     print("END: {0}".format(datetime.datetime.now()))
 
 
-def new_option_parser():
+def Mc  new_option_parser():
     from amuse.units.optparse import OptionParser
     result = OptionParser()
     result.add_option("-f", dest="filename",
