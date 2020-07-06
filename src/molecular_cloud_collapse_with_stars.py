@@ -296,7 +296,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     print("END: {0}".format(datetime.datetime.now()))
 
 
-def Mc  new_option_parser():
+def new_option_parser():
     from amuse.units.optparse import OptionParser
     result = OptionParser()
     result.add_option("-f", dest="filename",
