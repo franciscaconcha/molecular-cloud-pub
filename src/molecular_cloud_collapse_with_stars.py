@@ -33,7 +33,7 @@ def accretion_rate(mass):
 def make_star_from_sink(sink, stellar_mass, time):
 
     # Delay time for next star formation is a decay from the tff of the sink
-    delay_time = sink.tff * numpy.exp(-time.value_in(units.Myr))
+    delay_time = sink.time_threshold * numpy.exp(-time.value_in(units.Myr))
 
     print "Forming star of mass {0} from sink mass {1}".format(stellar_mass.in_(units.MSun),
                                                                sink.mass.in_(units.MSun))
