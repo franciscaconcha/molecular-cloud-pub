@@ -194,13 +194,13 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 if not sink_formation and all(i < min(IMF_masses[current_mass:]) for i in sinks_masses):
                     print "All mass in sinks has ran out -- all possible stars have been formed!"
                     print "Made {0} stars.".format(len(stars))
-                    time = tend + 1 | units.Myr  # To break out of outer loop
+                    time = tend + 1 #| units.Myr  # To break out of outer loop
                     break
             else:
                 print "All stars in the IMF have been formed."
                 print "Made {0} stars.".format(len(stars))
                 print "Finishing at {0}".format(time.in_(units.Myr))
-                time = tend + 1 | units.Myr  # To break out of outer loop
+                time = tend + 1 #| units.Myr  # To break out of outer loop
                 break
             #gravity_to_framework.copy()
             #if gravity_sinks is None:
