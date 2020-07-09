@@ -25,7 +25,7 @@ for s in stars:
     if s.tborn < tmin:
         tmin = s.tborn
 
-print "first stars at ", tmin.in_(units.Myr)
+print("first stars at ", tmin.in_(units.Myr))
 first_stars = stars[stars.tborn == tmin]
 
 converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), 0.5 | units.parsec)
@@ -43,7 +43,7 @@ channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
 tprev = tmin  # Otherwise I will add first_stars twice
 
 while t < t_end:
-    print "t = {0}".format(t.in_(units.Myr))
+    print("t = {0}".format(t.in_(units.Myr)))
     if t > tmin:
         prev_stars = stars[stars.tborn > tprev]
         new_stars = prev_stars[prev_stars.tborn <= t]
@@ -51,5 +51,7 @@ while t < t_end:
         channel_from_gravity_to_framework.copy()
         tprev = t
 
-    print t, len(gravity.particles)
+    gravity.evolve_model(t + dt)
+
+    print(t, len(gravity.particles))
     t += dt
