@@ -11,6 +11,14 @@ stars[stars.stellar_mass <= 1.9 | units.MSun].disk_mass = 0.1 * stars[stars.stel
 stars[stars.stellar_mass > 1.9 | units.MSun].disk_mass = 0.0 | units.MSun
 stars.mass = stars.stellar_mass + stars.disk_mass
 
+stars[stars.stellar_mass <= 1.9 | units.MSun].disked = False
+stars[stars.stellar_mass > 1.9 | units.MSun].bright = True
+
+print "disked:"
+print len(stars[stars.disked])
+print "bright:"
+print len(stars[stars.bright])
+
 # Set disk radii
 stars[stars.stellar_mass <= 1.9 | units.MSun].disk_radius = 100 | units.au
 stars[stars.stellar_mass > 1.9 | units.MSun].disk_radius = 0.0 | units.au
