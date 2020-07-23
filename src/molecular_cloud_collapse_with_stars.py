@@ -48,7 +48,7 @@ def make_star_from_sink(sink, stellar_mass, time):
 
     # 'Normal' star parameters: location, velocity, etc
     # Find position offset inside sink radius
-    Rsink = 10 * sink.radius.value_in(units.parsec)
+    Rsink = sink.radius.value_in(units.parsec)
     offsetx = numpy.random.uniform(-Rsink, Rsink) | units.parsec
     offsety = numpy.random.uniform(-Rsink, Rsink) | units.parsec
     offsetz = numpy.random.uniform(-Rsink, Rsink) | units.parsec
@@ -87,9 +87,16 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=150 | units.MSun)  # Randomized order
+    IMF_masses = new_kroupa_mass_distribution(1000,
+                                              mass_max=150 | units.MSun,
+                                              random=True)  # Randomized order
+    print "Some masses, pre >0.08:"
+    print IMF_masses[0], IMF_masses[100], IMF_masses[200]
     IMF_masses = [m for m in IMF_masses if m >= 0.08 | units.MSun]  # Wall+2019 stellar mass range
     current_mass = 0  # To keep track of formed stars
+
+    print "Some masses, post >0.08:"
+    print IMF_masses[0], IMF_masses[100], IMF_masses[200]
 
     stars = Particles(0)  # Here we keep the newly formed stars
 
@@ -345,5 +352,4 @@ def new_option_parser():
 
 if __name__ in ("__main__", "__plot__"):
     o, arguments = new_option_parser().parse_args()
-    numpy.random.seed(3141)
     main(**o.__dict__)
