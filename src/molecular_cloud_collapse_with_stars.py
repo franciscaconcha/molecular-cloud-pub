@@ -48,11 +48,14 @@ def make_star_from_sink(sink, stellar_mass, time):
 
     # 'Normal' star parameters: location, velocity, etc
     # Find position offset inside sink radius
-    Rsink = sink.radius.value_in(units.parsec)
-    offset = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-    new_star.x = sink.x + offset
-    new_star.y = sink.y + offset
-    new_star.z = sink.z + offset
+    Rsink = 10 * sink.radius.value_in(units.parsec)
+    offsetx = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+    offsety = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+    offsetz = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+    print offsetx, offsety, offsetz
+    new_star.x = sink.x + offsetx
+    new_star.y = sink.y + offsety
+    new_star.z = sink.z + offsetz
 
     new_star.vx = sink.vx
     new_star.vy = sink.vy
@@ -84,8 +87,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=100 | units.MSun)  # Randomized order
-    IMF_masses = [m for m in IMF_masses if m >= 0.08 | units.MSun]
+    IMF_masses = new_kroupa_mass_distribution(10000, mass_max=150 | units.MSun)  # Randomized order
+    IMF_masses = [m for m in IMF_masses if m >= 0.08 | units.MSun]  # Wall+2019 stellar mass range
     current_mass = 0  # To keep track of formed stars
 
     stars = Particles(0)  # Here we keep the newly formed stars
@@ -237,12 +240,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     # Saving star particles
     write_set_to_file(stars,
                       '{0}/gravity_stars_t{1:.2f}Myr.hdf5'.format(save_path,
-                                                                  time.value_in(units.Myr)),
+                                                                  (time - tend).value_in(units.Myr)), # Because I add tend to break out of loop!
                       'hdf5')
     # Saving local sink particles
     write_set_to_file(local_sinks,
                       '{0}/gravity_sinks_t{1:.2f}Myr.hdf5'.format(save_path,
-                                                                  time.value_in(units.Myr)),
+                                                                  (time - tend).value_in(units.Myr)), # Because I add tend to break out of loop!
                       'hdf5')
 
     #print len(gravity.code.particles)
