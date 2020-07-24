@@ -78,7 +78,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     gravhydro = None
     gravity_sinks = None
 
-    dt = min(dt_diag, 0.1 | units.Myr)
+    dt = min(dt_diag, 0.05 | units.Myr)
     t_diag = 0 | units.Myr
 
     E0 = hydro.gas_particles.kinetic_energy() \
