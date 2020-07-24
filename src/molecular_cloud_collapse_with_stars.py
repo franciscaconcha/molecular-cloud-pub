@@ -87,7 +87,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     time = gas_particles.get_timestamp()
 
     # Sample IMF for single star formation
-    IMF_masses = new_kroupa_mass_distribution(1000,
+    IMF_masses = new_kroupa_mass_distribution(10000,
                                               mass_max=150 | units.MSun,
                                               random=True)  # Randomized order
     print "Some masses, pre >0.08:"
