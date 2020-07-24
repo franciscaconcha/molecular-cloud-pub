@@ -255,6 +255,7 @@ class Hydro:
 
                 ns.tff = tff
                 decay_time = tff * numpy.exp(-0.1 * self.code.model_time.value_in(units.Myr))
+                ns.decay_time = decay_time
                 ns.time_threshold = self.code.model_time + decay_time
                 ns.merged_keys = ''
 
