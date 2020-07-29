@@ -512,21 +512,23 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
 
 
 def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
-    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
+    """filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
                                                       int(Mcloud.value_in(units.MSun)),
                                                       int(Rcloud.value_in(units.parsec)),
                                                       Nsph,
-                                                      1)
+                                                      1)"""
     filepath = path
     files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
 
-    sink_files = [x for x in files if 'sink' in x]
+    sink_files = [x for x in files if 'sink_particles' in x]
     sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
-    star_files = [x for x in files if 'stars' in x]
-    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+    #star_files = [x for x in files if 'stars_particles' in x]
+    #star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
-    #stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
+    stars_file = [x for x in files if 'gravity_stars' in x]
+    stars = read_set_from_file('{0}/{1}'.format(filepath, stars_file[0]), "hdf5", close_file=True)
+    print len(stars)
 
     i = 0
 
@@ -534,6 +536,14 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
     times = []
     Nstars = []
     Nstars_hm = []
+
+    tprev = 0.0 | units.Myr
+
+    # Find first timestamp where stars are formed
+    tmin = 20.0 | units.Myr
+    for s in stars:
+        if s.tborn < tmin:
+            tmin = s.tborn
 
     for s in sink_files:
         print s
@@ -544,8 +554,27 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
         pyplot.scatter(sinks.x.value_in(units.parsec),
                        sinks.y.value_in(units.parsec),
                        alpha=0.5)
+        time = sinks.get_timestamp()
 
-        for sf in star_files:
+        if time >= tmin:  # Stars are forming now
+            # All the stars formed before tprev
+            old_stars = stars[stars.tborn <= tprev]
+            pyplot.scatter(old_stars.x.value_in(units.parsec),
+                           old_stars.y.value_in(units.parsec), marker="*", color='blue')
+
+            # Finding stars formed between tprev and time, these are the new stars
+            prev_stars = stars[stars.tborn > tprev]
+            new_stars = prev_stars[prev_stars.tborn <= time]
+            pyplot.scatter(new_stars.x.value_in(units.parsec),
+                           new_stars.y.value_in(units.parsec), marker="*", color='black')
+            tprev = time
+
+        times.append(time.value_in(units.Myr))
+        Nstars.append(len(old_stars) + len(new_stars))
+        Nstars_hm.append(len(old_stars[old_stars.stellar_mass >= 1.9 | units.MSun]) +
+                         len(new_stars[new_stars.stellar_mass >= 1.9 | units.MSun]))
+
+        """for sf in stars_files:
             star_file_number = sf.split('_')[-1].split('.')[0][1:]
 
             if star_file_number == sink_file_number:
@@ -569,7 +598,7 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
                     prev_stars = stars.key
                 times.append(stars.get_timestamp().value_in(units.Myr))
                 Nstars.append(len(stars))
-                Nstars_hm.append(len(stars[stars.mass >= 1.9 | units.MSun]))
+                Nstars_hm.append(len(stars[stars.stellar_mass >= 1.9 | units.MSun]))"""
 
         ax = fig.gca()
         ax.set_aspect('equal')
@@ -772,7 +801,7 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     pyplot.style.use('paper')
 
     #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
-    #star_formation_movie(path, save_path, Rcloud, 4000, Mcloud)
+    star_formation_movie(path, save_path, Rcloud, 24000, Mcloud)
 
     #mean_sink_size_vs_Nsph(path, save_path, Mcloud, Rcloud)
     #mean_sink_mass_vs_Nsph(path, save_path, Mcloud, Rcloud)
@@ -786,7 +815,7 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     #single_sink_mass_vs_time(path, save_path, Mcloud, Rcloud)
 
-    final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
+    #final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
 
     #Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
     #Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
