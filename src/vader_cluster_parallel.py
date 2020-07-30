@@ -797,7 +797,7 @@ def new_option_parser():
     result = OptionParser()
 
     # Simulation parameters
-    result.add_option("-n", dest="ncores", type="int", default=1,
+    result.add_option("-n", dest="ncores", type="int", default=2,
                       help="number of cores [%default]")
     result.add_option("-s", dest="save_path", type="string", default='.',
                       help="path to save the results [%default]")
