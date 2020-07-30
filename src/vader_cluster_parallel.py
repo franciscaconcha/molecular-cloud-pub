@@ -483,7 +483,7 @@ def main(N,
             pass
 
         # Read stars resulting from molecular cloud collapse script
-        stars = io.read_set_from_file(stars_file, 'hdf5', close_file=True)
+        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
 
         # These parameters should be set up for stars in any case
         # Bright stars: no disks; emit FUV radiation
