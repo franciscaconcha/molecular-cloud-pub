@@ -482,13 +482,10 @@ def main(N,
                 raise
             pass
 
-        star_formation = False
+        # Read stars resulting from molecular cloud collapse script
+        stars = io.read_set_from_file(stars_file, 'hdf5', close_file=True)
 
-        if stars_file is not None:
-            star_formation = True
-            stars = io.read_set_from_file(f, 'hdf5', close_file=True)
-
-
+        # These parameters should be set up for stars in any case
         # Bright stars: no disks; emit FUV radiation
         stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
         stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
@@ -543,6 +540,8 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
+    # Find the first stars that form to add them to the gravity code
+    # The rest of the stars will be added at the time they are born
     tmin = 20 | units.Myr
     for s in stars:
         if s.tborn < tmin:
@@ -550,17 +549,10 @@ def main(N,
 
     print "first stars at ", tmin.in_(units.Myr)
 
-    tprev = t
-    dt = 1000 | units.yr
-    while t < t_end:
-        print len(stars[stars.tborn > tprev and stars.tborn < t])
-        t += dt
-
-
-    first_stars = stars[stars.tborn == tmin]
+    first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
 
     # Set up gravity code for cluster
-    # TODO here I have to start only by adding the first stars
+    # I begin by adding only the first stars
     gravity = ph4(converter, number_of_workers=ncores)
     gravity.parameters.timestep_parameter = 0.01
     gravity.parameters.epsilon_squared = (100 | units.au) ** 2
@@ -613,11 +605,20 @@ def main(N,
 
     active_disks = len(stars[stars.disked])   # Counter for active disks
     dt = 1000 | units.yr
+    tprev = tmin  # Otherwise I will add first_stars twice
 
     # Evolve!
     while t < t_end:
         print("t = {0}".format(t))
         dt = min(dt, t_end - t)
+
+        # Check new stars to add to gravity code
+        if t > tmin:
+            prev_stars = stars[stars.tborn > tprev]
+            new_stars = prev_stars[prev_stars.tborn <= t]
+            gravity.particles.add_particles(new_stars)
+            channel_from_gravity_to_framework.copy()
+            tprev = t
 
         # First dt/2 for stellar evolution; copy to gravity and framework
         stellar.evolve_model(t + dt/2)
@@ -820,10 +821,6 @@ def new_option_parser():
                       help="virial ratio [%default]")
     result.add_option("-p", dest="dist", type="string", default="plummer",
                       help="spatial distribution [%default]")
-    result.add_option("-g", dest="galaxy", type="int", default="0",
-                      help="True to add Milky Way galactic potential [%default]")
-    result.add_option("-d", dest="distance_to_galactic_center", type="float", default=0.0,
-                      help="When using galactic potential, ('projected') distance to galactic center [%default]")
 
     # Disk parameters
     result.add_option("-a", dest="alpha", type="float", default=5E-3,
