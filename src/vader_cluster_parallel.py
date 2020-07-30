@@ -553,6 +553,7 @@ def main(N,
 
     # Set up gravity code for cluster
     # I begin by adding only the first stars
+    converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
     gravity = ph4(converter, number_of_workers=ncores)
     gravity.parameters.timestep_parameter = 0.01
     gravity.parameters.epsilon_squared = (100 | units.au) ** 2
