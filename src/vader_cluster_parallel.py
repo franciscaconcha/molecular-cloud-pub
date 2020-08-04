@@ -569,21 +569,24 @@ def main(N,
                                                              attributes=['collisional_radius'],
                                                              target_names=['radius'])
 
-    # Start stellar evolution code, add only massive (first) stars
-    stellar = SeBa()
-    stellar.parameters.metallicity = 0.02
-    if len(first_stars[first_stars.bright]) > 0:
-        stellar.particles.add_particles(first_stars[first_stars.bright])
+    # Start stellar evolution code only if there are massive stars in first_stars
+    # If not, I will start it when the first massive star is added
+    first_massive_stars = first_stars[first_stars.bright]
+    if len(first_massive_stars) > 0:
+        stellar = SeBa()
+        stellar.parameters.metallicity = 0.02
+        stellar.particles.add_particles(first_massive_stars)
 
-    # Enable stopping on supernova explosion
-    detect_supernova = stellar.stopping_conditions.supernova_detection
-    detect_supernova.enable()
+        channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
+        channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+        channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
 
-    # Communication channels
-    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
-    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+        # Enable stopping on supernova explosion
+        detect_supernova = stellar.stopping_conditions.supernova_detection
+        detect_supernova.enable()
+    else:
+        stellar = None
 
-    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
 
     E_ini = gravity.kinetic_energy + gravity.potential_energy
 
@@ -624,18 +627,40 @@ def main(N,
 
             # Check if there are new massive stars added, to also add them to stellar ev. code
             new_massive_stars = new_stars[new_stars.bright]
+            print "new massive stars:"
+            print new_massive_stars
             if len(new_massive_stars) > 0:
-                stellar.particles.add_particles(new_massive_stars)
-                channel_from_stellar_to_framework.copy()
-                print "Added {0} new stars to stellar ev. code".format(len(new_massive_stars))
-            else:
-                print "Added no new stars to stellar ev. code"
-            tprev = t
+                if stellar is None:  # Need to start stellar evolution code now
+                    stellar = SeBa()
+                    stellar.parameters.metallicity = 0.02
+                    stellar.particles.add_particles(first_massive_stars)
 
-        # First dt/2 for stellar evolution; copy to gravity and framework
-        stellar.evolve_model(t + dt/2)
-        channel_from_stellar_to_gravity.copy()
-        channel_from_stellar_to_framework.copy()
+                    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
+                    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+                    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+
+                    # Enable stopping on supernova explosion
+                    detect_supernova = stellar.stopping_conditions.supernova_detection
+                    detect_supernova.enable()
+                else:
+                    stellar.particles.add_particles(new_massive_stars)
+                    channel_from_stellar_to_framework.copy()
+                    print "Added {0} new stars to stellar ev. code".format(len(new_massive_stars))
+                    # First dt/2 for stellar evolution; copy to gravity and framework
+                    stellar.evolve_model(t + dt / 2)
+                    channel_from_stellar_to_gravity.copy()
+                    channel_from_stellar_to_framework.copy()
+            else:
+                if stellar is None:
+                    pass
+                else:
+                    print "Added no new stars to stellar ev. code"
+                    # Still evolve current stars
+                    stellar.evolve_model(t + dt / 2)
+                    channel_from_stellar_to_gravity.copy()
+                    channel_from_stellar_to_framework.copy()
+
+            tprev = t
 
         # TODO check for a better way to save the energies
         E_kin = gravity.kinetic_energy
@@ -756,10 +781,13 @@ def main(N,
 
         channel_from_framework_to_gravity.copy()
 
-        # Second dt/2 for stellar evolution; copy to gravity and framework
-        stellar.evolve_model(t + dt/2)
-        channel_from_stellar_to_gravity.copy()
-        channel_from_stellar_to_framework.copy()
+        if stellar is None:
+            pass
+        else:
+            # Second dt/2 for stellar evolution; copy to gravity and framework
+            stellar.evolve_model(t + dt/2)
+            channel_from_stellar_to_gravity.copy()
+            channel_from_stellar_to_framework.copy()
 
         """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
                                                                    gravity.model_time.value_in(units.Myr))"""
