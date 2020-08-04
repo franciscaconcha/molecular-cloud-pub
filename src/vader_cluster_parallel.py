@@ -626,6 +626,7 @@ def main(N,
             new_massive_stars = new_stars[new_stars.bright]
             if len(new_massive_stars) > 0:
                 stellar.particles.add_particles(new_massive_stars)
+                channel_from_stellar_to_framework.copy()
                 print "Added {0} new stars to stellar ev. code".format(len(new_massive_stars))
             else:
                 print "Added no new stars to stellar ev. code"
