@@ -569,10 +569,11 @@ def main(N,
                                                              attributes=['collisional_radius'],
                                                              target_names=['radius'])
 
-    # Start stellar evolution code, add only massive stars
+    # Start stellar evolution code, add only massive (first) stars
     stellar = SeBa()
     stellar.parameters.metallicity = 0.02
-    stellar.particles.add_particles(stars[stars.bright])
+    if len(first_stars[first_stars.bright]) > 0:
+        stellar.particles.add_particles(first_stars[first_stars.bright])
 
     # Enable stopping on supernova explosion
     detect_supernova = stellar.stopping_conditions.supernova_detection
@@ -618,7 +619,16 @@ def main(N,
             prev_stars = stars[stars.tborn > tprev]
             new_stars = prev_stars[prev_stars.tborn <= t]
             gravity.particles.add_particles(new_stars)
+            print "Added {0} new stars to gravity code".format(len(new_stars))
             channel_from_gravity_to_framework.copy()
+
+            # Check if there are new massive stars added, to also add them to stellar ev. code
+            new_massive_stars = new_stars[new_stars.bright]
+            if len(new_massive_stars) > 0:
+                stellar.particles.add_particles(new_massive_stars)
+                print "Added {0} new stars to stellar ev. code".format(len(new_massive_stars))
+            else:
+                print "Added no new stars to stellar ev. code"
             tprev = t
 
         # First dt/2 for stellar evolution; copy to gravity and framework
