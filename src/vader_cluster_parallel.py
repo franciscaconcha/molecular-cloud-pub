@@ -584,6 +584,10 @@ def main(N,
         # Enable stopping on supernova explosion
         detect_supernova = stellar.stopping_conditions.supernova_detection
         detect_supernova.enable()
+
+        channel_from_stellar_to_framework.copy()
+        channel_from_stellar_to_gravity.copy()
+        channel_from_framework_to_stellar.copy()
     else:
         stellar = None
 
@@ -604,9 +608,7 @@ def main(N,
                       'hdf5')
 
     channel_from_framework_to_gravity.copy()
-    channel_from_stellar_to_framework.copy()
-    channel_from_stellar_to_gravity.copy()
-    channel_from_framework_to_stellar.copy()
+
 
     active_disks = len(stars[stars.disked])   # Counter for active disks
     dt = 1000 | units.yr
@@ -642,6 +644,10 @@ def main(N,
                     # Enable stopping on supernova explosion
                     detect_supernova = stellar.stopping_conditions.supernova_detection
                     detect_supernova.enable()
+
+                    channel_from_stellar_to_framework.copy()
+                    channel_from_stellar_to_gravity.copy()
+                    channel_from_framework_to_stellar.copy()
                 else:
                     stellar.particles.add_particles(new_massive_stars)
                     channel_from_stellar_to_framework.copy()
