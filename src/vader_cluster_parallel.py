@@ -558,7 +558,7 @@ def main(N,
     gravity.parameters.timestep_parameter = 0.01
     gravity.parameters.epsilon_squared = (100 | units.au) ** 2
     gravity.particles.add_particles(first_stars)
-    #gravity.model_time = t
+    gravity.model_time = tmin
 
     # Enable stopping condition for dynamical encounters
     dynamical_encounter = gravity.stopping_conditions.collision_detection
@@ -608,7 +608,6 @@ def main(N,
 
     channel_from_framework_to_gravity.copy()
 
-
     active_disks = len(stars[stars.disked])   # Counter for active disks
     dt = 1000 | units.yr
     tprev = tmin  # Otherwise I will add first_stars twice
@@ -618,7 +617,7 @@ def main(N,
 
     # Evolve!
     while t < t_end:
-        print("t = {0}".format(t))
+        print("t = {0:.2f}".format(t.in_(units.Myr)))
         dt = min(dt, t_end - t)
 
         # Check new stars to add to gravity code
@@ -631,8 +630,8 @@ def main(N,
 
             # Check if there are new massive stars added, to also add them to stellar ev. code
             new_massive_stars = new_stars[new_stars.bright]
-            print "new massive stars:"
-            print new_massive_stars
+            #print "new massive stars:"
+            #print new_massive_stars
             if len(new_massive_stars) > 0:
                 if stellar is None:  # Need to start stellar evolution code now
                     stellar = SeBa()
