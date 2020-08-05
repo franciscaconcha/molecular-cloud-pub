@@ -591,7 +591,6 @@ def main(N,
     else:
         stellar = None
 
-
     E_ini = gravity.kinetic_energy + gravity.potential_energy
 
     # For keeping track of energy
@@ -613,6 +612,9 @@ def main(N,
     active_disks = len(stars[stars.disked])   # Counter for active disks
     dt = 1000 | units.yr
     tprev = tmin  # Otherwise I will add first_stars twice
+
+    t = tmin  # So that simulation starts when first stars form
+    t_end += tmin  # So that we run the simulation for t_end Myr instead of ending at t_end... not sure about this
 
     # Evolve!
     while t < t_end:
