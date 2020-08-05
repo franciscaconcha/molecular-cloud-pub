@@ -617,7 +617,7 @@ def main(N,
 
     # Evolve!
     while t < t_end:
-        print("t = {0:.2f}".format(t.in_(units.Myr)))
+        print("t = {0}".format(t.in_(units.Myr)))
         dt = min(dt, t_end - t)
 
         # Check new stars to add to gravity code
