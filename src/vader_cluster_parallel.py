@@ -625,7 +625,8 @@ def main(N,
             prev_stars = stars[stars.tborn > tprev]
             new_stars = prev_stars[prev_stars.tborn <= t]
             gravity.particles.add_particles(new_stars)
-            print "Added {0} new stars to gravity code".format(len(new_stars))
+            print "Added {0} new stars to gravity code, {1} stars in total".format(len(new_stars),
+                                                                                   len(gravity.particles))
             channel_from_gravity_to_framework.copy()
 
             # Check if there are new massive stars added, to also add them to stellar ev. code
@@ -652,7 +653,8 @@ def main(N,
                 else:
                     stellar.particles.add_particles(new_massive_stars)
                     channel_from_stellar_to_framework.copy()
-                    print "Added {0} new stars to stellar ev. code".format(len(new_massive_stars))
+                    print "Added {0} new stars to stellar ev. code, {1} stars in total".format(len(new_massive_stars),
+                                                                                               len(stellar.particles))
                     # First dt/2 for stellar evolution; copy to gravity and framework
                     stellar.evolve_model(t + dt / 2)
                     channel_from_stellar_to_gravity.copy()
