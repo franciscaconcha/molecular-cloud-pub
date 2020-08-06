@@ -30,7 +30,7 @@ def accretion_rate(mass):
     return numpy.power(10, (1.89 * numpy.log10(mass.value_in(units.MSun)) - 8.35)) | units.MSun / units.yr
 
 
-def make_star_from_sink(sink, stellar_mass, time):
+def make_star_from_sink(sink, stellar_mass, time, factor):
 
     # Delay time for next star formation is a decay from the tff of the sink
     delay_time = sink.time_threshold * numpy.exp(-time.value_in(units.Myr))
@@ -49,9 +49,9 @@ def make_star_from_sink(sink, stellar_mass, time):
     # 'Normal' star parameters: location, velocity, etc
     # Find position offset inside sink radius
     Rsink = sink.radius.value_in(units.parsec)
-    offsetx = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-    offsety = numpy.random.uniform(-Rsink, Rsink) | units.parsec
-    offsetz = numpy.random.uniform(-Rsink, Rsink) | units.parsec
+    offsetx = numpy.random.uniform(-factor * Rsink, factor * Rsink) | units.parsec
+    offsety = numpy.random.uniform(-factor * Rsink, factor * Rsink) | units.parsec
+    offsetz = numpy.random.uniform(-factor * Rsink, factor * Rsink) | units.parsec
     print offsetx, offsety, offsetz
     new_star.x = sink.x + offsetx
     new_star.y = sink.y + offsety
@@ -66,7 +66,7 @@ def make_star_from_sink(sink, stellar_mass, time):
     return new_star, delay_time
 
 
-def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_diag, save_path, index=0):
+def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_diag, save_path, factor, index=0):
 
     hydro = Hydro(Fi, gas_particles, tstart)
 
@@ -161,7 +161,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 # Make a star!
                 print "Making a star"
                 print "Sink mass before: ", sink.mass.value_in(units.MSun)
-                stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time)
+                stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time, factor)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
 
@@ -262,7 +262,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     return gas_particles
 
 
-def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, factor):
     import datetime
     print("START: {0}".format(datetime.datetime.now()))
 
@@ -308,7 +308,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 
     SFE = 0.3  # Star formation efficiency 30%
 
-    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, start_time, tend, dt_diag, save_path, index)
+    parts = run_molecular_cloud(gas_particles, sink_particles, SFE, start_time, tend, dt_diag, save_path, factor, index)
 
     print("END: {0}".format(datetime.datetime.now()))
 
@@ -346,6 +346,10 @@ def new_option_parser():
                       type="float",
                       default=3 | units.parsec,
                       help="cloud size")
+    result.add_option("--fcloud", dest="factor",
+                      type="int",
+                      default=1,
+                      help="factor for Rsink for location of new stars")
 
     return result
 
