@@ -654,6 +654,7 @@ def main(N,
                     channel_from_stellar_to_gravity.copy()
                     channel_from_framework_to_stellar.copy()
                 else:
+                    print "Stellar ev. code is already active."
                     stellar.particles.add_particles(new_massive_stars)
                     channel_from_stellar_to_framework.copy()
                     print "Added {0} new stars to stellar ev. code, {1} stars in total".format(len(new_massive_stars),
@@ -663,10 +664,11 @@ def main(N,
                     channel_from_stellar_to_gravity.copy()
                     channel_from_stellar_to_framework.copy()
             else:
+                print "No new massive stars"
                 if stellar is None:
-                    pass
+                    print "First dt/2, Stellar = None"
                 else:
-                    print "Added no new stars to stellar ev. code"
+                    print "First dt/2, stellar is active but added no new stars this time"
                     # Still evolve current stars
                     stellar.evolve_model(t + dt / 2)
                     channel_from_stellar_to_gravity.copy()
@@ -794,9 +796,10 @@ def main(N,
         channel_from_framework_to_gravity.copy()
 
         if stellar is None:
-            pass
+            print "Second dt/2, stellar = None"
         else:
             # Second dt/2 for stellar evolution; copy to gravity and framework
+            print "Second dt/2, evolving current {0} particles".format(len(stellar.particles))
             stellar.evolve_model(t + dt/2)
             channel_from_stellar_to_gravity.copy()
             channel_from_stellar_to_framework.copy()
