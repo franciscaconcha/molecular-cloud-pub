@@ -139,6 +139,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 gravity_sinks.parameters.timestep_parameter = 0.01
                 gravity_sinks.parameters.epsilon_squared = (100 | units.au) ** 2
                 gravity_sinks.particles.add_particles(local_sinks)
+                gravity_sinks.model_time(hydro.model_time)
 
                 gravity_sinks_to_framework = gravity_sinks.particles.new_channel_to(local_sinks)
                 framework_to_gravity_sinks = local_sinks.new_channel_to(gravity_sinks.particles)
@@ -154,6 +155,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
         for sink in local_sinks:
             # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
             # sinks can still form stars after the gas code is stopped.
+
+            if gravity_sinks is None:
+                print "No gravity_sinks yet"
+            else:
+                gravity_sinks.evolve_model()
+                gravity_sinks_to_framework.copy()
 
             print "Trying to form a star of mass ", IMF_masses[current_mass]
 
