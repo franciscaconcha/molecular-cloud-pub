@@ -733,7 +733,7 @@ def main(N,
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
-               """print("bright - bright or dispersed - dispersed")
+                """print("bright - bright or dispersed - dispersed")
 
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
