@@ -83,6 +83,7 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
                        sinks.y.value_in(units.parsec),
                        alpha=0.5)
         time = sinks.get_timestamp()
+        print time.in_(units.Myr), tmin.in_(units.Myr)
 
         if time >= tmin:  # Stars are forming now
             # All the stars formed before tprev
@@ -98,9 +99,9 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
             tprev = time
 
         times.append(time.value_in(units.Myr))
-        Nstars.append(len(old_stars) + len(new_stars))
-        Nstars_hm.append(len(old_stars[old_stars.stellar_mass >= 1.9 | units.MSun]) +
-                         len(new_stars[new_stars.stellar_mass >= 1.9 | units.MSun]))
+        #Nstars.append(len(old_stars) + len(new_stars))
+        #Nstars_hm.append(len(old_stars[old_stars.stellar_mass >= 1.9 | units.MSun]) +
+        #                 len(new_stars[new_stars.stellar_mass >= 1.9 | units.MSun]))
 
         """for sf in stars_files:
             star_file_number = sf.split('_')[-1].split('.')[0][1:]
@@ -139,19 +140,19 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
         pyplot.close()
         i += 1
 
-    fig = pyplot.figure(figsize=(8, 8))
-    pyplot.plot(times, Nstars, label="All stars")
-    pyplot.plot(times, Nstars_hm, label=r"$M_* \geq 1.9 M_{\odot}$")
-    pyplot.legend(loc='lower right')
+    #fig = pyplot.figure(figsize=(8, 8))
+    #pyplot.plot(times, Nstars, label="All stars")
+    #pyplot.plot(times, Nstars_hm, label=r"$M_* \geq 1.9 M_{\odot}$")
+    #pyplot.legend(loc='lower right')
 
-    ax = fig.gca()
+    #ax = fig.gca()
     # ax.set_aspect('equal')
     # ax.set_xlim([-1.0, 1.0])
     # ax.set_ylim([-1.0, 1.0])
-    ax.set_xlabel(r'Time [Myr]')
-    ax.set_ylabel(r'$N_*$')
+    #ax.set_xlabel(r'Time [Myr]')
+    #ax.set_ylabel(r'$N_*$')
 
-    pyplot.savefig('{0}/Nstars.png'.format(save_path))
+    #pyplot.savefig('{0}/Nstars.png'.format(save_path))
 
 
 def a_vs_e(path, save_path, N):
