@@ -642,6 +642,8 @@ def main(N,
                     stellar.parameters.metallicity = 0.02
                     stellar.particles.add_particles(first_massive_stars)
 
+                    print "pre copy stellar.particles = {0}".format(len(stellar.particles))
+
                     channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
                     channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
                     channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
@@ -652,7 +654,15 @@ def main(N,
 
                     channel_from_stellar_to_framework.copy()
                     channel_from_stellar_to_gravity.copy()
-                    channel_from_framework_to_stellar.copy()
+                    #channel_from_framework_to_stellar.copy()
+
+                    print "post copy stellar.particles = {0}".format(len(stellar.particles))
+
+                    print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
+                    stellar.evolve_model(t + dt / 2)
+                    channel_from_stellar_to_gravity.copy()
+                    channel_from_stellar_to_framework.copy()
+
                 else:
                     print "Stellar ev. code is already active."
                     stellar.particles.add_particles(new_massive_stars)
@@ -660,6 +670,7 @@ def main(N,
                     print "Added {0} new stars to stellar ev. code, {1} stars in total".format(len(new_massive_stars),
                                                                                                len(stellar.particles))
                     # First dt/2 for stellar evolution; copy to gravity and framework
+                    print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
                     stellar.evolve_model(t + dt / 2)
                     channel_from_stellar_to_gravity.copy()
                     channel_from_stellar_to_framework.copy()
