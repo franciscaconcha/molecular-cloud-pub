@@ -253,6 +253,14 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
             if sink_formation:
                 write_data(save_path, time, hydro=hydro, index=index, stars=stars)
+            else:
+                gravity_sinks_to_framework.copy()
+                # Saving local sink particles
+                write_set_to_file(local_sinks,
+                                  '{0}/hydro_sink_particles_i00{1}.amuse'.format(save_path,
+                                                                                 index),
+                                  # Because I add tend to break out of loop!
+                                  'hdf5')
 
     # Saving stars and local sinks separately from the Hydro files
     # Saving star particles
