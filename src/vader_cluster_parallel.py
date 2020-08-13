@@ -640,7 +640,7 @@ def main(N,
                     print "Adding {0} particles".format(len(new_massive_stars))
                     stellar = SeBa()
                     stellar.parameters.metallicity = 0.02
-                    stellar.particles.add_particles(first_massive_stars)
+                    stellar.particles.add_particles(new_massive_stars)
 
                     print "pre copy stellar.particles = {0}".format(len(stellar.particles))
 
@@ -659,7 +659,10 @@ def main(N,
                     print "post copy stellar.particles = {0}".format(len(stellar.particles))
 
                     print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
-                    stellar.evolve_model(t + dt / 2)
+                    for sp in stellar.particles:
+                        sp.time_step = dt / 2
+                        sp.evolve_one_step()
+
                     channel_from_stellar_to_gravity.copy()
                     channel_from_stellar_to_framework.copy()
 
@@ -671,9 +674,9 @@ def main(N,
                                                                                                len(stellar.particles))
                     # First dt/2 for stellar evolution; copy to gravity and framework
                     print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
-                    stellar.evolve_model(t + dt / 2)
-                    channel_from_stellar_to_gravity.copy()
-                    channel_from_stellar_to_framework.copy()
+                    for sp in stellar.particles:
+                        sp.time_step = dt / 2
+                        sp.evolve_one_step()
             else:
                 print "No new massive stars"
                 if stellar is None:
@@ -681,10 +684,9 @@ def main(N,
                 else:
                     print "First dt/2, stellar is active but added no new stars this time"
                     # Still evolve current stars
-                    stellar.evolve_model(t + dt / 2)
-                    channel_from_stellar_to_gravity.copy()
-                    channel_from_stellar_to_framework.copy()
-
+                    for sp in stellar.particles:
+                        sp.time_step = dt / 2
+                        sp.evolve_one_step()
             tprev = t
 
         # TODO check for a better way to save the energies
@@ -811,7 +813,9 @@ def main(N,
         else:
             # Second dt/2 for stellar evolution; copy to gravity and framework
             print "Second dt/2, evolving current {0} particles".format(len(stellar.particles))
-            stellar.evolve_model(t + dt/2)
+            for sp in stellar.particles:
+                sp.time_step = dt / 2
+                sp.evolve_one_step()
             channel_from_stellar_to_gravity.copy()
             channel_from_stellar_to_framework.copy()
 
