@@ -543,11 +543,15 @@ def main(N,
     # Find the first stars that form to add them to the gravity code
     # The rest of the stars will be added at the time they are born
     tmin = 20 | units.Myr
+    tmax = 0.05 | units.Myr
     for s in stars:
         if s.tborn < tmin:
             tmin = s.tborn
+        elif s.tborn > tmax:
+            tmax = s.born
 
     print "first stars at ", tmin.in_(units.Myr)
+    print "last stars at ", tmax.in_(units.Myr)
 
     first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
 
@@ -574,7 +578,7 @@ def main(N,
     first_massive_stars = first_stars[first_stars.bright]
     if len(first_massive_stars) > 0:
         print "Starting stellar ev. code before loop starts."
-        stellar = SeBa()
+        stellar = MESA()
         stellar.parameters.metallicity = 0.02
         stellar.particles.add_particles(first_massive_stars)
 
@@ -604,7 +608,7 @@ def main(N,
                       '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                       run_number,
                                                       N,
-                                                      t.value_in(units.Myr)),
+                                                      tmin.value_in(units.Myr)),
                       'hdf5')
 
     channel_from_framework_to_gravity.copy()
@@ -638,7 +642,7 @@ def main(N,
                 if stellar is None:  # Need to start stellar evolution code now
                     print "Starting stellar ev. code at t = {0:.2f} Myr".format(float(t.value_in(units.Myr)))
                     print "Adding {0} particles".format(len(new_massive_stars))
-                    stellar = SeBa()
+                    stellar = MESA()
                     stellar.parameters.metallicity = 0.02
                     stellar.particles.add_particles(new_massive_stars)
 
