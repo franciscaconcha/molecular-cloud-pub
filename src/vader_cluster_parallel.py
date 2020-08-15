@@ -548,7 +548,7 @@ def main(N,
         if s.tborn < tmin:
             tmin = s.tborn
         elif s.tborn > tmax:
-            tmax = s.born
+            tmax = s.tborn
 
     print "first stars at ", tmin.in_(units.Myr)
     print "last stars at ", tmax.in_(units.Myr)
@@ -618,7 +618,7 @@ def main(N,
     tprev = tmin  # Otherwise I will add first_stars twice
 
     t = tmin  # So that simulation starts when first stars form
-    t_end += tmin  # So that we run the simulation for t_end Myr instead of ending at t_end... not sure about this
+    t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
     while t < t_end:
