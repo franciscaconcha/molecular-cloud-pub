@@ -578,7 +578,7 @@ def main(N,
     first_massive_stars = first_stars[first_stars.bright]
     if len(first_massive_stars) > 0:
         print "Starting stellar ev. code before loop starts."
-        stellar = MESA()
+        stellar = SeBa()
         stellar.parameters.metallicity = 0.02
         stellar.particles.add_particles(first_massive_stars)
 
@@ -642,7 +642,7 @@ def main(N,
                 if stellar is None:  # Need to start stellar evolution code now
                     print "Starting stellar ev. code at t = {0:.2f} Myr".format(float(t.value_in(units.Myr)))
                     print "Adding {0} particles".format(len(new_massive_stars))
-                    stellar = MESA()
+                    stellar = SeBa()
                     stellar.parameters.metallicity = 0.02
                     stellar.particles.add_particles(new_massive_stars)
 
