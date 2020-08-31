@@ -644,6 +644,7 @@ def main(N,
                     print "Adding {0} particles".format(len(new_massive_stars))
                     stellar = SeBa()
                     stellar.parameters.metallicity = 0.02
+                    stellar.parameters.time_step = 0.5 * dt
                     stellar.particles.add_particles(new_massive_stars)
 
                     print "pre copy stellar.particles = {0}".format(len(stellar.particles))
@@ -663,7 +664,7 @@ def main(N,
                     print "post copy stellar.particles = {0}".format(len(stellar.particles))
 
                     print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
-                    stellar.particles.time_step = 0.5 * dt
+                    stellar.parameters.time_step = 0.5 * dt
                     for sp in stellar.particles:
                         #sp.time_step = 0.5 * dt
                         sp.evolve_one_step()
