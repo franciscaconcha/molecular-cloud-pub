@@ -830,7 +830,6 @@ def main(N,
 
         """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
                                                                    gravity.model_time.value_in(units.Myr))"""
-        t += dt
 
         active_disks = len([d for d in disks if not d.dispersed])
 
@@ -845,7 +844,8 @@ def main(N,
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
 
-        print "pre save condition: ", (t.value_in(units.yr)) % save_interval.value_in(units.yr))
+        print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
+        print "pre save condition: ", (t.value_in(units.yr)) % save_interval.value_in(units.yr)
         if (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr)) == 0.:
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             write_set_to_file(stars,
@@ -854,6 +854,8 @@ def main(N,
                                                           N,
                                                           t.value_in(units.Myr)),
                               'hdf5')
+
+        t += dt
 
         numpy.savetxt(E_handle, E_list)
         numpy.savetxt(Q_handle, Q_list)
