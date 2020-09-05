@@ -623,6 +623,8 @@ def main(N,
     # Evolve!
     while t < t_end:
         print("t = {0:.3f} Myr".format(float(t.value_in(units.Myr))))
+        # trying this weird af thing because precision is running my saving condition
+        t = float("{0:.3f}".format(float(t.value_in(units.Myr))))
         dt = min(dt, t_end - t)
 
         # Check new stars to add to gravity code
@@ -831,6 +833,8 @@ def main(N,
         """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
                                                                    gravity.model_time.value_in(units.Myr))"""
 
+        t += dt
+
         active_disks = len([d for d in disks if not d.dispersed])
 
         if active_disks <= 0:
@@ -845,8 +849,8 @@ def main(N,
             break
 
         print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
-        print "pre save condition: ", (t.value_in(units.yr)) % save_interval.value_in(units.yr)
-        if (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr)) == 0.:
+        print "pre save condition: ", int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
+        if int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             write_set_to_file(stars,
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
@@ -854,8 +858,6 @@ def main(N,
                                                           N,
                                                           t.value_in(units.Myr)),
                               'hdf5')
-
-        t += dt
 
         numpy.savetxt(E_handle, E_list)
         numpy.savetxt(Q_handle, Q_list)
