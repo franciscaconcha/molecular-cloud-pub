@@ -845,6 +845,7 @@ def main(N,
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
 
+        print "pre save condition: ", (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr))
         if (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr)) == 0.:
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             write_set_to_file(stars,
