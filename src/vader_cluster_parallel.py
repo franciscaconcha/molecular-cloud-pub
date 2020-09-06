@@ -618,7 +618,7 @@ def main(N,
     tprev = tmin  # Otherwise I will add first_stars twice
 
     # trying this weird af thing because precision is running my saving condition
-    t = float('{0:.3f}'.format(tmin.value_in(units.Myr)))  # So that simulation starts when first stars form
+    t = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
     t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
