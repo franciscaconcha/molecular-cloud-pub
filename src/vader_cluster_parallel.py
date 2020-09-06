@@ -617,14 +617,15 @@ def main(N,
     dt = 1000 | units.yr
     tprev = tmin  # Otherwise I will add first_stars twice
 
-    t = tmin  # So that simulation starts when first stars form
+    # trying this weird af thing because precision is running my saving condition
+    t = float('{0:.3f}'.format(tmin))  # So that simulation starts when first stars form
     t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
     while t < t_end:
         print("t = {0:.3f} Myr".format(float(t.value_in(units.Myr))))
         # trying this weird af thing because precision is running my saving condition
-        t = float("{0:.3f}".format(float(t.value_in(units.Myr))))
+        #t = float("{0:.3f}".format(float(t.value_in(units.Myr))))
         dt = min(dt, t_end - t)
 
         # Check new stars to add to gravity code
