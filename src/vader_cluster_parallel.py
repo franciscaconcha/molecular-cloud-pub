@@ -465,7 +465,12 @@ def main(N,
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
         f = '{0}/{1}'.format(path, last_snapshot)
-        stars = read_set_from_file(f, 'hdf5', close_file=True)
+        # These stars should be added to the codes
+        # They are the stars that have been already created by the last saved snapshot
+        first_stars = read_set_from_file(f, 'hdf5', close_file=True)
+
+        # This reads all the stars
+        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
         t = last_snapshot_t | t_end.unit
         print t
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
@@ -540,20 +545,30 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
-    # Find the first stars that form to add them to the gravity code
-    # The rest of the stars will be added at the time they are born
-    tmin = 20 | units.Myr
-    tmax = 0.05 | units.Myr
-    for s in stars:
-        if s.tborn < tmin:
-            tmin = s.tborn
-        elif s.tborn > tmax:
-            tmax = s.tborn
+    if restart:
+        tmin = last_snapshot_t | t_end.unit
+        tmax = 0.05 | units.Myr
+        for s in stars:
+            if s.tborn > tmax:
+                tmax = s.tborn
 
-    print "first stars at ", tmin.in_(units.Myr)
-    print "last stars at ", tmax.in_(units.Myr)
+        print "first stars at ", tmin.in_(units.Myr)
+        print "last stars at ", tmax.in_(units.Myr)
+    else:
+        # Find the first stars that form to add them to the gravity code
+        # The rest of the stars will be added at the time they are born
+        tmin = 20 | units.Myr
+        tmax = 0.05 | units.Myr
+        for s in stars:
+            if s.tborn < tmin:
+                tmin = s.tborn
+            elif s.tborn > tmax:
+                tmax = s.tborn
 
-    first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
+        print "first stars at ", tmin.in_(units.Myr)
+        print "last stars at ", tmax.in_(units.Myr)
+
+        first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
 
     # Set up gravity code for cluster
     # I begin by adding only the first stars
