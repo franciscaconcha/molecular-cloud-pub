@@ -464,15 +464,19 @@ def main(N,
         last_snapshot_t = float(last_snapshot.split('t')[1].split('.hdf5')[0])
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
+        t = last_snapshot_t | t_end.unit
+        print t
+
         f = '{0}/{1}'.format(path, last_snapshot)
-        # These stars should be added to the codes
+        # These stars should be added to the gravity and stellar codes
         # They are the stars that have been already created by the last saved snapshot
         first_stars = read_set_from_file(f, 'hdf5', close_file=True)
 
         # This reads all the stars
         stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
-        t = last_snapshot_t | t_end.unit
-        print t
+        # I don't need to re-keep the stars that have already been added; those are in first_stars
+        stars = stars[stars.tborn >= t]
+
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
 
     else:
@@ -490,38 +494,39 @@ def main(N,
         # Read stars resulting from molecular cloud collapse script
         stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
 
-        # These parameters should be set up for stars in any case
-        # Bright stars: no disks; emit FUV radiation
-        stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
-        stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
+    # These parameters should be set up for stars in any case
+    # In case I'm restarting, these parameters will be set only for stars where stars.tborn > t (t from the last snapshot)
+    # Bright stars: no disks; emit FUV radiation
+    stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
+    stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
 
-        # Small stars: with disks; radiation from them not considered
-        stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].bright = False
-        stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].disked = True
+    # Small stars: with disks; radiation from them not considered
+    stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].bright = False
+    stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].disked = True
 
-        stars[stars.disked].disk_radius = 30 * (stars[stars.disked].stellar_mass.value_in(units.MSun) ** 0.5) | units.au
-        stars[stars.disked].disk_mass = 0.1 * stars[stars.disked].stellar_mass
+    stars[stars.disked].disk_radius = 30 * (stars[stars.disked].stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+    stars[stars.disked].disk_mass = 0.1 * stars[stars.disked].stellar_mass
 
-        stars[stars.bright].disk_radius = 0 | units.au
-        stars[stars.bright].disk_mass = 0 | units.MSun
+    stars[stars.bright].disk_radius = 0 | units.au
+    stars[stars.bright].disk_mass = 0 | units.MSun
 
-        stars.mass = stars.stellar_mass + stars.disk_mass  # Total particle mass is stellar mass + disk mass
+    stars.mass = stars.stellar_mass + stars.disk_mass  # Total particle mass is stellar mass + disk mass
 
-        # Initially all stars have the same collisional radius
-        stars.collisional_radius = 0.02 | units.parsec
-        stars.encounters = 0  # Counter for dynamical encounters
+    # Initially all stars have the same collisional radius
+    stars.collisional_radius = 0.02 | units.parsec
+    stars.encounters = 0  # Counter for dynamical encounters
 
-        stars[stars.disked].cumulative_truncation_mass_loss = 0.0 | units.MSun
-        stars[stars.disked].cumulative_photoevap_mass_loss = 0.0 | units.MSun
+    stars[stars.disked].cumulative_truncation_mass_loss = 0.0 | units.MSun
+    stars[stars.disked].cumulative_photoevap_mass_loss = 0.0 | units.MSun
 
-        # Saving initial G0 on small stars
-        stars.g0 = 0.0
+    # Saving initial G0 on small stars
+    stars.g0 = 0.0
 
-        # Flag for EUV photoevaporation mass loss
-        stars.EUV = False
+    # Flag for EUV photoevaporation mass loss
+    stars.EUV = False
 
-        stars[stars.disked].dispersed_mass_threshold = 0.03 | units.MEarth  # Ansdell+2016
-        stars[stars.disked].dispersed_density_threshold = 1E-5 | units.g / units.cm**2  # Ingleby+ 2009
+    stars[stars.disked].dispersed_mass_threshold = 0.03 | units.MEarth  # Ansdell+2016
+    stars[stars.disked].dispersed_density_threshold = 1E-5 | units.g / units.cm**2  # Ingleby+ 2009
 
     # Create interpolator object for FRIED grid
     interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
@@ -546,6 +551,7 @@ def main(N,
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
     if restart:
+        # If I'm restarting, I already set up first_stars above
         tmin = last_snapshot_t | t_end.unit
         tmax = 0.05 | units.Myr
         for s in stars:
@@ -738,41 +744,41 @@ def main(N,
                 disk0 = disks[disk_indices[s0.key]]
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [disk0, disk1]
-                """print("disked - disked")
+                print("disked - disked")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
             elif s0.disked and not s1.disked:
-                """print("disked - bright or dispersed")
+                print("disked - bright or dispersed")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 disk0 = disks[disk_indices[s0.key]]
                 encountering_disks = [disk0, None]
 
             elif not s0.disked and s1.disked:
-                """print("bright or dispersed - disked")
+                print("bright or dispersed - disked")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
-                """print("bright - bright or dispersed - dispersed")
+                print("bright - bright or dispersed - dispersed")
 
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
@@ -780,7 +786,7 @@ def main(N,
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 encountering_disks = [None, None]
 
