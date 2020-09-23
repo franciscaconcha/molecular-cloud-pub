@@ -641,7 +641,9 @@ def main(N,
     tprev = tmin  # Otherwise I will add first_stars twice
 
     # trying this weird thing because precision is running my saving condition
-    t = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
+    #t = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
+    t = 0.0 | units.Myr
+    t_save = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr
     t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
@@ -861,16 +863,25 @@ def main(N,
                                                                    gravity.model_time.value_in(units.Myr))"""
 
         t += dt
+        t_save += dt
 
         active_disks = len([d for d in disks if not d.dispersed])
 
         if active_disks <= 0:
-            write_set_to_file(stars,
-                              '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
-                                                              run_number,
-                                                              N,
-                                                              t.value_in(units.Myr)),
-                              'hdf5')
+            if restart:
+                write_set_to_file(stars,
+                                  '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
+                                                                  run_number,
+                                                                  N,
+                                                                  t_save.value_in(units.Myr)),
+                                  'hdf5')
+            else:
+                write_set_to_file(stars,
+                                  '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
+                                                                  run_number,
+                                                                  N,
+                                                                  t.value_in(units.Myr)),
+                                  'hdf5')
             print("NO DISKS LEFT AT t = {0} Myr".format(t.value_in(units.Myr)))
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
@@ -878,13 +889,22 @@ def main(N,
         print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
         print "pre save condition: ", int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
         if int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
-            print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
-            write_set_to_file(stars,
-                              '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
-                                                          run_number,
-                                                          N,
-                                                          t.value_in(units.Myr)),
-                              'hdf5')
+            if restart:
+                print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
+                write_set_to_file(stars,
+                                  '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
+                                                              run_number,
+                                                              N,
+                                                              t_save.value_in(units.Myr)),
+                                  'hdf5')
+            else:
+                print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
+                write_set_to_file(stars,
+                                  '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
+                                                              run_number,
+                                                              N,
+                                                              t.value_in(units.Myr)),
+                                  'hdf5')
 
         numpy.savetxt(E_handle, E_list)
         numpy.savetxt(Q_handle, Q_list)
