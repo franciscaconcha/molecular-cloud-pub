@@ -474,8 +474,10 @@ def main(N,
 
         # This reads all the stars
         stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
+        print "all stars: ", len(stars)
         # I don't need to re-keep the stars that have already been added; those are in first_stars
         stars = stars[stars.tborn >= t]
+        print "new stars: ", len(stars)
 
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
 
