@@ -585,7 +585,8 @@ def main(N,
     gravity.parameters.timestep_parameter = 0.01
     gravity.parameters.epsilon_squared = (100 | units.au) ** 2
     gravity.particles.add_particles(first_stars)
-    gravity.model_time = tmin
+    #if not restart:
+    #gravity.model_time = tmin
 
     # Enable stopping condition for dynamical encounters
     dynamical_encounter = gravity.stopping_conditions.collision_detection
@@ -732,10 +733,11 @@ def main(N,
         E_list.append([(E_kin + E_pot) / E_ini - 1])
         Q_list.append([-1.0 * E_kin / E_pot])
 
-        print gravity.model_time.in_(units.Myr)
-        print (t + dt).in_(units.Myr)
+        print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
+        print "t + dt: ", (t + dt).in_(units.Myr)
         gravity.evolve_model(t + dt)
-        print gravity.model_time.in_(units.Myr)
+        print "model time post evolve", gravity.model_time.in_(units.Myr)
+        print "t_save = ", t_save.in_(units.Myr)
 
         channel_from_gravity_to_framework.copy()
 
@@ -785,9 +787,9 @@ def main(N,
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
-                """print("bright - bright or dispersed - dispersed")
+                """print("bright - bright or dispersed - dispersed")"""
 
-                print("key0: {0}, mass0: {1}, disked0: {2}\n \
+                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
