@@ -639,7 +639,7 @@ def main(N,
         t_save = last_snapshot_t | t_end.unit + dt
 
         # Don't need to save first snapshot if I'm restarting
-        
+
     else:
         t_save = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr
 
