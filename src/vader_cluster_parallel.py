@@ -811,13 +811,13 @@ def main(N,
                               encountering_disks,
                               gravity.model_time)
 
-            print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
-            print "t + dt: ", (t + dt).in_(units.Myr)
+        print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
+        print "t + dt: ", (t + dt).in_(units.Myr)
 
-            gravity.evolve_model(t + dt)
+        gravity.evolve_model(t + dt)
 
-            print "model time post evolve", gravity.model_time.in_(units.Myr)
-            print "t_save = ", t_save.in_(units.Myr)
+        print "model time post evolve", gravity.model_time.in_(units.Myr)
+        print "t_save = ", t_save.in_(units.Myr)
 
         # Copy stars' new collisional radii (updated in resolve_encounter) to gravity
         channel_from_framework_to_gravity.copy()
