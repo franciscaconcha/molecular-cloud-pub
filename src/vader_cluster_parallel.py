@@ -652,6 +652,7 @@ def main(N,
             prev_stars = stars[stars.tborn > tprev]
             new_stars = prev_stars[prev_stars.tborn <= t]
             new_stars.born = True
+            born_stars = stars[stars.born]
             gravity.particles.add_particles(new_stars)
             print "Added {0} new stars to gravity code, {1} stars in total".format(len(new_stars),
                                                                                    len(gravity.particles))
