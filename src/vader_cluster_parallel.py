@@ -53,8 +53,8 @@ def single_photoevaporation_mass_loss(i):
     :param i: star key
     :return: Mdot (FUV + EUV) in MSun/yr
     """
-    global stars, disks, disk_indices, interpolator
-    this_star = stars[stars.key == i]
+    global stars, born_stars, disks, disk_indices, interpolator
+    this_star = born_stars[born_stars.key == i]
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
