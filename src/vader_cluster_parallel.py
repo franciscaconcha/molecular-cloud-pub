@@ -53,8 +53,8 @@ def single_photoevaporation_mass_loss(i):
     :param i: star key
     :return: Mdot (FUV + EUV) in MSun/yr
     """
-    global stars, born_stars, disks, disk_indices, interpolator
-    this_star = born_stars[born_stars.key == i]
+    global stars, disks, disk_indices, interpolator
+    this_star = stars[stars.key == i]
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
@@ -86,16 +86,16 @@ def total_radiation(indices, nc):  # indices should be list of keys of small sta
 
 
 def single_total_radiation(i):
-    global born_stars
-    this_star = born_stars[born_stars.key == i]  # Current star to calculate total radiation on
+    global stars
+    this_star = stars[stars.key == i]  # Current star to calculate total radiation on
 
     # Calculate the total FUV contribution of the bright stars over each small star
     total_radiation = 0.0
 
-    if i in born_stars[born_stars.bright].key:
+    if i in stars[stars.bright].key:
         return total_radiation
 
-    for s in born_stars[born_stars.bright]:  # For each massive/bright star
+    for s in stars[stars.bright]:  # For each massive/bright star
         # Calculate FUV luminosity of the bright star, in LSun
         lum = luminosity_fit(s.stellar_mass.value_in(units.MSun))
 
@@ -408,7 +408,7 @@ def map_disk_indices_to_stars(disks):
     return map
 
 
-global stars, born_stars
+global stars
 
 
 def main(N,
@@ -455,7 +455,7 @@ def main(N,
         pass
 
     if restart:
-        global stars, born_stars, disks, disk_indices, interpolator
+        global stars, disks, disk_indices, interpolator
 
         path = "{0}/{1}/".format(save_path, run_number)
         files = [f for f in os.listdir(path) if (f.lower().endswith('.hdf5'))]
@@ -465,12 +465,7 @@ def main(N,
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
         f = '{0}/{1}'.format(path, last_snapshot)
-        # These stars should be added to the codes
-        # They are the stars that have been already created by the last saved snapshot
-        first_stars = read_set_from_file(f, 'hdf5', close_file=True)
-
-        # This reads all the stars
-        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
+        stars = read_set_from_file(f, 'hdf5', close_file=True)
         t = last_snapshot_t | t_end.unit
         print t
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
@@ -547,31 +542,21 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
-    if restart:
-        tmin = last_snapshot_t | t_end.unit
-        tmax = 0.05 | units.Myr
-        for s in stars:
-            if s.tborn > tmax:
-                tmax = s.tborn
+    # Find the first stars that form to add them to the gravity code
+    # The rest of the stars will be added at the time they are born
+    tmin = 20 | units.Myr
+    tmax = 0.05 | units.Myr
+    for s in stars:
+        if s.tborn < tmin:
+            tmin = s.tborn
+        elif s.tborn > tmax:
+            tmax = s.tborn
 
-        print "first stars at ", tmin.in_(units.Myr)
-        print "last stars at ", tmax.in_(units.Myr)
-    else:
-        # Find the first stars that form to add them to the gravity code
-        # The rest of the stars will be added at the time they are born
-        tmin = 20 | units.Myr
-        tmax = 0.05 | units.Myr
-        for s in stars:
-            if s.tborn < tmin:
-                tmin = s.tborn
-            elif s.tborn > tmax:
-                tmax = s.tborn
+    print "first stars at ", tmin.in_(units.Myr)
+    print "last stars at ", tmax.in_(units.Myr)
 
-        print "first stars at ", tmin.in_(units.Myr)
-        print "last stars at ", tmax.in_(units.Myr)
-
-        first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
-        first_stars.born = True
+    first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
+    first_stars.born = True
 
     # Set up gravity code for cluster
     # I begin by adding only the first stars
@@ -635,24 +620,21 @@ def main(N,
     dt = 1000 | units.yr
     tprev = tmin  # Otherwise I will add first_stars twice
 
-    # trying this weird af thing because precision is running my saving condition
     t = 0.0 | units.Myr
     t_save = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
     t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
     while t < t_end:
-        print("t = {0:.3f} Myr".format(float(t.value_in(units.Myr))))
-        # trying this weird af thing because precision is running my saving condition
-        #t = float("{0:.3f}".format(float(t.value_in(units.Myr))))
+        print("t = {0:.3f} Myr, t_save = {1:.3f} Myr".format(float(t.value_in(units.Myr)),
+                                                             float(t_save.value_in(units.Myr))))
         dt = min(dt, t_end - t)
 
         # Check new stars to add to gravity code
-        if t > tmin:
+        if t_save > tmin:
             prev_stars = stars[stars.tborn > tprev]
-            new_stars = prev_stars[prev_stars.tborn <= t]
+            new_stars = prev_stars[prev_stars.tborn <= t_save]
             new_stars.born = True
-            born_stars = stars[stars.born]
             gravity.particles.add_particles(new_stars)
             print "Added {0} new stars to gravity code, {1} stars in total".format(len(new_stars),
                                                                                    len(gravity.particles))
@@ -664,14 +646,14 @@ def main(N,
             #print new_massive_stars
             if len(new_massive_stars) > 0:
                 if stellar is None:  # Need to start stellar evolution code now
-                    print "Starting stellar ev. code at t = {0:.2f} Myr".format(float(t.value_in(units.Myr)))
+                    print "Starting stellar ev. code at t = {0:.2f} Myr".format(float(t_save.value_in(units.Myr)))
                     print "Adding {0} particles".format(len(new_massive_stars))
                     stellar = SeBa()
                     stellar.parameters.metallicity = 0.02
                     #print "stellar timestep: ", stellar.parameters.time_step.in_(units.Myr)# = 0.5 * dt
                     stellar.particles.add_particles(new_massive_stars)
 
-                    print "pre copy stellar.particles = {0}".format(len(stellar.particles))
+                    #print "pre copy stellar.particles = {0}".format(len(stellar.particles))
 
                     channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
                     channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
@@ -685,7 +667,7 @@ def main(N,
                     channel_from_stellar_to_gravity.copy()
                     #channel_from_framework_to_stellar.copy()
 
-                    print "post copy stellar.particles = {0}".format(len(stellar.particles))
+                    #print "post copy stellar.particles = {0}".format(len(stellar.particles))
 
                     print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
                     #stellar.parameters.time_step = 0.5 * dt
@@ -813,24 +795,22 @@ def main(N,
         ########### Photoevaporation ############
 
         # Calculate the total FUV contribution of the bright stars over each small star
-        # Using stars that have already been born only
-        born_stars = stars[stars.born]
-        born_stars[born_stars.disked].total_radiation = total_radiation(born_stars[born_stars.disked].key, ncores)
+        stars[stars.disked].total_radiation = total_radiation(stars[stars.disked].key, ncores)
 
         # Photoevaporative mass loss in log10(MSun/yr), EUV + FUV
-        born_stars[born_stars.disked].photoevap_Mdot = photoevaporation_mass_loss(born_stars[born_stars.disked].key, ncores)
-        born_stars[born_stars.disked].cumulative_photoevap_mass_loss += born_stars[born_stars.disked].photoevap_Mdot * dt
+        stars[stars.disked].photoevap_Mdot = photoevaporation_mass_loss(stars[stars.disked].key, ncores)
+        stars[stars.disked].cumulative_photoevap_mass_loss += stars[stars.disked].photoevap_Mdot * dt
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
+            disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
 
         # Evolve VADER disks
         # This evolution includes gas+dust evolution and external photoevaporation
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
-        for this_star in born_stars[born_stars.disked]:
+        for this_star in stars[stars.disked]:
             this_disk = disks[disk_indices[this_star.key]]
             this_star.disked = not this_disk.dispersed
             this_star.disk_radius = this_disk.disk_radius
@@ -863,21 +843,24 @@ def main(N,
         active_disks = len([d for d in disks if not d.dispersed])
 
         if active_disks <= 0:
-            write_set_to_file(stars,
+            write_set_to_file(stars[stars.born],
                               '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
                                                               run_number,
                                                               N,
                                                               t_save.value_in(units.Myr)),
                               'hdf5')
             print("NO DISKS LEFT AT t = {0} Myr".format(t.value_in(units.Myr)))
-            print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
+            print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
 
-        print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
-        print "pre save condition: ", int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
-        if int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
-            print("saving! at t = {0} Myr, t_save = {1} Myr".format(t.value_in(units.Myr), t_save.value_in(units.Myr)))
-            write_set_to_file(stars,
+        #print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
+        #print "pre save condition: ", int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
+        #if int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
+
+        # silly condition but fixes my precision/rounding issues
+        if str(t_save.value_in(units.Myr))[-1] == '0' or str(t_save.value_in(units.Myr))[-1] == '5':
+            print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
+            write_set_to_file(stars[stars.born],
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                           run_number,
                                                           N,
