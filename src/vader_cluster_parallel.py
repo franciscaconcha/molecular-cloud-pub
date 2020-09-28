@@ -739,13 +739,13 @@ def main(N,
         E_list.append([(E_kin + E_pot) / E_ini - 1])
         Q_list.append([-1.0 * E_kin / E_pot])
 
-        print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
+        """print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
         print "t + dt: ", (t + dt).in_(units.Myr)
 
         gravity.evolve_model(t + dt)
 
         print "model time post evolve", gravity.model_time.in_(units.Myr)
-        print "t_save = ", t_save.in_(units.Myr)
+        print "t_save = ", t_save.in_(units.Myr)"""
 
         channel_from_gravity_to_framework.copy()
 
@@ -811,10 +811,13 @@ def main(N,
                               encountering_disks,
                               gravity.model_time)
 
-            #print "t + dt = {0}".format(t + dt)
-            #while gravity.model_time < t + dt:
-            #gravity.evolve_model(t + dt)
-            #channel_from_gravity_to_framework.copy()
+            print "model time pre evolve: ", gravity.model_time.in_(units.Myr)
+            print "t + dt: ", (t + dt).in_(units.Myr)
+
+            gravity.evolve_model(t + dt)
+
+            print "model time post evolve", gravity.model_time.in_(units.Myr)
+            print "t_save = ", t_save.in_(units.Myr)
 
         # Copy stars' new collisional radii (updated in resolve_encounter) to gravity
         channel_from_framework_to_gravity.copy()
