@@ -858,9 +858,9 @@ def main(N,
         #if int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
 
         # silly condition but fixes my precision/rounding issues
-        print "pre save condition: ", str(t_save.value_in(units.Myr))[-1] == '0' or str(t_save.value_in(units.Myr))[-1] == '5'
-        print str(t_save.value_in(units.Myr))[-1]
-        if str(t_save.value_in(units.Myr))[-1] == '0' or str(t_save.value_in(units.Myr))[-1] == '5':
+        print "pre save condition: ", '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5'
+        print '{0:.3f}'.format(t_save.value_in(units.Myr))[-1]
+        if '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5':
             print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
             write_set_to_file(stars[stars.born],
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
