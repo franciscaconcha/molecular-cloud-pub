@@ -86,16 +86,16 @@ def total_radiation(indices, nc):  # indices should be list of keys of small sta
 
 
 def single_total_radiation(i):
-    global stars
-    this_star = stars[stars.key == i]  # Current star to calculate total radiation on
+    global born_stars
+    this_star = born_stars[born_stars.key == i]  # Current star to calculate total radiation on
 
     # Calculate the total FUV contribution of the bright stars over each small star
     total_radiation = 0.0
 
-    if i in stars[stars.bright].key:
+    if i in born_stars[born_stars.bright].key:
         return total_radiation
 
-    for s in stars[stars.bright]:  # For each massive/bright star
+    for s in born_stars[born_stars.bright]:  # For each massive/bright star
         # Calculate FUV luminosity of the bright star, in LSun
         lum = luminosity_fit(s.stellar_mass.value_in(units.MSun))
 
@@ -408,7 +408,7 @@ def map_disk_indices_to_stars(disks):
     return map
 
 
-global stars
+global stars, born_stars
 
 
 def main(N,
@@ -455,7 +455,7 @@ def main(N,
         pass
 
     if restart:
-        global stars, disks, disk_indices, interpolator
+        global stars, born_stars, disks, disk_indices, interpolator
 
         path = "{0}/{1}/".format(save_path, run_number)
         files = [f for f in os.listdir(path) if (f.lower().endswith('.hdf5'))]
