@@ -28,7 +28,7 @@ class Disk:
         self.dispersed = False  # Disk is dispersed if the mass is lower than some value (1% of 0.08 MSun)
         self.disk_convergence_failure = False  # Viscous code can fail to converge, catch and do not involve further
         self.disk_active = True  # Disk is only evolved if it is not dispersed or failed to evolve
-        self.disk_born = False  # Using this to track when a star+disk system has been "born" and added to the gravity code.
+        #self.disk_born = False  # Using this to track when a star+disk system has been "born" and added to the gravity code.
         # Could probably get around this using self.disk_active but didn't want to accidentally mess something up.
 
         self.internal_photoevap_flag = internal_photoevap_flag
@@ -73,8 +73,8 @@ class Disk:
 
         dt: time step to evolve the disk for (scalar, units of time)
         '''
-        if not self.disk_born:  # This star+disk hasn't been born yet... do nothing
-            pass
+        #if not self.disk_born:  # This star+disk hasn't been born yet... do nothing
+        #    pass
 
         else:
             # Adjust rotation curves to current central mass
