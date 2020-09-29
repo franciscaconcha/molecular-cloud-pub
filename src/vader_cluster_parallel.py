@@ -804,6 +804,7 @@ def main(N,
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
+            print born_stars[born_stars.key == k].photoevap_Mdot
             disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
 
         # Evolve VADER disks
