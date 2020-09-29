@@ -59,26 +59,28 @@ def single_photoevaporation_mass_loss(i):
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
+    # At the start, some stars will receive no radiation because massive stars have not formed yet
+    if this_star.total_radiation | G0 > 0.0 | G0:
+        photoevap_Mdot_FUV = interpolator.interp_amuse(this_star.stellar_mass,
+                                                       this_star.total_radiation | G0,
+                                                       this_disk.disk_gas_mass,
+                                                       this_disk.disk_radius)[0]
 
-    print "total rad;", this_star.total_radiation | G0
+        # Check if there should be EUV mass loss as well; FRIED grid is FUV only
+        # this_star.EUV is determined when the radiation on each star is calculated
+        if this_star.EUV:
+            # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
+            # From the paper: e ~ 3, x ~ 1.5
+            photoevap_Mdot_EUV = 2. * 1E-9 * 3 * 4.12 * (this_star.disk_radius.value_in(units.cm) / 1E14) | units.MSun/units.yr
+        else:
+            photoevap_Mdot_EUV = 0.0 | units.MSun/units.yr
 
-    photoevap_Mdot_FUV = interpolator.interp_amuse(this_star.stellar_mass,
-                                                   this_star.total_radiation | G0,
-                                                   this_disk.disk_gas_mass,
-                                                   this_disk.disk_radius)[0]
+        this_star.EUV = False  # Back to false to recheck next time
 
-    # Check if there should be EUV mass loss as well; FRIED grid is FUV only
-    # this_star.EUV is determined when the radiation on each star is calculated
-    if this_star.EUV:
-        # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
-        # From the paper: e ~ 3, x ~ 1.5
-        photoevap_Mdot_EUV = 2. * 1E-9 * 3 * 4.12 * (this_star.disk_radius.value_in(units.cm) / 1E14) | units.MSun/units.yr
+        return photoevap_Mdot_FUV + photoevap_Mdot_EUV
+
     else:
-        photoevap_Mdot_EUV = 0.0 | units.MSun/units.yr
-
-    this_star.EUV = False  # Back to false to recheck next time
-
-    return photoevap_Mdot_FUV + photoevap_Mdot_EUV
+        return 0.0 | units.MSun/units.yr
 
 
 def total_radiation(indices, nc):  # indices should be list of keys of small stars
