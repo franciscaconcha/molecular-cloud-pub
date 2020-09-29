@@ -92,10 +92,13 @@ def single_total_radiation(i):
     # Calculate the total FUV contribution of the bright stars over each small star
     total_radiation = 0.0
 
-    if i in stars[stars.bright].key:
+    born_stars = stars[stars.born]
+
+    if i in born_stars[born_stars.bright].key:
+        print "No radiating stars yet"
         return total_radiation
 
-    for s in stars[stars.bright]:  # For each massive/bright star
+    for s in born_stars[born_stars.bright]:  # For each massive/bright star
         # Calculate FUV luminosity of the bright star, in LSun
         lum = luminosity_fit(s.stellar_mass.value_in(units.MSun))
 
