@@ -607,7 +607,7 @@ def main(N,
     E_list = []
     Q_list = []
 
-    write_set_to_file(stars,
+    write_set_to_file(stars[stars.born],
                       '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                       run_number,
                                                       N,
@@ -793,24 +793,25 @@ def main(N,
         channel_from_framework_to_gravity.copy()
 
         ########### Photoevaporation ############
+        born_stars = stars[stars.born]
 
         # Calculate the total FUV contribution of the bright stars over each small star
-        stars[stars.disked].total_radiation = total_radiation(stars[stars.disked].key, ncores)
+        born_stars[born_stars.disked].total_radiation = total_radiation(born_stars[born_stars.disked].key, ncores)
 
         # Photoevaporative mass loss in log10(MSun/yr), EUV + FUV
-        stars[stars.disked].photoevap_Mdot = photoevaporation_mass_loss(stars[stars.disked].key, ncores)
-        stars[stars.disked].cumulative_photoevap_mass_loss += stars[stars.disked].photoevap_Mdot * dt
+        born_stars[born_stars.disked].photoevap_Mdot = photoevaporation_mass_loss(born_stars[born_stars.disked].key, ncores)
+        born_stars[born_stars.disked].cumulative_photoevap_mass_loss += born_stars[born_stars.disked].photoevap_Mdot * dt
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
+            disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
 
         # Evolve VADER disks
         # This evolution includes gas+dust evolution and external photoevaporation
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
-        for this_star in stars[stars.disked]:
+        for this_star in born_stars[born_stars.disked]:
             this_disk = disks[disk_indices[this_star.key]]
             this_star.disked = not this_disk.dispersed
             this_star.disk_radius = this_disk.disk_radius
