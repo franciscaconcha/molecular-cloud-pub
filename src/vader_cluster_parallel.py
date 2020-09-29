@@ -804,11 +804,14 @@ def main(N,
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            print born_stars[born_stars.key == k].photoevap_Mdot
-            disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
+            if len(born_stars[born_stars.key == k].photoevap_Mdot) > 0:
+                disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
+            else:
+                disks[disk_indices[k]].outer_photoevap_rate = 0.0 | units.MSun / units.yr
 
         # Evolve VADER disks
         # This evolution includes gas+dust evolution and external photoevaporation
+        #disks_to_run = [d for d in disks if (not d.dispersed and d.born)]
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
