@@ -54,10 +54,14 @@ def single_photoevaporation_mass_loss(i):
     :return: Mdot (FUV + EUV) in MSun/yr
     """
     global stars, disks, disk_indices, interpolator
+
     this_star = stars[stars.key == i]
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
+
+    print "total rad;", this_star.total_radiation | G0
+
     photoevap_Mdot_FUV = interpolator.interp_amuse(this_star.stellar_mass,
                                                    this_star.total_radiation | G0,
                                                    this_disk.disk_gas_mass,
