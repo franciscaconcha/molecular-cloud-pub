@@ -18,16 +18,21 @@ def imf(path, save_path, N, nruns=1):
     #kroupa_limits = [0.01, 0.08, 0.5, 1.0, 1.9, 150.0]  # Added the 1.9 MSun 'bin' for photoevap limit
     kroupa_limits = [0.08, 0.5, 1.0, 1.9, 150.0]  # Added the 1.9 MSun 'bin' for photoevap limit
 
+    all_mean_masses = []
+
     for r in range(nruns):
         filepath = '{0}/{1}/gravity_stars.hdf5'.format(path,
                                                        r)
 
         stars = read_set_from_file(filepath, "hdf5", close_file=True)
         star_masses = stars.stellar_mass.value_in(units.MSun)
+        all_mean_masses.append(numpy.mean(star_masses))
 
         ax.hist(star_masses, bins=kroupa_limits, histtype=u'step', edgecolor='k', lw=3, alpha=0.5)
 
     ax.hist(IMF_masses, bins=kroupa_limits, histtype=u'step', edgecolor='r', lw=3)
+
+    print numpy.mean(all_mean_masses), numpy.std(all_mean_masses)
 
     lines = [Line2D([0], [0], color='red', linewidth=3),
              Line2D([0], [0], color='k', linewidth=3, alpha=0.5)]
