@@ -473,7 +473,9 @@ def main(N,
         last_snapshot_t = float(last_snapshot.split('t')[1].split('.hdf5')[0])
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
-        f = '{0}/{1}'.format(path, last_snapshot)
+        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
+
+        """f = '{0}/{1}'.format(path, last_snapshot)
         # These are the stars that were already in the dynamics code.
         first_stars = read_set_from_file(f, 'hdf5', close_file=True)
         first_stars.born = True
@@ -485,12 +487,12 @@ def main(N,
         #stars = stars[stars.tborn > t_save]
 
         for s in first_stars:
-        # Have to do this because I don't sae all the stars in the previous snapshots,
+        # Have to do this because I don't save all the stars in the previous snapshots,
         # only the already born ones... should've saved differently from the start but oh well
-            stars[stars.key == s.key][0] = s
+            stars[stars.key == s.key] = s"""
 
-        print stars[stars.tborn < t_save].born
-
+        #t_save = last_snapshot_t | t_end.unit
+        #print len(stars[stars.tborn < t_save].born)
 
     else:
         t = 0.0 | t_end.unit
@@ -507,41 +509,40 @@ def main(N,
         # Read stars resulting from molecular cloud collapse script
         stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
 
-    # If restart, these properties are assigned only to stars that have not been born yet
-    stars.born = False
+        stars.born = False
 
-    # These parameters should be set up for stars in any case
-    # Bright stars: no disks; emit FUV radiation
-    stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
-    stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
+        # These parameters should be set up for stars in any case
+        # Bright stars: no disks; emit FUV radiation
+        stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
+        stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
 
-    # Small stars: with disks; radiation from them not considered
-    stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].bright = False
-    stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].disked = True
+        # Small stars: with disks; radiation from them not considered
+        stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].bright = False
+        stars[stars.stellar_mass.value_in(units.MSun) <= 1.9].disked = True
 
-    stars[stars.disked].disk_radius = 30 * (stars[stars.disked].stellar_mass.value_in(units.MSun) ** 0.5) | units.au
-    stars[stars.disked].disk_mass = 0.1 * stars[stars.disked].stellar_mass
+        stars[stars.disked].disk_radius = 30 * (stars[stars.disked].stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+        stars[stars.disked].disk_mass = 0.1 * stars[stars.disked].stellar_mass
 
-    stars[stars.bright].disk_radius = 0 | units.au
-    stars[stars.bright].disk_mass = 0 | units.MSun
+        stars[stars.bright].disk_radius = 0 | units.au
+        stars[stars.bright].disk_mass = 0 | units.MSun
 
-    stars.mass = stars.stellar_mass + stars.disk_mass  # Total particle mass is stellar mass + disk mass
+        stars.mass = stars.stellar_mass + stars.disk_mass  # Total particle mass is stellar mass + disk mass
 
-    # Initially all stars have the same collisional radius
-    stars.collisional_radius = 0.02 | units.parsec
-    stars.encounters = 0  # Counter for dynamical encounters
+        # Initially all stars have the same collisional radius
+        stars.collisional_radius = 0.02 | units.parsec
+        stars.encounters = 0  # Counter for dynamical encounters
 
-    stars[stars.disked].cumulative_truncation_mass_loss = 0.0 | units.MSun
-    stars[stars.disked].cumulative_photoevap_mass_loss = 0.0 | units.MSun
+        stars[stars.disked].cumulative_truncation_mass_loss = 0.0 | units.MSun
+        stars[stars.disked].cumulative_photoevap_mass_loss = 0.0 | units.MSun
 
-    # Saving initial G0 on small stars
-    stars.g0 = 0.0
+        # Saving initial G0 on small stars
+        stars.g0 = 0.0
 
-    # Flag for EUV photoevaporation mass loss
-    stars.EUV = False
+        # Flag for EUV photoevaporation mass loss
+        stars.EUV = False
 
-    stars[stars.disked].dispersed_mass_threshold = 0.03 | units.MEarth  # Ansdell+2016
-    stars[stars.disked].dispersed_density_threshold = 1E-5 | units.g / units.cm**2  # Ingleby+ 2009
+        stars[stars.disked].dispersed_mass_threshold = 0.03 | units.MEarth  # Ansdell+2016
+        stars[stars.disked].dispersed_density_threshold = 1E-5 | units.g / units.cm**2  # Ingleby+ 2009
 
     # Create interpolator object for FRIED grid
     interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
@@ -567,7 +568,9 @@ def main(N,
 
     # Find the first stars that form to add them to the gravity code
     # The rest of the stars will be added at the time they are born
-    if not restart:
+    if restart:
+        first_stars = stars[stars.born]
+    else:
         tmin = 20 | units.Myr
         tmax = 0.05 | units.Myr
         for s in stars:
@@ -646,15 +649,15 @@ def main(N,
     else:
         active_disks = len(stars[stars.disked])   # Counter for active disks
 
-    dt = 1000 | units.yr
-    #if restart:
-    tprev = tmin  # Otherwise I will add first_stars twice
-
-    t = 0.0 | units.Myr
-
-    if not restart:  # In restart I already defined t_save
+    if restart:
+        t_save = last_snapshot_t | t_end.unit
+        tprev = t_save
+    else:
         t_save = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
+        tprev = tmin  # Otherwise I will add first_stars twice
 
+    dt = 1000 | units.yr
+    t = 0.0 | units.Myr
     t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
@@ -881,7 +884,7 @@ def main(N,
         active_disks = len([d for d in disks if not d.dispersed])
 
         if active_disks <= 0:
-            write_set_to_file(stars[stars.born],
+            write_set_to_file(stars,
                               '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
                                                               run_number,
                                                               N,
@@ -900,7 +903,7 @@ def main(N,
         print '{0:.3f}'.format(t_save.value_in(units.Myr))[-1]
         if '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5':
             print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
-            write_set_to_file(stars[stars.born],
+            write_set_to_file(stars,
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                           run_number,
                                                           N,
