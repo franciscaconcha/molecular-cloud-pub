@@ -484,8 +484,10 @@ def main(N,
         # These are the stars that have not been born yet and need to be added accordingly
         #stars = stars[stars.tborn > t_save]
 
-        print first_stars.key
-        print stars[stars.tborn <= t_save].key
+        print "FIRST STARS | STARS"
+        print len(first_stars), len(stars[stars.tborn < t_save])
+        for s, ss in zip(first_stars, stars[stars.tborn < t_save]):
+            print s.key, ss.key
 
     else:
         t = 0.0 | t_end.unit
