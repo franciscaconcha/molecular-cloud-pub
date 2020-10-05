@@ -482,7 +482,10 @@ def main(N,
         stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
 
         # These are the stars that have not been born yet and need to be added accordingly
-        stars = stars[stars.tborn > t_save]
+        #stars = stars[stars.tborn > t_save]
+
+        print first_stars.key
+        print stars[stars.tborn <= t_save].key
 
     else:
         t = 0.0 | t_end.unit
@@ -639,6 +642,7 @@ def main(N,
         active_disks = len(stars[stars.disked])   # Counter for active disks
 
     dt = 1000 | units.yr
+    #if restart:
     tprev = tmin  # Otherwise I will add first_stars twice
 
     t = 0.0 | units.Myr
