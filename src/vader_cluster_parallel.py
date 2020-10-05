@@ -487,9 +487,10 @@ def main(N,
         for s in first_stars:
         # Have to do this because I don't sae all the stars in the previous snapshots,
         # only the already born ones... should've saved differently from the start but oh well
-            stars[stars.key == s.key] = s
+            print stars[stars.key == s.key].x.in_(units.parsec)
+            print s.x.in_(units.parsec)
 
-        print stars[stars.tborn < t_save].born
+        #print stars[stars.tborn < t_save].born
 
 
     else:
