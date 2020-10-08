@@ -79,7 +79,7 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
 
-        print n, len(stars), stars.box_counting_dimension()
+        print n + 1, len(stars), stars.Qparameter(), stars.box_counting_dimension()
 
         """ax[n].scatter(disked_stars.x.value_in(units.parsec),
                        disked_stars.y.value_in(units.parsec),
