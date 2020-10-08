@@ -9,7 +9,104 @@ from amuse import io
 # "ffmpeg -framerate 5 -i {0}/%01d.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p {0}/movie.mp4
 
 
-def stars(open_path, N, save_path, t_end, save, nruns):
+def stars(open_path, N, save_path, t_end, save, nrun):
+    """ Function to create Figure 1 on the paper.
+
+    :param open_path: path to results file
+    :param N: number of stars in results
+    :param save_path: path to save figure
+    :param t_end: final time to use when plotting
+    :param save: if True, figure will be saved
+    :param nrun: run number to use for the plot
+    """
+    fig = pyplot.figure()
+    ax = pyplot.gca()
+
+    f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, nrun)
+    stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+    stars.mass = stars.stellar_mass
+    print len(stars)
+
+    disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+    massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
+
+    ax.scatter(disked_stars.x.value_in(units.parsec),
+               disked_stars.y.value_in(units.parsec),
+               marker='o',
+               #s=stars.disk_radius.value_in(units.au),
+               c='gray',
+               alpha=0.5,
+               lw=1)
+
+    ax.scatter(massive_stars.x.value_in(units.parsec),
+               massive_stars.y.value_in(units.parsec),
+               marker='*',
+               #s=stars.disk_radius.value_in(units.au),
+               c='red',
+               alpha=0.5,
+               lw=1)
+
+    ax.set_xlabel("x [pc]")
+    ax.set_ylabel("y [pc]")
+
+    ax.set_aspect('equal')
+
+    fig.suptitle("Run \#{0}, N={1}".format(nrun, len(stars)))
+    pyplot.show()
+
+
+def all_runs(open_path, N, save_path, t_end, save, nruns):
+    fig, axs = pyplot.subplots(4, 3, subplot_kw=dict(aspect='equal', adjustable='box-forced'))  # rows, columns
+
+    ax = {0: axs[0, 0],
+          1: axs[0, 1],
+          2: axs[0, 2],
+          3: axs[1, 0],
+          4: axs[1, 1],
+          5: axs[1, 2],
+          6: axs[2, 0],
+          7: axs[2, 1],
+          8: axs[2, 2],
+          9: axs[3, 0],
+          10: axs[3, 1],
+          11: axs[3, 2]
+    }
+
+    for n in range(nruns):
+        f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
+        stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+
+        disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+        massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
+
+        print n, len(stars), stars.box_counting_dimension()
+
+        """ax[n].scatter(disked_stars.x.value_in(units.parsec),
+                       disked_stars.y.value_in(units.parsec),
+                       marker='o',
+                       #s=stars.disk_radius.value_in(units.au),
+                       c='gray',
+                       alpha=0.5,
+                       lw=1)
+
+        ax[n].scatter(massive_stars.x.value_in(units.parsec),
+                       massive_stars.y.value_in(units.parsec),
+                       marker='*',
+                       #s=stars.disk_radius.value_in(units.au),
+                       c='red',
+                       alpha=0.5,
+                       lw=1)
+
+        #ax0.set_xlabel("x [pc]")
+        #ax0.set_ylabel("y [pc]")
+
+        #ax[n].set_xlim([-3, 3])
+        #ax[n].set_ylim([-3, 3])
+
+    pyplot.show()"""
+
+
+def time_ev(open_path, N, save_path, t_end, save, nruns):
     """ Function to create Figure 1 on the paper.
 
     :param open_path: path to results file
@@ -112,15 +209,15 @@ def stars(open_path, N, save_path, t_end, save, nruns):
         pyplot.show()
 
 
-
-def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, movie):
+def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, time):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    stars(open_path, N, save_path, t_end, save, nruns)
-
-    if not save:
-        pyplot.show()
+    if time == 1:
+        time_ev(open_path, N, save_path, t_end, save, nruns)
+    else:
+        #stars(open_path, N, save_path, t_end, save, nruns)
+        all_runs(open_path, N, save_path, t_end, save, nruns)
 
 
 def new_option_parser():
@@ -144,7 +241,7 @@ def new_option_parser():
                       help="When using galactic potential, ('projected') distance to galactic center [%default]")
     result.add_option("-n", dest="nruns", type="int", default=1,
                       help="number of runs to plot for averages [%default]")
-    result.add_option("-m", dest="movie", type="int", default=0,
+    result.add_option("-t", dest="time", type="int", default=0,
                       help="make movie? [%default]")
     return result
 
