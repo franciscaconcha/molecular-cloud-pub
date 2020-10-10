@@ -79,7 +79,8 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
 
         f = '{0}/{1}/'.format(open_path, n)
         files = os.listdir(f)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-        stars = io.read_set_from_file(files[-1], 'hdf5', close_file=True)
+        star_files = [x for x in files if 'N' in x]
+        stars = io.read_set_from_file(star_files[-1], 'hdf5', close_file=True)
 
         disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
