@@ -571,6 +571,7 @@ def main(N,
     # The rest of the stars will be added at the time they are born
     if restart:
         first_stars = stars[stars.born]
+        tmin = last_snapshot_t | t_end.unit
         tmax = 0.05 | units.Myr
         for s in stars:
             if s.tborn > tmax:
