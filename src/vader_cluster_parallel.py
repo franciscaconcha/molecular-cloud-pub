@@ -473,7 +473,8 @@ def main(N,
         last_snapshot_t = float(last_snapshot.split('t')[1].split('.hdf5')[0])
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
-        stars = read_set_from_file(last_snapshot, 'hdf5', close_file=True)
+        filename = '{0}/{1}'.format(path, last_snapshot)
+        stars = read_set_from_file(filename, 'hdf5', close_file=True)
 
         """f = '{0}/{1}'.format(path, last_snapshot)
         # These are the stars that were already in the dynamics code.
