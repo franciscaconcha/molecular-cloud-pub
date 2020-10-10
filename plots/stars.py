@@ -81,10 +81,15 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[-1])
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
 
-        f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
+        print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
+
+        f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[0])
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
 
-        disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+        print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
+
+
+        """disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
 
         #print n + 1, len(stars), len(stars[stars.born])
@@ -111,7 +116,7 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         #ax[n].set_xlim([-3, 3])
         #ax[n].set_ylim([-3, 3])
 
-    pyplot.show()
+    pyplot.show()"""
 
 
 def time_ev(open_path, N, save_path, t_end, save, nruns):
@@ -224,8 +229,8 @@ def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, time):
     if time == 1:
         time_ev(open_path, N, save_path, t_end, save, nruns)
     else:
-        stars(open_path, N, save_path, t_end, save, nruns)
-        #all_runs(open_path, N, save_path, t_end, save, nruns)
+        #stars(open_path, N, save_path, t_end, save, nruns)
+        all_runs(open_path, N, save_path, t_end, save, nruns)
 
 
 def new_option_parser():
