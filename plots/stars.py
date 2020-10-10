@@ -1,6 +1,7 @@
 import numpy
 from matplotlib import pyplot
 import matplotlib.gridspec as gridspec
+import os
 
 from amuse.lab import *
 from amuse import io
@@ -73,8 +74,12 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
     }
 
     for n in range(nruns):
-        f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
-        stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+        #f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
+        #stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+
+        f = '{0}/{1}/'.format(open_path, n)
+        files = os.listdir(f)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+        stars = io.read_set_from_file(files[-1], 'hdf5', close_file=True)
 
         disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
