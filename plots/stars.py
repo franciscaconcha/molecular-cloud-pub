@@ -74,9 +74,6 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
     }
 
     for n in range(nruns):
-        #f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
-        #stars = io.read_set_from_file(f, 'hdf5', close_file=True)
-
         path = '{0}/{1}/disks/0/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         star_files = [x for x in files if '.hdf5' in x]
@@ -84,12 +81,15 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[-1])
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
 
+        f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
+        stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+
         disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
 
-        print n + 1, len(stars), len(stars[stars.born])
+        #print n + 1, len(stars), len(stars[stars.born])
 
-        """ax[n].scatter(disked_stars.x.value_in(units.parsec),
+        ax[n].scatter(disked_stars.x.value_in(units.parsec),
                        disked_stars.y.value_in(units.parsec),
                        marker='o',
                        #s=stars.disk_radius.value_in(units.au),
@@ -111,7 +111,7 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         #ax[n].set_xlim([-3, 3])
         #ax[n].set_ylim([-3, 3])
 
-    pyplot.show()"""
+    pyplot.show()
 
 
 def time_ev(open_path, N, save_path, t_end, save, nruns):
@@ -224,8 +224,8 @@ def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, time):
     if time == 1:
         time_ev(open_path, N, save_path, t_end, save, nruns)
     else:
-        #stars(open_path, N, save_path, t_end, save, nruns)
-        all_runs(open_path, N, save_path, t_end, save, nruns)
+        stars(open_path, N, save_path, t_end, save, nruns)
+        #all_runs(open_path, N, save_path, t_end, save, nruns)
 
 
 def new_option_parser():
