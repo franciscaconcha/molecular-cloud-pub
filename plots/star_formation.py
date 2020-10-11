@@ -6,14 +6,9 @@ from amuse.lab import *
 
 
 def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
-    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                      int(Mcloud.value_in(units.MSun)),
-                                                      int(Rcloud.value_in(units.parsec)),
-                                                      Nsph,
-                                                      1)
     filepath = path
     files = os.listdir(filepath)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-    stars_files = [x for x in files if 'stars' in x]
+    stars_files = [x for x in files if '.hdf5' in x]
     stars_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
     # stars = read_set_from_file('{0}/{1}'.format(filepath, stars_files[-1]), "hdf5", close_file=True)
@@ -21,20 +16,43 @@ def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
     i = 0
 
     for sf in stars_files:
+        pyplot.close()
         fig = pyplot.figure(figsize=(8, 8))
+        ax = pyplot.gca()
         stars = read_set_from_file('{0}/{1}'.format(filepath, sf), "hdf5", close_file=True)
-        print stars_files[-1]
+        stars = stars[stars.born]
         print len(stars)
-        pyplot.scatter(stars.x.value_in(units.parsec),
-                       stars.y.value_in(units.parsec))
 
-        ax = fig.gca()
+        disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+        massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
+
+        #print n + 1, len(stars), len(stars[stars.born])
+
+        ax.scatter(disked_stars.x.value_in(units.parsec),
+                       disked_stars.y.value_in(units.parsec),
+                       marker='o',
+                       #s=stars.disk_radius.value_in(units.au),
+                       c='gray',
+                       alpha=0.5,
+                       lw=1)
+
+        ax.scatter(massive_stars.x.value_in(units.parsec),
+                       massive_stars.y.value_in(units.parsec),
+                       marker='*',
+                       #s=stars.disk_radius.value_in(units.au),
+                       c='red',
+                       alpha=0.5,
+                       lw=1)
+
         ax.set_aspect('equal')
-        ax.set_xlim([-1.0, 1.0])
-        ax.set_ylim([-1.0, 1.0])
+        ax.set_xlim([-2.0, 2.0])
+        ax.set_ylim([-2.0, 2.0])
         ax.set_xlabel(r'x [pc]')
         ax.set_ylabel(r'y [pc]')
 
+        time = sf.split('.hdf5')[0].split('t')[1]
+
+        pyplot.suptitle('t = {0} Myr'.format(time))
         pyplot.savefig('{0}/{1}.png'.format(save_path, i))
         i += 1
 
@@ -50,6 +68,10 @@ def star_formation_movie(path, save_path, Rcloud, Nsph, Mcloud):
 
     sink_files = [x for x in files if 'sink_particles' in x]
     sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+    last_sink_file = sink_files[-1]
+    last_hydro_sinks = read_set_from_file('{0}/{1}'.format(filepath, last_sink_file), "hdf5", close_file=True)
+
+    sink_time = last_hydro_sinks.get_timestamp()
 
     # star_files = [x for x in files if 'stars_particles' in x]
     # star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
@@ -362,8 +384,8 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     pyplot.style.use('paper')
     pyplot.close('all')
 
-    # stars_locations(path, save_path, Rcloud, 4000, Mcloud)
-    star_formation_movie(path, save_path, Rcloud, 24000, Mcloud)
+    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    #star_formation_movie(path, save_path, Rcloud, 24000, Mcloud)
     #a_vs_e(path, save_path, Ncloud)
 
     # final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
