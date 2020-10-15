@@ -7,7 +7,8 @@ from amuse.lab import *
 
 from mycolors import *
 
-def imf(path, save_path, N, nruns=1):
+
+def imf(path, save_path, N, nruns=1, save=False):
     fig = pyplot.figure()
     ax = pyplot.gca()
 
@@ -15,7 +16,6 @@ def imf(path, save_path, N, nruns=1):
     IMF_masses = new_kroupa_mass_distribution(N,
                                               mass_max=150.0 | units.MSun).value_in(units.MSun)
 
-    #kroupa_limits = [0.01, 0.08, 0.5, 1.0, 1.9, 150.0]  # Added the 1.9 MSun 'bin' for photoevap limit
     kroupa_limits = [0.08, 0.5, 1.0, 1.9, 150.0]  # Added the 1.9 MSun 'bin' for photoevap limit
 
     all_mean_masses = []
@@ -28,14 +28,14 @@ def imf(path, save_path, N, nruns=1):
         star_masses = stars.stellar_mass.value_in(units.MSun)
         all_mean_masses.append(numpy.mean(star_masses))
 
-        ax.hist(star_masses, bins=kroupa_limits, histtype=u'step', edgecolor='k', lw=3, alpha=0.5)
+        ax.hist(star_masses, bins=kroupa_limits, histtype=u'step', edgecolor='gray', lw=3, alpha=0.5)
 
-    ax.hist(IMF_masses, bins=kroupa_limits, histtype=u'step', edgecolor='r', lw=3)
+    ax.hist(IMF_masses, bins=kroupa_limits, histtype=u'step', edgecolor=colors['red'], lw=4)
 
     print numpy.mean(all_mean_masses), numpy.std(all_mean_masses)
 
-    lines = [Line2D([0], [0], color='red', linewidth=3),
-             Line2D([0], [0], color='k', linewidth=3, alpha=0.5)]
+    lines = [Line2D([0], [0], color=colors['red'], linewidth=3),
+             Line2D([0], [0], color='gray', linewidth=3, alpha=0.5)]
     labels = ['Kroupa IMF', 'Simulations']
     pyplot.legend(lines, labels)
 
@@ -43,16 +43,16 @@ def imf(path, save_path, N, nruns=1):
     ax.axvline(1.9,
                lw=3,
                ls='--',
-               c='blue')
+               c=colors['blue'])
     ax.text(1.5,
             3000,
             r'$M_* = 1.9 M_{{\odot}}$',
-            color='blue',
+            color=colors['blue'],
             #transform=ax.transAxes,
             rotation=90)
 
-    ax.set_xlabel(r'$M_*$ [$\mathrm{M}_{\odot}$]')
-    ax.set_ylabel(r'$N_*$')
+    ax.set_xlabel(r'$\mathrm{M}_*$ [$\mathrm{M}_{\odot}$]')
+    ax.set_ylabel(r'$\mathrm{N}_*$')
     #ax.set_title(r'Total $N_*$ = {0}'.format(N))
 
     #ax.set_xlim([0.001, 150])
@@ -64,30 +64,30 @@ def imf(path, save_path, N, nruns=1):
 
     ax.set_xscale('log')
 
-    pyplot.show()
-    #pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
+    if save:
+        pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
+    else:
+        pyplot.show()
 
 
 def colortest():
     x = numpy.linspace(0, 2 * numpy.pi, 64)
     y = numpy.cos(x)
-    y = numpy.cos(x)
-    lab = ['0', '1', '2', '3', '4']
+    lab = [str(a) for a in range(10)]
     fig = pyplot.figure()
     for i in range(len(lab)):
-        pyplot.plot(x, i*y, c=colors[lab[i]], lw=5, label=lab[i])
+        pyplot.plot(x, i * y, c=runcolors[int(lab[i])], lw=5, label=lab[i])
     pyplot.legend()
     pyplot.show()
 
 
-def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+def main(path, save_path, nruns, save):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
 
     #colortest()
 
-    imf(path, save_path, 10000, nruns=12)
-
+    imf(path, save_path, 10000, nruns, save)
 
 
 def new_option_parser():
@@ -99,30 +99,14 @@ def new_option_parser():
     result.add_option("-s", dest="save_path",
                       default="./results/",
                       help="save path for results")
-    result.add_option("--tend", dest="tend",
-                      unit=units.Myr,
-                      type="float",
-                      default=5.0 | units.Myr,
-                      help="end time")
-    result.add_option("--dt_diag", dest="dt_diag",
-                      unit=units.Myr,
-                      type="float",
-                      default=0.1 | units.Myr,
-                      help="diagnosticstime step")
-    result.add_option("--Ncloud", dest="Ncloud",
-                      default=4000,
-                      type="float",
-                      help="number of gas particles.")
-    result.add_option("--Mcloud", dest="Mcloud",
-                      unit=units.MSun,
-                      type="float",
-                      default=10000 | units.MSun,
-                      help="cloud mass")
-    result.add_option("--Rcloud", dest="Rcloud",
-                      unit=units.parsec,
-                      type="float",
-                      default=2 | units.parsec,
-                      help="cloud size")
+    result.add_option("-n", dest="nruns",
+                      type="int",
+                      default=10,
+                      help="number of runs to plot")
+    result.add_option("-S", dest="save",
+                      type="int",
+                      default=0,
+                      help="if 1, save figure")
 
     return result
 

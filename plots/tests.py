@@ -1,5 +1,6 @@
 import numpy
 from matplotlib import pyplot
+import os
 
 from amuse.lab import *
 from amuse import io
@@ -29,7 +30,7 @@ def stars(open_path, N, save_path, t_end, save, nrun):
     for t in times:
         f = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, nrun, N, t)
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
-        print len(stars)
+        print len(stars), len(stars[stars.dispersed])
         #stars = stars[stars.tborn.value_in(units.Myr) <= t]
 
         pyplot.clf()
@@ -65,19 +66,45 @@ def radius_vs_time(open_path, N, save_path, t_end, save, nrun):
     ax = fig.gca()
 
     dt = 0.01
-    times = numpy.arange(0.720, t_end, dt)
+
+    times = numpy.arange(0.715, t_end, dt)
+
+    files = os.listdir('{0}/{1}'.format(open_path, nrun))  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+
+    sink_files = [x for x in files if '.hdf5' in x]
+
+    sink_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+
+    """times = []
+    for sf in sink_files:
+        #print sf.split('t')[1].split('.hdf5')
+        t = sf.split('t')[1].split('.hdf5')[0]
+        times.append(float(t))"""
 
     radius_dict, times_dict = {}, {}
+
+    last_file = '{0}/{1}/{2}'.format(open_path, nrun, sink_files[-1])
+
+    last_stars = io.read_set_from_file(last_file, 'hdf5', close_file=True)
+    #last_stars = last_stars[last_stars.tborn.value_in(units.Myr) <= t_end]
+
+    #print last_stars.tborn.in_(units.Myr)
 
     for k in last_stars.key:
         radius_dict[k] = []
         times_dict[k] = []
 
-    for t in times:
+    for t in times[1:]:
+        print t
         f = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, nrun, N, t)
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+        stars = stars[stars.tborn.value_in(units.Myr) <= t]
+        stars = stars[stars.disked]
+        #print len(stars), len(stars[stars.dispersed])
+        #print stars.disk_radius.in_(units.au)
         for s in stars:
-            radius_dict[s.key].append(s.disk_radius.value_in(units.au))
+            #radius_dict[s.key].append(s.disk_radius.value_in(units.au))
+            radius_dict[s.key].append(s.disk_mass.value_in(units.MJupiter))
             times_dict[s.key].append(t)
 
     for k in last_stars.key:
