@@ -10,6 +10,7 @@ from matplotlib.ticker import MaxNLocator
 from amuse.lab import *
 from amuse import io
 
+from mycolors import *
 from legends import *
 
 #movie command

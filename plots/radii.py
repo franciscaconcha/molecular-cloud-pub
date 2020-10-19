@@ -70,7 +70,11 @@ def Rvir(open_path, save_path, nruns, save):
     pyplot.legend(loc='best', ncol=2)
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$\mathrm{R}_\mathrm{vir}$ [pc]')
-    pyplot.show()
+
+    if save:
+        pyplot.savefig('{0}/Rvir.png'.format(save_path))
+    else:
+        pyplot.show()
 
 
 def Rhm(open_path, save_path, nruns, save):
@@ -121,7 +125,11 @@ def Rhm(open_path, save_path, nruns, save):
     pyplot.legend(loc='best', ncol=2)
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$\mathrm{R}_\mathrm{hm}$ [pc]')
-    pyplot.show()
+
+    if save:
+        pyplot.savefig('{0}/Rhm.png'.format(save_path))
+    else:
+        pyplot.show()
 
 
 def main(open_path, N, save_path, t_end, save, distance, nruns, time):

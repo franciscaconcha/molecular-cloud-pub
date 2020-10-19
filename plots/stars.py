@@ -6,6 +6,9 @@ import os
 from amuse.lab import *
 from amuse import io
 
+from mycolors import *
+from legends import *
+
 # movie command
 # "ffmpeg -framerate 5 -i {0}/%01d.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p {0}/movie.mp4
 
@@ -57,39 +60,43 @@ def stars(open_path, N, save_path, t_end, save, nrun):
 
 
 def all_runs(open_path, N, save_path, t_end, save, nruns):
-    fig, axs = pyplot.subplots(4, 3, subplot_kw=dict(aspect='equal', adjustable='box-forced'))  # rows, columns
+    fig, axs = pyplot.subplots(2, 5,
+                               figsize=(16, 8),
+                               subplot_kw=dict(aspect='equal',
+                                               adjustable='box-forced'))  # rows, columns
+    fig.subplots_adjust(wspace=0.5,
+                        hspace=0.05)
 
     ax = {0: axs[0, 0],
           1: axs[0, 1],
           2: axs[0, 2],
-          3: axs[1, 0],
-          4: axs[1, 1],
-          5: axs[1, 2],
-          6: axs[2, 0],
-          7: axs[2, 1],
-          8: axs[2, 2],
-          9: axs[3, 0],
-          10: axs[3, 1],
-          11: axs[3, 2]
+          3: axs[0, 3],
+          4: axs[0, 4],
+          5: axs[1, 0],
+          6: axs[1, 1],
+          7: axs[1, 2],
+          8: axs[1, 3],
+          9: axs[1, 4],
+          #10: axs[3, 1],
+          #11: axs[3, 2]
     }
 
     for n in range(nruns):
-        path = '{0}/{1}/disks/0/'.format(open_path, n)
-        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-        star_files = [x for x in files if '.hdf5' in x]
-        star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
-        f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[-1])
+        path = '{0}/{1}/'.format(open_path, n)
+        #files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+        #star_files = [x for x in files if '.hdf5' in x]
+        #star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+        f = '{0}/{1}/gravity_stars.hdf5'.format(open_path, n)
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
 
-        print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
+        #print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
 
-        f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[0])
-        stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+        #f = '{0}/{1}/disks/0/{2}'.format(open_path, n, star_files[0])
+        #stars = io.read_set_from_file(f, 'hdf5', close_file=True)
 
-        print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
+        #print stars[0].x.in_(units.parsec), stars[0].y.in_(units.parsec), stars[0].z.in_(units.parsec)
 
-
-        """disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+        disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
         massive_stars = stars[stars.stellar_mass > 1.9 | units.MSun]
 
         #print n + 1, len(stars), len(stars[stars.born])
@@ -97,8 +104,8 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
         ax[n].scatter(disked_stars.x.value_in(units.parsec),
                        disked_stars.y.value_in(units.parsec),
                        marker='o',
-                       #s=stars.disk_radius.value_in(units.au),
-                       c='gray',
+                       s=stars.disk_radius.value_in(units.au),
+                       c=runcolors[n],
                        alpha=0.5,
                        lw=1)
 
@@ -106,17 +113,29 @@ def all_runs(open_path, N, save_path, t_end, save, nruns):
                        massive_stars.y.value_in(units.parsec),
                        marker='*',
                        #s=stars.disk_radius.value_in(units.au),
-                       c='red',
+                       c='k',
                        alpha=0.5,
                        lw=1)
 
         #ax0.set_xlabel("x [pc]")
         #ax0.set_ylabel("y [pc]")
 
-        #ax[n].set_xlim([-3, 3])
-        #ax[n].set_ylim([-3, 3])
+        ax[n].set_xlim([-2, 2])
+        ax[n].set_ylim([-2, 2])
 
-    pyplot.show()"""
+    ax[2].set_xlabel("x [pc]")
+    ax[7].set_xlabel("x [pc]")
+
+    ax[0].set_ylabel("y [pc]")
+    ax[5].set_ylabel("y [pc]")
+
+    #pyplot.tight_layout()
+
+    if save:
+        pyplot.savefig('{0}/stars.png'.format(save_path))
+    else:
+        pyplot.show()
+
 
 
 def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, time):
