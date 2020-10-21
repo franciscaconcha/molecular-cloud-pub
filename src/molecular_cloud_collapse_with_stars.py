@@ -190,7 +190,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
                     gravity_offset_time = time
                     gravity = ph4(converter, number_of_workers=12)
-                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework = gravity.particles.new_channel_to(stars)
                     framework_to_gravity = stars.new_channel_to(gravity.particles)
                     gravhydro = Bridge()
