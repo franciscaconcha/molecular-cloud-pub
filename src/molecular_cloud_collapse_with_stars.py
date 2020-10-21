@@ -120,7 +120,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
             else:
                 Mtot = hydro.gas_particles.mass.sum()
 
-            if len(gravity.particles) > 0:
+            if gravity is not None:
                 Mtot += gravity.particles.mass.sum()
 
             if len(local_sinks) > 0:
