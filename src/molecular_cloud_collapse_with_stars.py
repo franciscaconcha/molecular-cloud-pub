@@ -40,6 +40,7 @@ def make_star_from_sink(sink, stellar_mass, time, factor):
 
     new_star = Particles(1)
     new_star.stellar_mass = stellar_mass
+    new_star.mass = stellar_mass
 
     if new_star.stellar_mass <= 1.9 | units.MSun:
         sink.mass -= 1.1 * new_star.stellar_mass  # Also removing mass of the future disk
