@@ -78,7 +78,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
     gravhydro = None
     gravity_sinks = None
 
-    dt = min(dt_diag, 0.05 | units.Myr)
+    dt = min(dt_diag, 0.1 | units.Myr)
     t_diag = 0 | units.Myr
 
     E0 = hydro.gas_particles.kinetic_energy() \
@@ -149,8 +149,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
 
             else:
-                print "Evolving hydro only"
-                hydro.evolve_model(time)
+                if gravhydro is None:
+                    hydro.evolve_model(time)
+                else:
+                    print "EVOLVING GRAVHYDRO"
+                    gravhydro.evolve_model(time)
+                    gravity_to_framework.copy()
                 # Synchronize sinks, then update local sinks
                 hydro.sink_particles.synchronize_to(local_sinks)
                 hydro_sinks_to_framework.copy()
@@ -181,6 +185,21 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     framework_to_hydro_sinks.copy()
                 else:
                     framework_to_gravity_sinks.copy()
+
+                if gravity is None:
+                    converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
+                    gravity_offset_time = time
+                    gravity = ph4(converter, number_of_workers=12)
+                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity_to_framework = gravity.particles.new_channel_to(stars)
+                    framework_to_gravity = stars.new_channel_to(gravity.particles)
+                    gravhydro = Bridge()
+                    gravhydro.add_system(gravity, (hydro.code,))
+                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.timestep = 0.1 * dt
+                else:
+                    gravity.code.particles.add_particles(stars_from_sink)
+                    gravity_to_framework.copy()
 
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
