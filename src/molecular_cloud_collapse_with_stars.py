@@ -120,6 +120,9 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
             else:
                 Mtot = hydro.gas_particles.mass.sum()
 
+            if len(gravity.particles) > 0:
+                Mtot += gravity.particles.mass.sum()
+
             if len(local_sinks) > 0:
                 MC_SFE = local_sinks.mass.sum() / Mtot
             else:
@@ -149,7 +152,6 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
                 gravity_time_offset = time
 
-
             else:
                 if gravhydro is None:
                     hydro.evolve_model(time)
@@ -161,16 +163,26 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 hydro.sink_particles.synchronize_to(local_sinks)
                 hydro_sinks_to_framework.copy()
 
-        # This loop will be executed regardless if the hydro code is active or not (sink_formation)
-        for sink in local_sinks:
-            # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
-            # sinks can still form stars after the gas code is stopped.
-
+        else:  # sink_formation == False
             if gravity_sinks is None:
                 print "No gravity_sinks yet"
             else:
                 gravity_sinks.evolve_model(time - gravity_time_offset)
                 gravity_sinks_to_framework.copy()
+
+            if gravity is None:
+                #hydro.evolve_model(time)
+                print "No gravity yet"
+            else:
+                print "EVOLVING GRAVITY ONLY"
+                gravity.evolve_model(time)
+                gravity_to_framework.copy()
+                # no need to update local_sinks now because i dont want them to keep accreting
+
+        # This loop will be executed regardless if the hydro code is active or not (sink_formation)
+        for sink in local_sinks:
+            # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
+            # sinks can still form stars after the gas code is stopped.
 
             print "Trying to form a star of mass ", IMF_masses[current_mass]
 
@@ -276,6 +288,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 write_data(save_path, time, hydro=hydro, index=index, stars=stars)
             else:
                 gravity_sinks_to_framework.copy()
+                gravity_to_framework.copy()
+                write_data(save_path, time, hydro=hydro, index=index, stars=stars)
                 # Saving local sink particles
                 write_set_to_file(local_sinks,
                                   '{0}/hydro_sink_particles_i00{1}.amuse'.format(save_path,
