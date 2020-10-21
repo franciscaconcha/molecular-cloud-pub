@@ -6,6 +6,7 @@ from amuse.ext.evrard_test import body_centered_grid_unit_cube
 
 from cooling_class import SimplifiedThermalModel, SimplifiedThermalModelEvolver
 from hydrodynamics_class import Hydro
+from amuse.couple.bridge import Bridge
 
 
 def write_data(path, timestamp, hydro, index=0, stars=Particles(0)):
