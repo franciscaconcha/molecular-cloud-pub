@@ -210,13 +210,15 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     gravhydro = Bridge()
                     gravhydro.add_system(gravity, (hydro.code,))
                     gravhydro.add_system(hydro.code, (gravity,))
-                    gravhydro.timestep = 0.5 * dt
+                    gravhydro.timestep = 0.1 * dt
                 else:
                     gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
 
                 current_mass += 1
                 stars.add_particles(stars_from_sink)
+                print "stars = {0}, gravity.particles = {1}".format(len(stars),
+                                                                    len(gravity.particles))
                 print "Sink mass after: ", sink.mass.value_in(units.MSun)
 
             elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
