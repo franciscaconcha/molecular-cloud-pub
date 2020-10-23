@@ -165,14 +165,15 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
         else:  # sink_formation == False
             if gravity_sinks is None:
-                print "No gravity_sinks yet"
+                #print "No gravity_sinks yet"
+                pass
             else:
                 gravity_sinks.evolve_model(time - gravity_time_offset)
                 gravity_sinks_to_framework.copy()
 
             if gravity is None:
-                #hydro.evolve_model(time)
-                print "No gravity yet"
+                hydro.evolve_model(time)
+                #print "No gravity yet"
             else:
                 print "EVOLVING GRAVITY ONLY"
                 gravity.evolve_model(time)
@@ -184,12 +185,12 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
             # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
             # sinks can still form stars after the gas code is stopped.
 
-            print "Trying to form a star of mass ", IMF_masses[current_mass]
+            #print "Trying to form a star of mass ", IMF_masses[current_mass]
 
             if sink.mass >= IMF_masses[current_mass] and sink.form_star:
                 # Make a star!
-                print "Making a star"
-                print "Sink mass before: ", sink.mass.value_in(units.MSun)
+                #print "Making a star"
+                #print "Sink mass before: ", sink.mass.value_in(units.MSun)
                 stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time, factor)
                 sink.form_star = False
                 sink.time_threshold = time + delay_time  # Next time at which this sink should form a star
@@ -219,10 +220,10 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 stars.add_particles(stars_from_sink)
                 print "stars = {0}, gravity.particles = {1}".format(len(stars),
                                                                     len(gravity.particles))
-                print "Sink mass after: ", sink.mass.value_in(units.MSun)
+                #print "Sink mass after: ", sink.mass.value_in(units.MSun)
 
             elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
-                print "Sink is massive enough, but it's not yet time to form a star."
+                #print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
                     sink.form_star = True
 
@@ -234,7 +235,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     # sink will form a star in the next timestep
 
             elif sink.mass < IMF_masses[current_mass] and sink.form_star:
-                print "Sink is not massive enough to form this star."
+                #print "Sink is not massive enough to form this star."
                 sinks_masses = [s.mass for s in local_sinks]
 
                 # No sink has enough mass to form this star
@@ -356,6 +357,7 @@ def main(filename, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud, factor):
     import os.path
     if os.path.isfile(sinkfile):
         sink_particles = read_set_from_file(sinkfile, "hdf5", close_file=True)
+        print "Starting with {0} sinks".format(len(sink_particles))
     else:
         sink_particles = Particles(0)
 
