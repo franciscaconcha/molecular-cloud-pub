@@ -159,6 +159,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     print "EVOLVING GRAVHYDRO"
                     gravhydro.evolve_model(time)
                     gravity_to_framework.copy()
+
                 # Synchronize sinks, then update local sinks
                 hydro.sink_particles.synchronize_to(local_sinks)
                 hydro_sinks_to_framework.copy()
@@ -181,15 +182,16 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 # no need to update local_sinks now because i dont want them to keep accreting
 
         # This loop will be executed regardless if the hydro code is active or not (sink_formation)
+        print "Trying to form a star of mass ", IMF_masses[current_mass]
+        print "N hydro sinks = {0}".format(len(hydro.sink_particles))
+        print "N local_sinks = {0}".format(len(local_sinks))
         for sink in local_sinks:
             # Iterate over local_sinks instead of hydro.sink_particles so that the leftover
             # sinks can still form stars after the gas code is stopped.
 
-            #print "Trying to form a star of mass ", IMF_masses[current_mass]
-
             if sink.mass >= IMF_masses[current_mass] and sink.form_star:
                 # Make a star!
-                #print "Making a star"
+                print "Making a star"
                 #print "Sink mass before: ", sink.mass.value_in(units.MSun)
                 stars_from_sink, delay_time = make_star_from_sink(sink, IMF_masses[current_mass], time, factor)
                 sink.form_star = False
@@ -223,7 +225,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 #print "Sink mass after: ", sink.mass.value_in(units.MSun)
 
             elif sink.mass >= IMF_masses[current_mass] and not sink.form_star:
-                #print "Sink is massive enough, but it's not yet time to form a star."
+                print "Sink is massive enough, but it's not yet time to form a star."
                 if time >= sink.time_threshold:
                     sink.form_star = True
 
@@ -235,7 +237,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     # sink will form a star in the next timestep
 
             elif sink.mass < IMF_masses[current_mass] and sink.form_star:
-                #print "Sink is not massive enough to form this star."
+                print "Sink is not massive enough to form this star."
                 sinks_masses = [s.mass for s in local_sinks]
 
                 # No sink has enough mass to form this star
