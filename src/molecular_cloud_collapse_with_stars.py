@@ -140,7 +140,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
 
                 # This gravity_sinks code was to keep the sinks in the gravity code, so that they
                 # gravitationally interact with the stars. Won't be using it anymore (for now...)
-                gravity_sinks = ph4(converter, number_of_workers=12)
+                gravity_sinks = ph4(converter)#, number_of_workers=12)
                 gravity_sinks.parameters.timestep_parameter = 0.01
                 gravity_sinks.parameters.epsilon_squared = (100 | units.au) ** 2
                 gravity_sinks.particles.add_particles(local_sinks)
@@ -206,7 +206,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 if gravity is None:
                     converter = nbody_system.nbody_to_si(1 | units.MSun, 1 | units.parsec)
                     gravity_offset_time = time
-                    gravity = ph4(converter, number_of_workers=12)
+                    gravity = ph4(converter)#, number_of_workers=12)
                     gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework = gravity.particles.new_channel_to(stars)
                     framework_to_gravity = stars.new_channel_to(gravity.particles)
