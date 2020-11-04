@@ -221,7 +221,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     gravhydro = Bridge()
                     gravhydro.add_system(gravity, (hydro,))
                     gravhydro.add_system(hydro, (gravity,))
-                    gravhydro.timestep = 0.5 * dt
+                    gravhydro.timestep = 0.1 * dt
                 else:
                     gravity.particles.add_particles(stars_from_sink)
                     gravity_to_framework.copy()
