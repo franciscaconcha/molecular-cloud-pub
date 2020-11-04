@@ -133,6 +133,7 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                 sink_formation = False
 
                 # Final synchro and copy of hydro sinks to local sinks
+
                 hydro.sink_particles.synchronize_to(local_sinks)
                 hydro_sinks_to_framework.copy()
 
@@ -218,8 +219,8 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     gravity_to_framework = gravity.particles.new_channel_to(stars)
                     framework_to_gravity = stars.new_channel_to(gravity.particles)
                     gravhydro = Bridge()
-                    gravhydro.add_system(gravity, (hydro.code,))
-                    gravhydro.add_system(hydro.code, (gravity,))
+                    gravhydro.add_system(gravity, (hydro,))
+                    gravhydro.add_system(hydro, (gravity,))
                     gravhydro.timestep = 0.5 * dt
                 else:
                     gravity.particles.add_particles(stars_from_sink)
