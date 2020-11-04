@@ -160,14 +160,16 @@ def run_molecular_cloud(gas_particles, sink_particles, SFE, tstart, tend, dt_dia
                     gravhydro.evolve_model(time)
                     gravity_to_framework.copy()
 
-                print "before synch:"
-                print local_sinks.mass.in_(units.MSun)
+                if len(local_sinks):
+                    print "before synch:"
+                    print local_sinks.mass.in_(units.MSun)
                 # Synchronize sinks, then update local sinks
                 hydro.sink_particles.synchronize_to(local_sinks)
                 hydro_sinks_to_framework.copy()
 
-                print "after synch:"
-                print local_sinks.mass.in_(units.MSun)
+                if len(local_sinks):
+                    print "after synch:"
+                    print local_sinks.mass.in_(units.MSun)
 
         else:  # sink_formation == False
             if gravity_sinks is None:
