@@ -567,13 +567,37 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
+    # Find the first stars that form to add them to the gravity code
+    # The rest of the stars will be added at the time they are born
+    if restart:
+        first_stars = stars[stars.born]
+        tmin = last_snapshot_t | t_end.unit
+        tmax = 0.05 | units.Myr
+        for s in stars:
+            if s.tborn > tmax:
+                tmax = s.tborn
+    else:
+        tmin = 20 | units.Myr
+        tmax = 0.05 | units.Myr
+        for s in stars:
+            if s.tborn < tmin:
+                tmin = s.tborn
+            elif s.tborn > tmax:
+                tmax = s.tborn
+
+        print "first stars at ", tmin.in_(units.Myr)
+        print "last stars at ", tmax.in_(units.Myr)
+
+        first_stars = stars[stars.tborn == tmin]  # This does return the first stars, checked
+        first_stars.born = True
+
     # Set up gravity code for cluster
     # I begin by adding only the first stars
     converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
     gravity = ph4(converter, number_of_workers=ncores)
     gravity.parameters.timestep_parameter = 0.01
     gravity.parameters.epsilon_squared = (100 | units.au) ** 2
-    gravity.particles.add_particles(stars)
+    gravity.particles.add_particles(first_stars)
     #gravity.model_time = tmin
 
     # Enable stopping condition for dynamical encounters
@@ -587,23 +611,26 @@ def main(N,
 
     # Start stellar evolution code only if there are massive stars in first_stars
     # If not, I will start it when the first massive star is added
-    massive_stars = stars[stars.bright]
+    first_massive_stars = first_stars[first_stars.bright]
+    if len(first_massive_stars) > 0:
+        print "Starting stellar ev. code before loop starts."
+        stellar = SeBa()
+        stellar.parameters.metallicity = 0.02
+        stellar.particles.add_particles(first_massive_stars)
 
-    stellar = SeBa()
-    stellar.parameters.metallicity = 0.02
-    stellar.particles.add_particles(massive_stars)
+        channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
+        channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+        channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
 
-    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
-    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
-    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+        # Enable stopping on supernova explosion
+        detect_supernova = stellar.stopping_conditions.supernova_detection
+        detect_supernova.enable()
 
-    # Enable stopping on supernova explosion
-    detect_supernova = stellar.stopping_conditions.supernova_detection
-    detect_supernova.enable()
-
-    channel_from_stellar_to_framework.copy()
-    channel_from_stellar_to_gravity.copy()
-    channel_from_framework_to_stellar.copy()
+        channel_from_stellar_to_framework.copy()
+        channel_from_stellar_to_gravity.copy()
+        channel_from_framework_to_stellar.copy()
+    else:
+        stellar = None
 
     E_ini = gravity.kinetic_energy + gravity.potential_energy
 
@@ -613,7 +640,6 @@ def main(N,
     E_list = []
     Q_list = []
 
-    # todo check this
     if not restart:
         write_set_to_file(stars[stars.born],
                           '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
@@ -624,9 +650,11 @@ def main(N,
 
     channel_from_framework_to_gravity.copy()
 
-    active_disks = len(stars[stars.disked])   # Counter for active disks
+    if restart:
+        active_disks = len(first_stars[first_stars.disked])
+    else:
+        active_disks = len(stars[stars.disked])   # Counter for active disks
 
-    # todo check this, how do time and save_time have to be?
     if restart:
         t_save = last_snapshot_t | t_end.unit
         tprev = t_save
@@ -644,9 +672,78 @@ def main(N,
                                                              float(t_save.value_in(units.Myr))))
         dt = min(dt, t_end - t)
 
-        # first dt for stellar evolution
-        for sp in stellar.particles:
-            sp.evolve_one_step()
+        # Check new stars to add to gravity code
+        if t_save > tmin:
+            prev_stars = stars[stars.tborn > tprev]
+            new_stars = prev_stars[prev_stars.tborn <= t_save]
+            new_stars.born = True
+            gravity.particles.add_particles(new_stars)
+            print "Added {0} new stars to gravity code, {1} stars in total".format(len(new_stars),
+                                                                                   len(gravity.particles))
+            channel_from_gravity_to_framework.copy()
+
+            # Check if there are new massive stars added, to also add them to stellar ev. code
+            new_massive_stars = new_stars[new_stars.bright]
+            #print "new massive stars:"
+            #print new_massive_stars
+            if len(new_massive_stars) > 0:
+                if stellar is None:  # Need to start stellar evolution code now
+                    print "Starting stellar ev. code at t = {0:.2f} Myr".format(float(t_save.value_in(units.Myr)))
+                    print "Adding {0} particles".format(len(new_massive_stars))
+                    stellar = SeBa()
+                    stellar.parameters.metallicity = 0.02
+                    #print "stellar timestep: ", stellar.parameters.time_step.in_(units.Myr)# = 0.5 * dt
+                    stellar.particles.add_particles(new_massive_stars)
+
+                    #print "pre copy stellar.particles = {0}".format(len(stellar.particles))
+
+                    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
+                    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+                    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+
+                    # Enable stopping on supernova explosion
+                    detect_supernova = stellar.stopping_conditions.supernova_detection
+                    detect_supernova.enable()
+
+                    channel_from_stellar_to_framework.copy()
+                    channel_from_stellar_to_gravity.copy()
+                    #channel_from_framework_to_stellar.copy()
+
+                    #print "post copy stellar.particles = {0}".format(len(stellar.particles))
+
+                    print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
+                    #stellar.parameters.time_step = 0.5 * dt
+                    for sp in stellar.particles:
+                        #sp.time_step = 0.5 * dt
+                        sp.evolve_one_step()
+
+                    channel_from_stellar_to_gravity.copy()
+                    channel_from_stellar_to_framework.copy()
+
+                else:
+                    print "Stellar ev. code is already active."
+                    stellar.particles.add_particles(new_massive_stars)
+                    channel_from_stellar_to_framework.copy()
+                    print "Added {0} new stars to stellar ev. code, {1} stars in total".format(len(new_massive_stars),
+                                                                                               len(stellar.particles))
+                    # First dt/2 for stellar evolution; copy to gravity and framework
+                    print "First dt/2, added {0} new stars this time".format(len(stellar.particles))
+                    #stellar.particles.time_step = 0.5 * dt
+                    for sp in stellar.particles:
+                        #sp.time_step = dt / 2
+                        sp.evolve_one_step()
+            else:
+                print "No new massive stars"
+                if stellar is None:
+                    print "First dt/2, Stellar = None"
+                else:
+                    print "First dt/2, stellar is active but added no new stars this time"
+                    # Still evolve current stars
+                    #stellar.particles.time_step = 0.5 * dt
+                    for sp in stellar.particles:
+                        #sp.time_step = dt / 2
+                        sp.evolve_one_step()
+            tprev = t_save
 
         # TODO check for a better way to save the energies
         E_kin = gravity.kinetic_energy
@@ -738,18 +835,19 @@ def main(N,
         channel_from_framework_to_gravity.copy()
 
         ########### Photoevaporation ############
+        born_stars = stars[stars.born]
 
         # Calculate the total FUV contribution of the bright stars over each small star
-        stars[stars.disked].total_radiation = total_radiation(stars[stars.disked].key, ncores)
+        born_stars[born_stars.disked].total_radiation = total_radiation(born_stars[born_stars.disked].key, ncores)
 
         # Photoevaporative mass loss in log10(MSun/yr), EUV + FUV
-        stars[stars.disked].photoevap_Mdot = photoevaporation_mass_loss(stars[stars.disked].key, ncores)
-        stars[stars.disked].cumulative_photoevap_mass_loss += stars[stars.disked].photoevap_Mdot * dt
+        born_stars[born_stars.disked].photoevap_Mdot = photoevaporation_mass_loss(born_stars[born_stars.disked].key, ncores)
+        born_stars[born_stars.disked].cumulative_photoevap_mass_loss += born_stars[born_stars.disked].photoevap_Mdot * dt
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            if len(stars[stars.key == k].photoevap_Mdot) > 0:
-                disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
+            if len(born_stars[born_stars.key == k].photoevap_Mdot) > 0:
+                disks[disk_indices[k]].outer_photoevap_rate = born_stars[born_stars.key == k].photoevap_Mdot
             else:
                 disks[disk_indices[k]].outer_photoevap_rate = 0.0 | units.MSun / units.yr
 
@@ -759,7 +857,7 @@ def main(N,
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
-        for this_star in stars[stars.disked]:
+        for this_star in born_stars[born_stars.disked]:
             this_disk = disks[disk_indices[this_star.key]]
             this_star.disked = not this_disk.dispersed
             this_star.disk_radius = this_disk.disk_radius
@@ -771,12 +869,17 @@ def main(N,
 
         channel_from_framework_to_gravity.copy()
 
-
-        # Second dt/2 for stellar evolution; copy to gravity and framework
-        for sp in stellar.particles:
-            sp.evolve_one_step()
-        channel_from_stellar_to_gravity.copy()
-        channel_from_stellar_to_framework.copy()
+        if stellar is None:
+            print "Second dt/2, stellar = None"
+        else:
+            # Second dt/2 for stellar evolution; copy to gravity and framework
+            print "Second dt/2, evolving current {0} particles".format(len(stellar.particles))
+            #stellar.particles.time_step = 0.5 * dt
+            for sp in stellar.particles:
+                #sp.time_step = dt / 2
+                sp.evolve_one_step()
+            channel_from_stellar_to_gravity.copy()
+            channel_from_stellar_to_framework.copy()
 
         """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
                                                                    gravity.model_time.value_in(units.Myr))"""
