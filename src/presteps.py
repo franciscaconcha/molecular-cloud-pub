@@ -28,6 +28,7 @@ def map_disk_indices_to_stars(disks):
 
 	return map
 
+
 def total_radiation(indices, nc):  # indices should be list of keys of small stars
     pool = multiprocessing.Pool(processes=nc)
     total_radiation = pool.map(single_total_radiation, indices)
@@ -37,19 +38,17 @@ def total_radiation(indices, nc):  # indices should be list of keys of small sta
 
 
 def single_total_radiation(i):
-    global stars
-    this_star = stars[stars.key == i]  # Current star to calculate total radiation on
+    global current_stars
+    this_star = current_stars[current_stars.key == i]  # Current star to calculate total radiation on
 
     # Calculate the total FUV contribution of the bright stars over each small star
     total_radiation = 0.0
 
-    born_stars = stars[stars.born]
-
-    if i in born_stars[born_stars.bright].key:
+    if i in current_stars[current_stars.bright].key:
         print "No radiating stars yet"
         return total_radiation
 
-    for s in born_stars[born_stars.bright]:  # For each massive/bright star
+    for s in current_stars[current_stars.bright]:  # For each massive/bright star
         # Calculate FUV luminosity of the bright star, in LSun
         lum = luminosity_fit(s.stellar_mass.value_in(units.MSun))
 
@@ -73,6 +72,58 @@ def single_total_radiation(i):
 
     return total_radiation
 
+def distance(star1,
+             star2):
+    """ Return distance between star1 and star2
+
+    :param star1: AMUSE particle
+    :param star2: AMUSE particle
+    :return: distance in units.parsec
+    """
+    return numpy.sqrt((star2.x - star1.x)**2 + (star2.y - star1.y)**2 + (star2.z - star1.z)**2)
+
+
+def radiation_at_distance(rad, d):
+    """ Return radiation rad at distance d
+
+    :param rad: total radiation from star in erg/s
+    :param d: distance in cm
+    :return: radiation of star at distance d, in erg * s^-1 * cm^-2
+    """
+    return rad / (4 * numpy.pi * d**2) | (units.erg / (units.s * units.cm**2))
+
+
+def luminosity_fit(mass):
+    """
+    Return stellar luminosity (in LSun) for corresponding mass, as calculated with Martijn's fit
+
+    :param mass: stellar mass in MSun
+    :return: stellar luminosity in LSun
+    """
+    if 0.12 < mass < 0.24:
+        return (1.70294E16 * numpy.power(mass, 42.557)) | units.LSun
+    elif 0.24 < mass < 0.56:
+        return (9.11137E-9 * numpy.power(mass, 3.8845)) | units.LSun
+    elif 0.56 < mass < 0.70:
+        return (1.10021E-6 * numpy.power(mass, 12.237)) | units.LSun
+    elif 0.70 < mass < 0.91:
+        return (2.38690E-4 * numpy.power(mass, 27.199)) | units.LSun
+    elif 0.91 < mass < 1.37:
+        return (1.02477E-4 * numpy.power(mass, 18.465)) | units.LSun
+    elif 1.37 < mass < 2.07:
+        return (9.66362E-4 * numpy.power(mass, 11.410)) | units.LSun
+    elif 2.07 < mass < 3.72:
+        return (6.49335E-2 * numpy.power(mass, 5.6147)) | units.LSun
+    elif 3.72 < mass < 10.0:
+        return (6.99075E-1 * numpy.power(mass, 3.8058)) | units.LSun
+    elif 10.0 < mass < 20.2:
+        return (9.73664E0 * numpy.power(mass, 2.6620)) | units.LSun
+    elif 20.2 < mass:
+        return (1.31175E2 * numpy.power(mass, 1.7974)) | units.LSun
+    else:
+        return 0 | units.LSun
+
+	
 def photoevaporation_mass_loss(indices, nc):
     pool = multiprocessing.Pool(processes=nc)
     mass_losses = pool.map(single_photoevaporation_mass_loss, indices)
