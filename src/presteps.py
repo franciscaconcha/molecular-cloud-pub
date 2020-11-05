@@ -140,7 +140,7 @@ def single_photoevaporation_mass_loss(i):
     """
     global current_stars, disks, disk_indices, interpolator
 
-    this_star = stars[stars.key == i]
+    this_star = current_stars[current_stars.key == i]
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
