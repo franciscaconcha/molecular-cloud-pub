@@ -142,6 +142,10 @@ def main(open_path, grid_path, save_path, ndisks, nrun):
 	disked_stars.initial_disk_radius = 30 * (disked_stars.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
 	disked_stars.initial_disk_mass = 0.1 * disked_stars.stellar_mass
 
+	disked_stars.dispersed_mass_threshold = 0.03 | units.MEarth  # Ansdell+2016
+	disked_stars.dispersed_density_threshold = 1E-5 | units.g / units.cm ** 2  # Ingleby+ 2009
+
+
 	disk_codes, disks = setup_disks_and_codes(disked_stars.key,
 											  disked_stars.initial_disk_radius,
 											  disked_stars.initial_disk_mass,
