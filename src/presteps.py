@@ -136,7 +136,12 @@ def main(open_path, grid_path, save_path, ndisks, nrun):
 
 	stars = read_set_from_file("{0}/{1}".format(path, stars_file),
 								   "hdf5", close_file=True)
+
 	disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
+
+	disked_stars.initial_disk_radius = 30 * (disked_stars.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
+	disked_stars.initial_disk_mass = 0.1 * disked_stars.stellar_mass
+
 	disk_codes, disks = setup_disks_and_codes(disked_stars.key,
 											  disked_stars.initial_disk_radius,
 											  disked_stars.initial_disk_mass,
