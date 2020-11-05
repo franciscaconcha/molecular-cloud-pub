@@ -41,7 +41,7 @@ def main(open_path, grid_path, ndisks, nrun):
 	dt = 1000 | units.yr
 	interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
 
-	all_stars = read_set_from_file("{0}/gravity_stars.amuse".format(open_path),
+	all_stars = read_set_from_file("{0}/gravity_stars.hdf5".format(open_path),
 								   "hdf5", close_file=True)
 	all_disked_stars = all_stars[all_stars.disked]
 	disk_codes, disks = setup_disks_and_codes(all_disked_stars.key,
