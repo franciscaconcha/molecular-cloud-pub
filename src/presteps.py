@@ -339,10 +339,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 		# disks_to_run = [d for d in disks if (not d.dispersed and d.born)]
 		run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
-		print disk_indices
-
-		for this_star in current_stars:
-			print this_star.key
+		for this_star in current_stars[current_stars.disked]:
 			# update disk parameters
 			this_disk = disks[disk_indices[this_star.key]]
 			this_star.disked = not this_disk.dispersed
