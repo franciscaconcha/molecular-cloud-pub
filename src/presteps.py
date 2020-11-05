@@ -29,11 +29,20 @@ def map_disk_indices_to_stars(disks):
 	return map
 
 
-def main(path, grid_path, ndisks, nmin, nmax):
+def main(open_path, grid_path, ndisks, nrun):
+	"""
 
+	:param open_path: path to results
+	:param grid_path: path to fried grid
+	:param ndisks: number of disks to use
+	:param n: number of run to open
+	:return:
+	"""
+	dt = 1000 | units.yr
 	interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
 
-	all_stars = read_set_from_file("{0}/gravity_stars.amuse".format(path), "hdf5", close_file=True)
+	all_stars = read_set_from_file("{0}/gravity_stars.amuse".format(open_path),
+								   "hdf5", close_file=True)
 	all_disked_stars = all_stars[all_stars.disked]
 	disk_codes, disks = setup_disks_and_codes(all_disked_stars.key,
 											  all_disked_stars.initial_disk_radius,
@@ -51,7 +60,17 @@ def main(path, grid_path, ndisks, nmin, nmax):
 
 	disk_indices = map_disk_indices_to_stars(disks)
 
-	for t in times:
+	# t_end es el timestamp del ultimo file
+	path = '{0}/{1}/'.format(open_path, n)
+	files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+	files = [x for x in files if '.hdf5' in x]
+	files.sort(key=lambda f: float(filter(str.isdigit, f)))
+	last_file = read_set_from_file("{0}/{1}".format(open_path, files[-1]),
+								   "hdf5", close_file=True)
+	t_end = last_file.get_timestamp()
+	print t_end.in_(units.Myr)
+
+	"""while t < t_end:
 		born_stars = # stars born in time < t
 		new_stars = # stars born in this t
 
@@ -113,3 +132,25 @@ def main(path, grid_path, ndisks, nmin, nmax):
 			# update disk parameters
 
 		# write born_stars + new_stars to file, same as what I save in vader_cluster_parallel
+	"""
+
+
+def new_option_parser():
+	from amuse.units.optparse import OptionParser
+	result = OptionParser()
+
+	# Simulation parameters
+	result.add_option("-n", dest="nrun", type="int", default=0,
+					  help="run number to process [%default]")
+	result.add_option("-p", dest="open_path", type="string", default='.',
+					  help="path to results [%default]")
+	result.add_option("-f", dest="grid_path", type="string", default='data',
+					  help="path for FRIED grid [%default]")
+	result.add_option("-d", dest="ndisks", type="int", default=10,
+					  help="number of disks [%default]")
+	return result
+
+
+if __name__ == '__main__':
+	o, arguments = new_option_parser().parse_args()
+	main(**o.__dict__)
