@@ -138,7 +138,7 @@ def single_photoevaporation_mass_loss(i):
     :param i: star key
     :return: Mdot (FUV + EUV) in MSun/yr
     """
-    global stars, disks, disk_indices, interpolator
+    global current_stars, disks, disk_indices, interpolator
 
     this_star = stars[stars.key == i]
     this_disk = disks[disk_indices[i]]
@@ -177,10 +177,11 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	:param n: number of run to open
 	:return:
 	"""
+	global current_stars, disks, disk_indices, interpolator
+
 	dt = 1000 | units.yr
 	interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
 
-	global current_stars
 
 	path = '{0}/{1}/'.format(open_path, nrun)
 	files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
