@@ -286,7 +286,7 @@ def main(open_path, grid_path, save_path, ndisks, nrun):
 
 		# write results
 		write_set_to_file(current_stars,
-					  	  '{0}/{1}/N{2}_t{3}Myr.hdf5'.format(save_path,
+					  	  '{0}/{1}/prep/N{2}_t{3}Myr.hdf5'.format(save_path,
 													  	  nrun,
 													  	  N,
 													  	  t.value_in(units.Myr)),
