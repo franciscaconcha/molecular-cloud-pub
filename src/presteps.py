@@ -191,6 +191,8 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	stars = read_set_from_file("{0}/{1}".format(path, stars_file),
 								   "hdf5", close_file=True)
 
+	N = len(stars)
+
 	disked_stars = stars[stars.stellar_mass <= 1.9 | units.MSun]
 
 	disked_stars.initial_disk_radius = 30 * (disked_stars.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
@@ -337,7 +339,10 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 		# disks_to_run = [d for d in disks if (not d.dispersed and d.born)]
 		run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
+		print disk_indices
+
 		for this_star in current_stars:
+			print this_star.key
 			# update disk parameters
 			this_disk = disks[disk_indices[this_star.key]]
 			this_star.disked = not this_disk.dispersed
@@ -349,7 +354,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 		# write results
 		write_set_to_file(current_stars,
-					  	  '{0}/{1}/prep/N{2}_t{3}Myr.hdf5'.format(save_path,
+					  	  '{0}/{1}/prep/N{2}_t{3}.hdf5'.format(save_path,
 													  	  nrun,
 													  	  N,
 													  	  t.value_in(units.Myr)),
