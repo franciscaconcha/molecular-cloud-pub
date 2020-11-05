@@ -117,7 +117,7 @@ def single_photoevaporation_mass_loss(i):
         return 0.0 | units.MSun/units.yr
 
 
-def main(open_path, grid_path, save_path, ndisks, nrun):
+def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	"""
 
 	:param open_path: path to results
@@ -317,6 +317,8 @@ def new_option_parser():
 					  help="path for FRIED grid [%default]")
 	result.add_option("-d", dest="ndisks", type="int", default=10,
 					  help="number of disks [%default]")
+	result.add_option("-c", dest="ncores", type="int", default=2,
+					  help="number of cores [%default]")
 	return result
 
 
