@@ -123,7 +123,7 @@ def luminosity_fit(mass):
     else:
         return 0 | units.LSun
 
-	
+
 def photoevaporation_mass_loss(indices, nc):
     pool = multiprocessing.Pool(processes=nc)
     mass_losses = pool.map(single_photoevaporation_mass_loss, indices)
@@ -179,6 +179,8 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	"""
 	dt = 1000 | units.yr
 	interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
+
+	global current_stars
 
 	path = '{0}/{1}/'.format(open_path, nrun)
 	files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
