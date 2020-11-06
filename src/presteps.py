@@ -177,7 +177,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	:param n: number of run to open
 	:return:
 	"""
-	global current_stars, disks, disk_indices, interpolator
+	"""global current_stars, disks, disk_indices, interpolator
 
 	dt = 1000 | units.yr
 	interpolator = FRIED_interp.FRIED_interpolator(folder=grid_path, verbosity=False)
@@ -219,7 +219,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	disk_indices = map_disk_indices_to_stars(disks)
 
 	t = 0.0 | units.Myr
-	tprev = t
+	tprev = t"""
 
 	# These are all the stars that were formed at the end of the simulation
 	stars = read_set_from_file("{0}/gravity_stars.hdf5".format(path),
