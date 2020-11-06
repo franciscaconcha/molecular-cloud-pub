@@ -280,8 +280,10 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 		# Update disks of the newly born stars
 		for s in new_stars:
+			print len(new_stars)
 			s.bright = s.stellar_mass > 1.9 | units.MSun
 			s.disked = s.stellar_mass <= 1.9 | units.MSun
+			print s.bright, s.disked
 
 			if s.disked:
 				s.disk_radius = 30 * (s.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
