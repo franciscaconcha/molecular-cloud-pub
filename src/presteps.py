@@ -244,12 +244,11 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	files = [x for x in files if 'hydro_stars' in x]
 	files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-	print files
-
 	t_prev = read_set_from_file("{0}/{1}".format(path, files[0]),
 								"hdf5", close_file=True).get_timestamp()
 
 	stellar = None
+	stars[stars.bright].in_stellar = False  # This is just a workaround to not add particles twice
 
 	for f in files:
 		current_stars = read_set_from_file("{0}/{1}".format(path, f),
@@ -260,15 +259,19 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 		for s in current_stars:
 			# I have to do this first otherwise I add particles to stellar twice
-			if stars[stars.key == s.key].bright:
+			if stars[stars.key == s.key].bright and not stars[stars.key == s.key].in_stellar:
 				if stellar is None:
 					stellar = SeBa()
 					stellar.parameters.metallicity = 0.02
 					channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
 					channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+					stellar.particles.add_particles(stars[stars.key == s.key])
+					channel_from_framework_to_stellar.copy()
+					stars[stars.key == s.key].in_stellar = True
 				else:
 					stellar.particles.add_particles(stars[stars.key == s.key])
 					channel_from_framework_to_stellar.copy()
+					stars[stars.key == s.key].in_stellar = True
 
 			stars[stars.key == s.key].born = True
 			# Update positions of born stars from hydro files
