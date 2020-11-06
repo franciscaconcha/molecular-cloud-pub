@@ -239,8 +239,8 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 		for s in current_stars:
 			stars[stars.key == s.key].born = True
 
-		print current_stars.key
-		print stars[stars.born].key
+		print stars[stars.born].disked
+		print stars[stars.born].disk_radius
 		break
 
 	# Bright stars: no disks; emit FUV radiation
