@@ -280,10 +280,8 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 		# Update disks of the newly born stars
 		for s in new_stars:
-			print len(new_stars)
 			s.bright = s.stellar_mass > 1.9 | units.MSun
 			s.disked = s.stellar_mass <= 1.9 | units.MSun
-			print s.bright, s.disked
 
 			if s.disked:
 				s.disk_radius = 30 * (s.stellar_mass.value_in(units.MSun) ** 0.5) | units.au
@@ -311,6 +309,9 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 				s.mass = s.stellar_mass
 				s.collisional_radius = 0.02 | units.parsec
 				s.encounters = 0  # Counter for dynamical encounters
+
+		print t 
+		print new_stars.bright
 
 		if len(new_stars[new_stars.bright]):
 			stellar.particles.add_particles(new_stars[new_stars.bright])
