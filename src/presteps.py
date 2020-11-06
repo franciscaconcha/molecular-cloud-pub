@@ -313,9 +313,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 				s.collisional_radius = 0.02 | units.parsec
 				s.encounters = 0  # Counter for dynamical encounters
 
-		print len(new_stars)
-
-		if len(new_stars[new_stars.bright]):
+		if len(new_stars):
 			stellar.particles.add_particles(new_stars[new_stars.bright])
 
 		# stellar evolution
