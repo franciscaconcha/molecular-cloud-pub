@@ -278,6 +278,9 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 		t = current_stars.get_timestamp()
 		new_stars = current_stars[current_stars.tborn == t]
 
+		print t.in_(units.Myr)
+		print files[f]
+
 		# Update disks of the newly born stars
 		for s in new_stars:
 			s.bright = s.stellar_mass > 1.9 | units.MSun
@@ -310,8 +313,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 				s.collisional_radius = 0.02 | units.parsec
 				s.encounters = 0  # Counter for dynamical encounters
 
-		print t 
-		print new_stars.bright
+		print len(new_stars)
 
 		if len(new_stars[new_stars.bright]):
 			stellar.particles.add_particles(new_stars[new_stars.bright])
