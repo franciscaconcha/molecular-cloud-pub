@@ -241,7 +241,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 		print current_stars.key
 		print stars[stars.born].key
-
+		break
 
 	# Bright stars: no disks; emit FUV radiation
 	"""stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
