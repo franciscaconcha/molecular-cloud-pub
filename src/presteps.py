@@ -256,15 +256,10 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 										   "hdf5", close_file=True)
 		t = current_stars.get_timestamp()
 		dt = t - t_prev
+		print "dt = {0}".format(dt.in_(units.Myr))
 
 		for s in current_stars:
-			stars[stars.key == s.key].born = True
-			# Update positions of born stars from hydro files
-			# Instead of using a dynamics code
-			stars[stars.key == s.key].x = s.x
-			stars[stars.key == s.key].y = s.y
-			stars[stars.key == s.key].z = s.z
-
+			# I have to do this first otherwise I add particles to stellar twice
 			if stars[stars.key == s.key].bright:
 				if stellar is None:
 					stellar = SeBa()
@@ -274,6 +269,13 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 				else:
 					stellar.particles.add_particles(stars[stars.key == s.key])
 					channel_from_framework_to_stellar.copy()
+
+			stars[stars.key == s.key].born = True
+			# Update positions of born stars from hydro files
+			# Instead of using a dynamics code
+			stars[stars.key == s.key].x = s.x
+			stars[stars.key == s.key].y = s.y
+			stars[stars.key == s.key].z = s.z
 
 		# stellar evolution
 		if stellar is None:
