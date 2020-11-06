@@ -221,16 +221,30 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	t = 0.0 | units.Myr
 	tprev = t
 
+	# These are all the stars that were formed at the end of the simulation
+	stars = read_set_from_file("{0}/gravity_stars.hdf5".format(path),
+							   "hdf5", close_file=True)
+
+	stars.born = False
+
 	path = '{0}/{1}/'.format(open_path, nrun)
 	files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
 	files = [x for x in files if 'hydro_stars' in x]
 	files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-	stars = read_set_from_file("{0}/{1}".format(path, files[0]),
-							   "hdf5", close_file=True)
+	for f in files:
+		current_stars = read_set_from_file("{0}/{1}".format(path, f),
+								           "hdf5", close_file=True)
+
+		for s in current_stars:
+			stars[stars.key == s.key].born = True
+
+		print current_stars.key
+		print stars[stars.born].key
+
 
 	# Bright stars: no disks; emit FUV radiation
-	stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
+	"""stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
 	stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
 
 	# Small stars: with disks; radiation from them not considered
@@ -269,9 +283,11 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	if len(stars[stars.bright]):
 		stellar.particles.add_particles(stars[stars.bright])
 
-	for f in range(1, len(files)):
-		prev_stars = read_set_from_file("{0}/{1}".format(path, files[f - 1]),
-								        "hdf5", close_file=True)
+	stars = Particles(0)
+	stellar = None
+
+	for f in range(0, len(files)):
+		prev_stars = stars
 		current_stars = read_set_from_file("{0}/{1}".format(path, files[f]),
 								           "hdf5", close_file=True)
 		prev_t = prev_stars.get_timestamp()
@@ -358,7 +374,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 													  	  nrun,
 													  	  N,
 													  	  t.value_in(units.Myr)),
-					  			'hdf5')
+					  			'hdf5')"""
 
 
 def new_option_parser():
