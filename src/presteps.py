@@ -222,7 +222,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 	tprev = t"""
 
 	# These are all the stars that were formed at the end of the simulation
-	stars = read_set_from_file("{0}/gravity_stars.hdf5".format(path),
+	stars = read_set_from_file("{0}/{1}/gravity_stars.hdf5".format(open_path, nrun),
 							   "hdf5", close_file=True)
 
 	stars.born = False
