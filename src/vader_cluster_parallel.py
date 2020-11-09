@@ -4,13 +4,12 @@ import multiprocessing
 import Queue
 import threading
 import numpy
-#from galpy.potential import to_amuse, MWPotential2014
 
 from amuse.lab import *
 from amuse.community.fractalcluster.interface import new_fractal_cluster_model
 from amuse.ic.kingmodel import new_king_model
 
-from disk_class import setup_disks_and_codes, run_disks
+from disk_class import Disk
 import FRIED_interp
 
 G0 = 1.6e-3 * units.erg / units.s / units.cm**2
@@ -54,33 +53,27 @@ def single_photoevaporation_mass_loss(i):
     :return: Mdot (FUV + EUV) in MSun/yr
     """
     global stars, disks, disk_indices, interpolator
-
     this_star = stars[stars.key == i]
     this_disk = disks[disk_indices[i]]
 
     # FUV mass loss: interpolate from FRIED grid
-    # At the start, some stars will receive no radiation because massive stars have not formed yet
-    if this_star.total_radiation | G0 > 0.0 | G0:
-        photoevap_Mdot_FUV = interpolator.interp_amuse(this_star.stellar_mass,
-                                                       this_star.total_radiation | G0,
-                                                       this_disk.disk_gas_mass,
-                                                       this_disk.disk_radius)[0]
+    photoevap_Mdot_FUV = interpolator.interp_amuse(this_star.stellar_mass,
+                                                   this_star.total_radiation | G0,
+                                                   this_disk.disk_gas_mass,
+                                                   this_disk.disk_radius)[0]
 
-        # Check if there should be EUV mass loss as well; FRIED grid is FUV only
-        # this_star.EUV is determined when the radiation on each star is calculated
-        if this_star.EUV:
-            # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
-            # From the paper: e ~ 3, x ~ 1.5
-            photoevap_Mdot_EUV = 2. * 1E-9 * 3 * 4.12 * (this_star.disk_radius.value_in(units.cm) / 1E14) | units.MSun/units.yr
-        else:
-            photoevap_Mdot_EUV = 0.0 | units.MSun/units.yr
-
-        this_star.EUV = False  # Back to false to recheck next time
-
-        return photoevap_Mdot_FUV + photoevap_Mdot_EUV
-
+    # Check if there should be EUV mass loss as well; FRIED grid is FUV only
+    # this_star.EUV is determined when the radiation on each star is calculated
+    if this_star.EUV:
+        # Photoevaporative mass loss in MSun/yr. Eq 20 from Johnstone, Hollenbach, & Bally 1998
+        # From the paper: e ~ 3, x ~ 1.5
+        photoevap_Mdot_EUV = 2. * 1E-9 * 3 * 4.12 * (this_star.disk_radius.value_in(units.cm) / 1E14) | units.MSun/units.yr
     else:
-        return 0.0 | units.MSun/units.yr
+        photoevap_Mdot_EUV = 0.0 | units.MSun/units.yr
+
+    this_star.EUV = False  # Back to false to recheck next time
+
+    return photoevap_Mdot_FUV + photoevap_Mdot_EUV
 
 
 def total_radiation(indices, nc):  # indices should be list of keys of small stars
@@ -98,13 +91,10 @@ def single_total_radiation(i):
     # Calculate the total FUV contribution of the bright stars over each small star
     total_radiation = 0.0
 
-    born_stars = stars[stars.born]
-
-    if i in born_stars[born_stars.bright].key:
-        print "No radiating stars yet"
+    if i in stars[stars.bright].key:
         return total_radiation
 
-    for s in born_stars[born_stars.bright]:  # For each massive/bright star
+    for s in stars[stars.bright]:  # For each massive/bright star
         # Calculate FUV luminosity of the bright star, in LSun
         lum = luminosity_fit(s.stellar_mass.value_in(units.MSun))
 
@@ -231,7 +221,7 @@ def resolve_encounter(stars,
                 print("Old radius: {0}, new radius: {1}".format(disks[i].disk_radius, truncation_radius))
 
                 if truncation_radius <= 0.1 | units.au:
-                    # Disk is dispersed. Have to handle this here or vader crashes for such small readradii.py.
+                    # Disk is dispersed. Have to handle this here or vader crashes for such small radii.
                     disks[i].dispersed = True
                     stars[i].disk_radius = truncation_radius
                     stars[i].disk_mass = 0.0 | units.MJupiter
@@ -249,7 +239,7 @@ def resolve_encounter(stars,
                 stars[i].disk_mass = new_disk_mass
 
 
-"""def setup_disks_and_codes(star_keys,
+def setup_disks_and_codes(star_keys,
                           disk_radii,
                           disk_masses,
                           stellar_masses,
@@ -312,10 +302,10 @@ def resolve_encounter(stars,
                   mu=mu,
                   external_photoevap_flag=True) for i in range(number_of_disks)]
 
-    return viscous_codes, disks"""
+    return viscous_codes, disks
 
 
-"""def run_disks(viscous_codes, disks, dt):
+def run_disks(viscous_codes, disks, dt):
     '''
     Evolve a set of disks for a time step, using a set of viscous codes
 
@@ -403,7 +393,7 @@ def remote_worker_code():
         disk.viscous = code
         disk.evolve_disk_for(dt)
 
-    code_queue.task_done()"""
+    code_queue.task_done()
 
 
 def map_disk_indices_to_stars(disks):
@@ -432,7 +422,8 @@ def main(N,
          ncores,
          save_path,
          grid_path,
-         stars_file=None,
+         galaxy,
+         distance_to_galactic_center,
          restart=0,
          ncodes=10,
          run_number=0):
@@ -473,27 +464,11 @@ def main(N,
         last_snapshot_t = float(last_snapshot.split('t')[1].split('.hdf5')[0])
         print("Continuing from from t = {0}".format(last_snapshot_t))
 
-        filename = '{0}/{1}'.format(path, last_snapshot)
-        stars = read_set_from_file(filename, 'hdf5', close_file=True)
-
-        """f = '{0}/{1}'.format(path, last_snapshot)
-        # These are the stars that were already in the dynamics code.
-        first_stars = read_set_from_file(f, 'hdf5', close_file=True)
-        first_stars.born = True
-        t_save = last_snapshot_t | t_end.unit
-        print "t_save = ", t_save
-        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
-
-        # These are the stars that have not been born yet and need to be added accordingly
-        #stars = stars[stars.tborn > t_save]
-
-        for s in first_stars:
-        # Have to do this because I don't save all the stars in the previous snapshots,
-        # only the already born ones... should've saved differently from the start but oh well
-            stars[stars.key == s.key] = s"""
-
-        #t_save = last_snapshot_t | t_end.unit
-        #print len(stars[stars.tborn < t_save].born)
+        f = '{0}/{1}'.format(path, last_snapshot)
+        stars = read_set_from_file(f, 'hdf5', close_file=True)
+        t = last_snapshot_t | t_end.unit
+        print t
+        converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
 
     else:
         t = 0.0 | t_end.unit
@@ -507,12 +482,30 @@ def main(N,
                 raise
             pass
 
-        # Read stars resulting from molecular cloud collapse script
-        stars = read_set_from_file(stars_file, 'hdf5', close_file=True)
+        max_stellar_mass = 100 | units.MSun
+        stellar_masses = new_kroupa_mass_distribution(N, max_stellar_mass)#, random=False)
+        converter = nbody_system.nbody_to_si(stellar_masses.sum(), Rvir)
 
-        stars.born = False
+        global stars, disks, disk_indices, interpolator
 
-        # These parameters should be set up for stars in any case
+        # Spatial distribution, default is Plummer sphere
+        if dist == "king":
+            stars = new_king_model(N, W0=3, convert_nbody=converter)
+        elif dist == "fractal":
+            stars = new_fractal_cluster_model(N=N, fractal_dimension=1.6, convert_nbody=converter)
+        else:
+            stars = new_plummer_model(N, converter)
+
+        stars.stellar_mass = stellar_masses
+        stars.scale_to_standard(converter, virial_ratio=Qvir)
+
+        # For small tests sometimes we don't get any stars > 1.9MSun, so we add one
+        if len(stars[stars.stellar_mass >= 1.9 | units.MSun]) == 0:
+            big_star = numpy.random.uniform(low=2, high=100)
+            stars[0].stellar_mass = big_star | units.MSun
+            print("Warning: No star with mass > 1.9 MSun generated by the IMF."
+                  "\nOne star of {0} MSun added to the simulation.".format(big_star))
+
         # Bright stars: no disks; emit FUV radiation
         stars[stars.stellar_mass.value_in(units.MSun) > 1.9].bright = True
         stars[stars.stellar_mass.value_in(units.MSun) > 1.9].disked = False
@@ -567,43 +560,64 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
-    # Set up gravity code for cluster
-    # I begin by adding only the first stars
-    converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-    gravity = ph4(converter, number_of_workers=ncores)
-    gravity.parameters.timestep_parameter = 0.01
-    gravity.parameters.epsilon_squared = (100 | units.au) ** 2
-    gravity.particles.add_particles(stars)
-    #gravity.model_time = tmin
+    # Start gravity code, add all stars
+    if galaxy:  # If galactic potential is to be used
+        print("Creating galactic potential + bridge")
+        from amuse.couple import bridge
+        from MilkyWayGalaxy import MilkyWayGalaxy
 
-    # Enable stopping condition for dynamical encounters
-    dynamical_encounter = gravity.stopping_conditions.collision_detection
-    dynamical_encounter.enable()
+        stars.position += distance_to_galactic_center | units.parsec
 
-    channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
-    channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
-                                                             attributes=['collisional_radius'],
-                                                             target_names=['radius'])
+        cluster = ph4(converter, number_of_workers=ncores)
+        cluster.parameters.timestep_parameter = 0.01
+        cluster.parameters.epsilon_squared = (100 | units.au) ** 2
+        cluster.particles.add_particles(stars)
 
-    # Start stellar evolution code only if there are massive stars in first_stars
-    # If not, I will start it when the first massive star is added
-    massive_stars = stars[stars.bright]
+        # Enable stopping condition for dynamical encounters
+        dynamical_encounter = cluster.stopping_conditions.collision_detection
+        dynamical_encounter.enable()
 
+        galaxy_potential = MilkyWayGalaxy()
+
+        gravity = bridge.Bridge()#use_threading=False)
+        gravity.add_system(cluster, (galaxy_potential,))
+        gravity.timestep = 0.01 | units.Myr
+
+        channel_from_gravity_to_framework = cluster.particles.new_channel_to(stars)
+        channel_from_framework_to_gravity = stars.new_channel_to(cluster.particles,
+                                                                 attributes=['collisional_radius'],
+                                                                 target_names=['radius'])
+
+    else:  # Cluster only, no galaxy
+        gravity = ph4(converter, number_of_workers=ncores)
+        gravity.parameters.timestep_parameter = 0.01
+        gravity.parameters.epsilon_squared = (100 | units.au) ** 2
+        gravity.particles.add_particles(stars)
+        #gravity.model_time = t
+
+        # Enable stopping condition for dynamical encounters
+        dynamical_encounter = gravity.stopping_conditions.collision_detection
+        dynamical_encounter.enable()
+
+        channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
+        channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
+                                                                 attributes=['collisional_radius'],
+                                                                 target_names=['radius'])
+
+    # Start stellar evolution code, add only massive stars
     stellar = SeBa()
     stellar.parameters.metallicity = 0.02
-    stellar.particles.add_particles(massive_stars)
-
-    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
-    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
-    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+    stellar.particles.add_particles(stars[stars.bright])
 
     # Enable stopping on supernova explosion
     detect_supernova = stellar.stopping_conditions.supernova_detection
     detect_supernova.enable()
 
-    channel_from_stellar_to_framework.copy()
-    channel_from_stellar_to_gravity.copy()
-    channel_from_framework_to_stellar.copy()
+    # Communication channels
+    channel_from_stellar_to_framework = stellar.particles.new_channel_to(stars)
+    channel_from_stellar_to_gravity = stellar.particles.new_channel_to(gravity.particles)
+
+    channel_from_framework_to_stellar = stars.new_channel_to(stellar.particles)
 
     E_ini = gravity.kinetic_energy + gravity.potential_energy
 
@@ -613,40 +627,30 @@ def main(N,
     E_list = []
     Q_list = []
 
-    # todo check this
-    if not restart:
-        write_set_to_file(stars[stars.born],
-                          '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
-                                                          run_number,
-                                                          N,
-                                                          tmin.value_in(units.Myr)),
-                          'hdf5')
+    write_set_to_file(stars,
+                      '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
+                                                      run_number,
+                                                      N,
+                                                      t.value_in(units.Myr)),
+                      'hdf5')
 
     channel_from_framework_to_gravity.copy()
+    channel_from_stellar_to_framework.copy()
+    channel_from_stellar_to_gravity.copy()
+    channel_from_framework_to_stellar.copy()
 
     active_disks = len(stars[stars.disked])   # Counter for active disks
-
-    # todo check this, how do time and save_time have to be?
-    if restart:
-        t_save = last_snapshot_t | t_end.unit
-        tprev = t_save
-    else:
-        t_save = float('{0:.3f}'.format(tmin.value_in(units.Myr))) | units.Myr # So that simulation starts when first stars form
-        tprev = tmin  # Otherwise I will add first_stars twice
-
     dt = 1000 | units.yr
-    t = 0.0 | units.Myr
-    t_end += tmax  # So that we run for t_end Myr after the last star has formed
 
     # Evolve!
     while t < t_end:
-        print("t = {0:.3f} Myr, t_save = {1:.3f} Myr".format(float(t.value_in(units.Myr)),
-                                                             float(t_save.value_in(units.Myr))))
+        print("t = {0}".format(t))
         dt = min(dt, t_end - t)
 
-        # first dt for stellar evolution
-        for sp in stellar.particles:
-            sp.evolve_one_step()
+        # First dt/2 for stellar evolution; copy to gravity and framework
+        stellar.evolve_model(t + dt/2)
+        channel_from_stellar_to_gravity.copy()
+        channel_from_stellar_to_framework.copy()
 
         # TODO check for a better way to save the energies
         E_kin = gravity.kinetic_energy
@@ -671,41 +675,41 @@ def main(N,
                 disk0 = disks[disk_indices[s0.key]]
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [disk0, disk1]
-                """print("disked - disked")
+                print("disked - disked")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
             elif s0.disked and not s1.disked:
-                """print("disked - bright or dispersed")
+                print("disked - bright or dispersed")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 disk0 = disks[disk_indices[s0.key]]
                 encountering_disks = [disk0, None]
 
             elif not s0.disked and s1.disked:
-                """print("bright or dispersed - disked")
+                print("bright or dispersed - disked")
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
-                """print("bright - bright or dispersed - dispersed")
+                print("bright - bright or dispersed - dispersed")
 
                 print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
@@ -713,28 +717,17 @@ def main(N,
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                                                                  s1.disked))
 
                 encountering_disks = [None, None]
 
             resolve_encounter([s0, s1],
                               encountering_disks,
                               gravity.model_time + t_ini)
-            #print "After encounter, inside cond, pre-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
-            #                                                          gravity.model_time.value_in(units.Myr))
 
-            #print "t + dt = {0}".format(t + dt)
-            #while gravity.model_time < t + dt:
             gravity.evolve_model(t + dt)
-            #channel_from_gravity_to_framework.copy()
 
-        """print "After encounter, inside cond, post-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                      gravity.model_time.value_in(units.Myr))"""
-
-        #print "After encounter, outside cond: t = {0}, model time = {1:.3f}, {1}".format(t,
-        #                                                         gravity.model_time.value_in(units.Myr))
-
-        # Copy stars' new collisional readradii.py (updated in resolve_encounter) to gravity
+        # Copy stars' new collisional radii (updated in resolve_encounter) to gravity
         channel_from_framework_to_gravity.copy()
 
         ########### Photoevaporation ############
@@ -748,14 +741,10 @@ def main(N,
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            if len(stars[stars.key == k].photoevap_Mdot) > 0:
-                disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
-            else:
-                disks[disk_indices[k]].outer_photoevap_rate = 0.0 | units.MSun / units.yr
+            disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
 
         # Evolve VADER disks
         # This evolution includes gas+dust evolution and external photoevaporation
-        #disks_to_run = [d for d in disks if (not d.dispersed and d.born)]
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
@@ -771,18 +760,14 @@ def main(N,
 
         channel_from_framework_to_gravity.copy()
 
-
         # Second dt/2 for stellar evolution; copy to gravity and framework
-        for sp in stellar.particles:
-            sp.evolve_one_step()
+        stellar.evolve_model(t + dt/2)
         channel_from_stellar_to_gravity.copy()
         channel_from_stellar_to_framework.copy()
 
-        """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                   gravity.model_time.value_in(units.Myr))"""
-
+        print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
+                                                                   gravity.model_time.value_in(units.Myr))
         t += dt
-        t_save += dt
 
         active_disks = len([d for d in disks if not d.dispersed])
 
@@ -791,26 +776,19 @@ def main(N,
                               '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
                                                               run_number,
                                                               N,
-                                                              t_save.value_in(units.Myr)),
+                                                              t.value_in(units.Myr)),
                               'hdf5')
             print("NO DISKS LEFT AT t = {0} Myr".format(t.value_in(units.Myr)))
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
 
-        #print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
-        #print "pre save condition: ", int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
-        #if int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
-
-        # silly condition but fixes my precision/rounding issues
-        print "pre save condition: ", '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5'
-        print '{0:.3f}'.format(t_save.value_in(units.Myr))[-1]
-        if '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5':
-            print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
+        if (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr)) == 0.:
+            print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             write_set_to_file(stars,
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                           run_number,
                                                           N,
-                                                          t_save.value_in(units.Myr)),
+                                                          t.value_in(units.Myr)),
                               'hdf5')
 
         numpy.savetxt(E_handle, E_list)
@@ -834,7 +812,7 @@ def new_option_parser():
     result = OptionParser()
 
     # Simulation parameters
-    result.add_option("-n", dest="ncores", type="int", default=2,
+    result.add_option("-n", dest="ncores", type="int", default=1,
                       help="number of cores [%default]")
     result.add_option("-s", dest="save_path", type="string", default='.',
                       help="path to save the results [%default]")
@@ -846,8 +824,6 @@ def new_option_parser():
                       help="run number [%default]")
     result.add_option("--re", dest="restart", type="int", default=0,
                       help="restart from last snapshot? [%default]")
-    result.add_option("--st", dest="stars_file", type="string", default=None,
-                      help="file with star particles [%default]")
 
     # Cluster parameters
     result.add_option("-N", dest="N", type="int", default=100,
@@ -859,6 +835,10 @@ def new_option_parser():
                       help="virial ratio [%default]")
     result.add_option("-p", dest="dist", type="string", default="plummer",
                       help="spatial distribution [%default]")
+    result.add_option("-g", dest="galaxy", type="int", default="0",
+                      help="True to add Milky Way galactic potential [%default]")
+    result.add_option("-d", dest="distance_to_galactic_center", type="float", default=0.0,
+                      help="When using galactic potential, ('projected') distance to galactic center [%default]")
 
     # Disk parameters
     result.add_option("-a", dest="alpha", type="float", default=5E-3,
