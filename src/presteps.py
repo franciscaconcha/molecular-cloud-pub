@@ -246,6 +246,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 
 	t_prev = read_set_from_file("{0}/{1}".format(path, files[0]),
 								"hdf5", close_file=True).get_timestamp()
+	dt_prev = 0.0  # This is to take care of the last dt which can be 10 Myr bc of how I break out of the molecular cloud loop
 
 	stellar = None
 	stars[stars.bright].in_stellar = False  # This is just a workaround to not add particles twice
@@ -254,7 +255,10 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 		current_stars = read_set_from_file("{0}/{1}".format(path, f),
 										   "hdf5", close_file=True)
 		t = current_stars.get_timestamp()
-		dt = t - t_prev
+		if t - t_prev > 5 | units.Myr:
+			dt = dt_prev
+		else:
+			dt = t - t_prev
 		print "dt = {0}".format(dt.in_(units.Myr))
 
 		for s in current_stars:
@@ -327,6 +331,7 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 						  'hdf5')
 
 		t_prev = t
+		dt_prev = dt
 
 
 def new_option_parser():
