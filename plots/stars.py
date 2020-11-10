@@ -56,8 +56,10 @@ def stars(open_path, i, save_path, save, nrun):
                s=numpy.sqrt(disked_stars.disk_radius.value_in(units.au)),
                c=disked_stars.disk_mass.value_in(units.MJupiter),
                alpha=0.5,
-               #norm=matplotlib.colors.LogNorm())
-               vim    )
+               norm=matplotlib.colors.LogNorm(),
+               vmin=min_mass,
+               vmax=max_mass,
+               )
 
     ax.scatter(massive_stars.x.value_in(units.parsec),
                massive_stars.y.value_in(units.parsec),

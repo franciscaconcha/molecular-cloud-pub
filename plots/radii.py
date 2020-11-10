@@ -8,7 +8,6 @@ from amuse import io
 
 from mycolors import *
 from legends import *
-from readradii import *
 
 
 def Rvir(open_path, save_path, nruns, save):
