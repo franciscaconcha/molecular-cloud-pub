@@ -17,47 +17,18 @@ from legends import *
 #"ffmpeg -framerate 5 -i {0}/%01d.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p {0}/movie.mp4
 
 
-def local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N, nruns, save, movie, log=False):
+def local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save):
     fig = pyplot.figure()
 
-    label = open_path.split('/')[-2].split('_')[1]
-    min_dens, max_dens = 1E10, 0  # To properly set up min and max values later
-
     for n in range(nruns):
-        # Initial stars, to calculate initial local density
-        f0 = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, 0.0)
-        stars0 = io.read_set_from_file(f0, 'hdf5', close_file=True)
-        stars0 = stars0[stars0.disked == True]
-
-        # Calculating initial local densities, saving as parameter of *final* stars
-        positions = []
-        for s in stars0:
-            positions.append(numpy.array([s.x.value_in(units.parsec),
-                                          s.y.value_in(units.parsec),
-                                          s.z.value_in(units.parsec)]))
-
-        positions = numpy.array(positions)
-        tree = KDTree(positions)
-        nearest_dist, nearest_ind = tree.query(positions, k=5)
-
-        # Final stars
+        N = Ns[n]
+        pyplot.clf()
+        N = Ns[n]
         f = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, t_end)
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
-        stars = stars[stars.disked == True]
+        stars = stars[stars.disked]
+        stars = stars[stars.born]
 
-        for i in range(len(stars0)):
-            s0 = stars0[i]
-            s = stars[stars.key == s0.key]
-            distances_to_neighbours = nearest_dist[i]
-            max_distance = max(distances_to_neighbours)
-            local_density = 5. / ((4./3.) * numpy.pi * max_distance**3)
-            s.initial_local_density = local_density
-            if local_density < min_dens:
-                min_dens = local_density
-            if local_density > max_dens:
-                max_dens = local_density
-
-        # Calculating final local densities
         positions = []
         for s in stars:
             positions.append(numpy.array([s.x.value_in(units.parsec),
@@ -77,49 +48,24 @@ def local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N
             max_distance = max(distances_to_neighbours)
             s.local_density = 5. / ((4./3.) * numpy.pi * max_distance**3)
 
-        pyplot.set_cmap('viridis_r')
-
         pyplot.scatter(stars.local_density,
                        stars.disk_mass.value_in(units.MJupiter),
                        s=2 * stars.disk_radius.value_in(units.au),
-                       c=stars.initial_local_density,
-                       alpha=0.5, norm=matplotlib.colors.LogNorm())
+                       c=runcolors[n],
+                       alpha=0.5)#, norm=matplotlib.colors.LogNorm())
 
-    pyplot.xscale('symlog')
-    pyplot.yscale('symlog')
+        pyplot.xscale('symlog')
+        pyplot.yscale('symlog')
 
-    right_limit = right_limits[label]
+        pyplot.xlabel(r'Local number density (5-NN) [pc$^{-3}$]')
+        pyplot.ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]')
+        pyplot.title('Run \#{0} at {1:.1f} Myr'.format(n, t_end))
 
-    pyplot.gca().set_xlim(left=-0.1, right=right_limit)
-    pyplot.gca().set_ylim(bottom=-0.1)
-
-    fig.canvas.draw()
-
-    xtick_labels = [item.get_text() for item in pyplot.gca().get_xticklabels()]
-    xtick_labels[0] = r'$d_{min}$'
-    ytick_labels = [item.get_text() for item in pyplot.gca().get_yticklabels()]
-    ytick_labels[0] = r'$M_{min}$'
-
-    pyplot.gca().set_xticklabels(xtick_labels)
-    pyplot.gca().set_yticklabels(ytick_labels)
-
-    cbar = pyplot.colorbar()
-    pyplot.clim(min_dens, max_dens)
-    cbar.set_label(r'Initial local number density [pc$^{-3}$]')
-
-    #pyplot.legend(loc='best', fontsize=22, framealpha=1.)
-    pyplot.xlabel(r'Local number density (5-NN) [pc$^{-3}$]')
-    pyplot.ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]')
-    print label
-    #print numpy.sqrt(numpy.abs(2 * stars.potential_energy().in_(units.parsec/units.Myr)))
-    pyplot.suptitle(r'N = {0}, {1}, t={2:.3f} Myr'.format(N, labels[label], t_end))
-
-    if save and movie:
-        times = list(numpy.arange(0.0, t_end + 0.005, 0.005))
-        print times.index(t_end)
-        pyplot.savefig('{0}/{1}.png'.format(save_path, times.index(t_end)))
-    elif save:
-        pyplot.savefig('{0}/local_density_vs_mass_vs_ini_dens_N{1}_{2}.png'.format(save_path, N, label))
+        if save:
+            pyplot.savefig('{0}/density_vs_disk_mass/n{1}_{2:.1f}Myr.png'.format(save_path,
+                                                                                 n, t_end))
+        else:
+            pyplot.show()
 
 
 def byradius_local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N, nruns, save, movie, log=False):
@@ -407,23 +353,17 @@ def local_density_vs_disk_mass_vs_stellar_velocity(open_path, save_path, t_end, 
     elif save:
         pyplot.savefig('{0}/local_density_vs_mass_vs_stellar_vel_N{1}_{2}.png'.format(save_path, N, label))
 
+
 def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, movie):
 
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    paths = ['results/large_cluster/N1E3_R01',
-             'results/large_cluster/N1E3_R03',
-             'results/large_cluster/N1E3_R05',
-             'results/large_cluster/N1E3_R1',
-             'results/large_cluster/N1E3_R25',
-             'results/large_cluster/N1E3_R5']
-
-    #local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N, nruns, save, movie, log=False)
+    local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save)
     #local_density_vs_disk_mass_vs_stellar_velocity(open_path, save_path, t_end, N, nruns, save, movie, log=False)
     #local_density_vs_disk_mass_tracks(open_path, save_path, t_end, N, nruns, save, log=False)
 
-    byradius_local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N, nruns, save, movie, log=False)
+    #byradius_local_density_vs_disk_mass_vs_initial_density(open_path, save_path, t_end, N, nruns, save, movie, log=False)
 
     if not save:
         pyplot.show()

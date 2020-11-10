@@ -23,49 +23,25 @@ def Rvir(open_path, save_path, nruns, save):
     """
     fig = pyplot.figure()
 
-    min_times, max_times = [], []
+    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+    Rvir = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for n in range(nruns):
-        path = '{0}/{1}/'.format(open_path, n)
+        path = '{0}/{1}/prep/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         files = [x for x in files if '.hdf5' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
-        min_times.append(float(files[1].split('t')[1].split('.hdf5')[0]))  # [0] is gravity_stars.hdf5
-        max_times.append(float(files[-1].split('t')[1].split('.hdf5')[0]))
 
-    dt = 0.005
-    times = numpy.arange(1.0,
-                         max(max_times),
-                         dt)
+        for f in files[1:]:
+            stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+            t = float(f.split('t')[1].split('.hdf5')[0])
+            times[n].append(t)
 
-    print min(min_times), max(max_times)
+            vr = stars.virial_radius().value_in(units.parsec)
+            Rvir[n].append(vr)
 
     for n in range(nruns):
-        N = Ns[n]
-        virial_radii = readRvir[n]
-        """virial_radii = []
-
-        for t in times:
-            f = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, t)
-            try:
-                stars = io.read_set_from_file(f, 'hdf5', close_file=True)
-
-                born_stars = stars[stars.born]
-                converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), 3.0 | units.parsec)
-
-                vr = born_stars.virial_radius().value_in(units.parsec)
-                virial_radii.append(vr)
-                #try:
-                #    r_hm, mf = born_stars.LagrangianRadii(mf=[0.5], unit_converter=converter)
-                #    hmr = r_hm.value_in(units.parsec)[0]
-                #except:
-                #    hmr = 0.0
-            except io.base.IoException:
-                virial_radii.append(numpy.nan)
-
-        print n
-        print virial_radii"""
-        pyplot.plot(times, virial_radii, c=runcolors[n], lw=3, label='Run {0}'.format(n))
+        pyplot.plot(times[n], Rvir[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
 
     pyplot.legend(loc='best', ncol=2)
     pyplot.xlabel('Time [Myr]')
@@ -137,7 +113,7 @@ def main(open_path, N, save_path, t_end, save, distance, nruns, time):
     pyplot.style.use('paper')
 
     Rvir(open_path, save_path, nruns, save)
-    Rhm(open_path, save_path, nruns, save)
+    #Rhm(open_path, save_path, nruns, save)
 
 
 def new_option_parser():
