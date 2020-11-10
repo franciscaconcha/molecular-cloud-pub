@@ -32,7 +32,7 @@ def Rvir(open_path, save_path, nruns, save):
         files = [x for x in files if 'hydro_stars' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-        for f in files[1:]:
+        for f in files[1:-1]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
             #t = float(f.split('t')[1].split('.hdf5')[0])
             t = stars.get_timestamp().value_in(units.Myr)
@@ -66,7 +66,7 @@ def Rhm(open_path, save_path, nruns, save):
         files = [x for x in files if 'hydro_stars' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-        for f in files[1:]:
+        for f in files[1:-1]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
             # t = float(f.split('t')[1].split('.hdf5')[0])
             t = stars.get_timestamp().value_in(units.Myr)
@@ -102,7 +102,7 @@ def main(open_path, N, save_path, t_end, save, distance, nruns, time):
     pyplot.style.use('paper')
 
     Rvir(open_path, save_path, nruns, save)
-    #Rhm(open_path, save_path, nruns, save)
+    Rhm(open_path, save_path, nruns, save)
 
 
 def new_option_parser():
