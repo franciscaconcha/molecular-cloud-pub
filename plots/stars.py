@@ -37,37 +37,27 @@ def stars(open_path, i, save_path, save, nrun):
 
     print last_file
 
+    # Calculate min and max Mdisk for colorbar, using simply the
+    # min and max masses of stars with disks
+    min_mass = (0.1 * (0.08 | units.MSun)).value_in(units.MJupiter)
+    max_mass = (0.1 * (1.9 | units.MSun)).value_in(units.MJupiter)
+
     stars = read_set_from_file(path + last_file, 'hdf5', close_file=True)
     t = float(last_file.split('t')[1].split('.hdf5')[0])
 
     disked_stars = stars[stars.disked]
     massive_stars = stars[stars.bright]
 
-    if t == 1.724:
-        print t
-        for s in disked_stars:
-            print s.disk_radius.in_(units.au), s.initial_disk_radius.in_(units.au), s.disk_mass.in_(units.MJupiter), s.stellar_mass.in_(units.MSun), s.tborn.in_(units.Myr)
-    elif t == 1.766:
-        print t
-        for s in disked_stars:
-            print s.disk_radius.in_(units.au), s.initial_disk_radius.in_(units.au), s.disk_mass.in_(units.MJupiter), s.stellar_mass.in_(units.MSun), s.tborn.in_(units.Myr)
-    elif t == 1.808:
-        print t
-        for s in disked_stars:
-            print s.disk_radius.in_(units.au), s.initial_disk_radius.in_(units.au), s.disk_mass.in_(units.MJupiter), s.stellar_mass.in_(units.MSun), s.tborn.in_(units.Myr)
-        return
-
-
     pyplot.set_cmap('viridis_r')
 
     s = ax.scatter(disked_stars.x.value_in(units.parsec),
                disked_stars.y.value_in(units.parsec),
                marker='o',
-               s=disked_stars.disk_radius.value_in(units.au),
+               s=numpy.sqrt(disked_stars.disk_radius.value_in(units.au)),
                c=disked_stars.disk_mass.value_in(units.MJupiter),
                alpha=0.5,
                #norm=matplotlib.colors.LogNorm())
-                   )
+               vim    )
 
     ax.scatter(massive_stars.x.value_in(units.parsec),
                massive_stars.y.value_in(units.parsec),
@@ -90,6 +80,7 @@ def stars(open_path, i, save_path, save, nrun):
     cbar = fig.colorbar(s)#p2, cax=cax, orientation='vertical')
 
     cbar.set_label(r'Initial local number density [pc$^{-3}$]')
+    #pyplot.clim(min_mass, max_mass)
 
     fig.suptitle("Run \#{0}, N={1}, t = {2} Myr".format(nrun,
                                                         len(stars),
