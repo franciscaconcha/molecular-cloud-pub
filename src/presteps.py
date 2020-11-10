@@ -277,9 +277,10 @@ def main(open_path, grid_path, save_path, nrun, ndisks, ncores):
 					channel_from_framework_to_stellar.copy()
 					stars[stars.key == s.key].in_stellar = True
 
-			if not stars[stars.key == s.key].born:  # new star
+			if stars[stars.key == s.key].disked and not stars[stars.key == s.key].born:  # new star
 				this_star = stars[stars.key == s.key]
-				this_disk = disks[disk_indices[this_star.key]]
+				print this_star.key, this_star.key[0]
+				this_disk = disks[disk_indices[this_star.key[0]]]
 				this_disk.disk_radius = this_star.initial_disk_radius
 				this_disk.disk_mass = this_star.initial_disk_mass
 
