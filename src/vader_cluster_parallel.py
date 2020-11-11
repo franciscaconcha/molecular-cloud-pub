@@ -438,12 +438,13 @@ def main(N,
     E_list = []
     Q_list = []
 
-    write_set_to_file(stars,
-                      '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
-                                                      run_number,
-                                                      N,
-                                                      t.value_in(units.Myr)),
-                      'hdf5')
+    if not restart:
+        write_set_to_file(stars,
+                          '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
+                                                          run_number,
+                                                          N,
+                                                          t.value_in(units.Myr)),
+                          'hdf5')
 
     channel_from_framework_to_gravity.copy()
     channel_from_stellar_to_framework.copy()
