@@ -488,48 +488,48 @@ def main(N,
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [disk0, disk1]
                 print("disked - disked")
-                print("key0: {0}, mass0: {1}, disked0: {2}\n \
+                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))
+                                                                  s1.disked))"""
             elif s0.disked and not s1.disked:
                 print("disked - bright or dispersed")
-                print("key0: {0}, mass0: {1}, disked0: {2}\n \
+                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))
+                                                                  s1.disked))"""
 
                 disk0 = disks[disk_indices[s0.key]]
                 encountering_disks = [disk0, None]
 
             elif not s0.disked and s1.disked:
                 print("bright or dispersed - disked")
-                print("key0: {0}, mass0: {1}, disked0: {2}\n \
+                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))
+                                                                  s1.disked))"""
 
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
                 print("bright - bright or dispersed - dispersed")
 
-                print("key0: {0}, mass0: {1}, disked0: {2}\n \
+                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
                       key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
                                                                   s0.stellar_mass.in_(units.MSun),
                                                                   s0.disked,
                                                                   s1.key,
                                                                   s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))
+                                                                  s1.disked))"""
 
                 encountering_disks = [None, None]
 
