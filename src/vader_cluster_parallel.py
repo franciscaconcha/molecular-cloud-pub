@@ -422,8 +422,6 @@ def main(N,
          ncores,
          save_path,
          grid_path,
-         galaxy,
-         distance_to_galactic_center,
          restart=0,
          ncodes=10,
          run_number=0):
@@ -441,8 +439,6 @@ def main(N,
     :param ncores: number of cores to use
     :param save_path: path to save results
     :param grid_path: path to FRIED grid files
-    :param galaxy: if True, use background galactic potential
-    :param distance_to_galactic_center: distance to galactic center, for galactic potential calculation
     :param restart: if True, continue the simulation from the last saved snapshot
     :param ncodes: number of VADER codes to run in parallel
     :param run_number: run number, to save results separately for each run
@@ -469,7 +465,8 @@ def main(N,
         t = last_snapshot_t | t_end.unit
         print t
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-
+        t_end += t
+        print "t_end = {0} Myr".format(t_end.value_in(units.Myr))
     else:
         t = 0.0 | t_end.unit
 
@@ -560,49 +557,20 @@ def main(N,
         stars[stars.key == key].disk_radius = disks[val].disk_radius
         stars[stars.key == key].disk_mass = disks[val].disk_mass
 
-    # Start gravity code, add all stars
-    if galaxy:  # If galactic potential is to be used
-        print("Creating galactic potential + bridge")
-        from amuse.couple import bridge
-        from MilkyWayGalaxy import MilkyWayGalaxy
+    gravity = ph4(converter, number_of_workers=ncores)
+    gravity.parameters.timestep_parameter = 0.01
+    gravity.parameters.epsilon_squared = (100 | units.au) ** 2
+    gravity.particles.add_particles(stars)
+    #gravity.model_time = t
 
-        stars.position += distance_to_galactic_center | units.parsec
+    # Enable stopping condition for dynamical encounters
+    dynamical_encounter = gravity.stopping_conditions.collision_detection
+    dynamical_encounter.enable()
 
-        cluster = ph4(converter, number_of_workers=ncores)
-        cluster.parameters.timestep_parameter = 0.01
-        cluster.parameters.epsilon_squared = (100 | units.au) ** 2
-        cluster.particles.add_particles(stars)
-
-        # Enable stopping condition for dynamical encounters
-        dynamical_encounter = cluster.stopping_conditions.collision_detection
-        dynamical_encounter.enable()
-
-        galaxy_potential = MilkyWayGalaxy()
-
-        gravity = bridge.Bridge()#use_threading=False)
-        gravity.add_system(cluster, (galaxy_potential,))
-        gravity.timestep = 0.01 | units.Myr
-
-        channel_from_gravity_to_framework = cluster.particles.new_channel_to(stars)
-        channel_from_framework_to_gravity = stars.new_channel_to(cluster.particles,
-                                                                 attributes=['collisional_radius'],
-                                                                 target_names=['radius'])
-
-    else:  # Cluster only, no galaxy
-        gravity = ph4(converter, number_of_workers=ncores)
-        gravity.parameters.timestep_parameter = 0.01
-        gravity.parameters.epsilon_squared = (100 | units.au) ** 2
-        gravity.particles.add_particles(stars)
-        #gravity.model_time = t
-
-        # Enable stopping condition for dynamical encounters
-        dynamical_encounter = gravity.stopping_conditions.collision_detection
-        dynamical_encounter.enable()
-
-        channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
-        channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
-                                                                 attributes=['collisional_radius'],
-                                                                 target_names=['radius'])
+    channel_from_gravity_to_framework = gravity.particles.new_channel_to(stars)
+    channel_from_framework_to_gravity = stars.new_channel_to(gravity.particles,
+                                                             attributes=['collisional_radius'],
+                                                             target_names=['radius'])
 
     # Start stellar evolution code, add only massive stars
     stellar = SeBa()
@@ -835,10 +803,6 @@ def new_option_parser():
                       help="virial ratio [%default]")
     result.add_option("-p", dest="dist", type="string", default="plummer",
                       help="spatial distribution [%default]")
-    result.add_option("-g", dest="galaxy", type="int", default="0",
-                      help="True to add Milky Way galactic potential [%default]")
-    result.add_option("-d", dest="distance_to_galactic_center", type="float", default=0.0,
-                      help="When using galactic potential, ('projected') distance to galactic center [%default]")
 
     # Disk parameters
     result.add_option("-a", dest="alpha", type="float", default=5E-3,
