@@ -2,6 +2,7 @@ import numpy
 from matplotlib import pyplot
 from scipy import stats
 from sklearn.neighbors import KDTree
+import os
 
 from amuse.lab import *
 from amuse import io
@@ -134,12 +135,48 @@ def dust_mass_vs_local_density(open_path, save_path, t_end, nruns, save):
         pyplot.show()
 
 
+def mean_mass_in_time(open_path, save_path, nruns):
+
+    fig = pyplot.figure()
+
+    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+    masses = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+    for n in range(nruns):
+        path = '{0}/{1}/prep/'.format(open_path, n)
+        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+        files = [x for x in files if '.hdf5' in x]
+        files.sort(key=lambda f: float(filter(str.isdigit, f)))
+
+        for f in files:
+            stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+            t = float(f.split('t')[1].split('.hdf5')[0])
+            times[n].append(t)
+
+            # want to consider all stars to ever have a disk,
+            # even if it has been dispersed (disked == False)
+            always_disked = stars[stars.stellar_mass <= 1.9 | units.MSun]
+            disk_masses = always_disked.disk_mass.value_in(units.MJupiter)
+            masses[n].append(numpy.mean(disk_masses))
+
+    for n in range(nruns):
+        pyplot.plot(times[n],
+                    masses[n],
+                    c=runcolors[n],
+                    lw=3,
+                    label="Run {0}".format(n))
+
+    pyplot.legend()
+    pyplot.xlabel(r'Time [Myr]')
+    pyplot.ylabel(r'Mean disc mass [$\mathrm{M}_{Jup}$]')
+
 def main(open_path, N, save_path, t_end, save, nruns):
 
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    dust_mass_vs_local_density(open_path, save_path, t_end, nruns, save)
+    #dust_mass_vs_local_density(open_path, save_path, t_end, nruns, save)
+    mean_mass_in_time(open_path, save_path, nruns)
 
     if not save:
         pyplot.show()
