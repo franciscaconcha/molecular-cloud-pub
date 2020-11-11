@@ -453,7 +453,7 @@ def main(N,
     if restart:
         global stars, disks, disk_indices, interpolator
 
-        path = "{0}/{1}/".format(save_path, run_number)
+        path = "{0}/{1}/disks/{1}".format(save_path, run_number)
         files = [f for f in os.listdir(path) if (f.lower().endswith('.hdf5'))]
         files.sort(key=lambda f: float(f.split('t')[1].split('.hdf5')[0]))
         last_snapshot = files[-1]
