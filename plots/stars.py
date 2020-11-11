@@ -35,8 +35,6 @@ def stars(open_path, i, save_path, save, nrun):
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
     last_file = files[i]
 
-    print last_file
-
     # Calculate min and max Mdisk for colorbar, using simply the
     # min and max masses of stars with disks
     min_mass = (0.1 * (0.08 | units.MSun)).value_in(units.MJupiter)
@@ -53,10 +51,10 @@ def stars(open_path, i, save_path, save, nrun):
     s = ax.scatter(disked_stars.x.value_in(units.parsec),
                disked_stars.y.value_in(units.parsec),
                marker='o',
-               s=numpy.sqrt(disked_stars.disk_radius.value_in(units.au)),
+               s=disked_stars.disk_radius.value_in(units.au),
                c=disked_stars.disk_mass.value_in(units.MJupiter),
                alpha=0.5,
-               norm=matplotlib.colors.LogNorm(),
+               #norm=matplotlib.colors.LogNorm(),
                vmin=min_mass,
                vmax=max_mass,
                )
@@ -72,8 +70,8 @@ def stars(open_path, i, save_path, save, nrun):
     ax.set_xlabel("x [pc]")
     ax.set_ylabel("y [pc]")
 
-    ax.set_xlim([-5, 5])
-    ax.set_ylim([-5, 5])
+    #ax.set_xlim([-5, 5])
+    #ax.set_ylim([-5, 5])
 
     ax.set_aspect('equal')
 
@@ -81,7 +79,7 @@ def stars(open_path, i, save_path, save, nrun):
     #cax = divider.append_axes('right', size='5%', pad=0.1)
     cbar = fig.colorbar(s)#p2, cax=cax, orientation='vertical')
 
-    cbar.set_label(r'Initial local number density [pc$^{-3}$]')
+    cbar.set_label(r'Disk mass [M$_{Jup}$]')
     #pyplot.clim(min_mass, max_mass)
 
     fig.suptitle("Run \#{0}, N={1}, t = {2} Myr".format(nrun,

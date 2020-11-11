@@ -170,6 +170,7 @@ def mean_mass_in_time(open_path, save_path, nruns):
     pyplot.xlabel(r'Time [Myr]')
     pyplot.ylabel(r'Mean disc mass [$\mathrm{M}_{Jup}$]')
 
+
 def main(open_path, N, save_path, t_end, save, nruns):
 
     # My own stylesheet, comment out if not needed

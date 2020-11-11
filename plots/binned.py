@@ -505,7 +505,7 @@ def mass_vs_local_density(open_path, save_path, t_end, N, nruns, save):
 
 def mass_vs_local_density(open_path, save_path, t_end, N, nruns, save):
 	fig1, axs1 = pyplot.subplots(1)
-	fig2 = pyplot.figure()
+	fig2, axs2 = pyplot.subplots(1)
 
 	times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 	binned_means = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
@@ -562,7 +562,15 @@ def mass_vs_local_density(open_path, save_path, t_end, N, nruns, save):
 				local_densities[n].append(numpy.mean(sorted_local_dens[i:i+d]))
 				break
 
+	all_binned_means = []
+	all_stds = []
+	all_local_densities = []
+
 	for n in range(nruns):
+		all_binned_means.append(binned_means[n])
+		all_stds.append(binned_stds[n])
+		all_local_densities.append(local_densities[n])
+
 		axs1.plot(local_densities[n],
 					binned_means[n],
 					#yerr=binned_stds[n],
@@ -575,57 +583,58 @@ def mass_vs_local_density(open_path, save_path, t_end, N, nruns, save):
 							facecolor=runcolors[n],
 							alpha=0.2)
 
-	"""try:
-		all_means = numpy.mean(all_binned_means_locdens, axis=0)
-		devs = numpy.mean(all_binned_stds_locdens, axis=0)
+	try:
+		all_means = numpy.mean(all_binned_means, axis=0)
+		devs = numpy.mean(all_stds, axis=0)
 	except:
 		max_len = 0
-		for a in all_binned_means_locdens:
+		for a in all_binned_means:
 			if len(a) > max_len:
 				max_len = len(a)
 
 		new_sorted = []
 		new_stds = []
-		for a in all_binned_means_locdens:
-			b = numpy.pad(a, (max_len - len(a), min(a)), 'constant')
+		for a in all_binned_means:
+			b = numpy.pad(a, (max_len - len(a), 0), 'constant')
 			# constant_values=(min([min(r) for r in all_initial])))
+			print len(b)
 			new_sorted.append(b)
-		for a in all_binned_stds_locdens:
-			b = numpy.pad(a, (max_len - len(a), min(a)), 'constant')
+		for a in all_stds:
+			b = numpy.pad(a, (max_len - len(a), 0), 'constant')
 			# constant_values=(min([min(r) for r in all_initial])))
 			new_stds.append(b)
+
 		all_means = numpy.mean(new_sorted, axis=0)
 		devs = numpy.mean(new_stds, axis=0)
 
 	all_means_high = all_means + devs
 	all_means_low = all_means - devs
 
-				if t == 0.0:
-					axs[0].plot(locdens_means,
-								all_means,
-								color=colors[label],
-								lw=3,
-								ls=":")
+	try:
+		locdens_means = numpy.mean(all_local_densities, axis=0)
+	except:
+		max_len = 0
+		for a in all_local_densities:
+			if len(a) > max_len:
+				max_len = len(a)
 
-					axs[0].fill_between(locdens_means,
-										all_means_high,
-										all_means_low,
-										facecolor=colors[label],
-										alpha=0.2)
+		new_sorted = []
+		for a in all_local_densities:
+			b = numpy.pad(a, (max_len - len(a), 0), 'constant')
+			# constant_values=(min([min(r) for r in all_initial])))
+			new_sorted.append(b)
+		locdens_means = numpy.mean(new_sorted, axis=0)
 
-				elif t == 2.0:
+	axs2.plot(locdens_means,
+				all_means,
+				color='k',
+				lw=3)
 
-					axs[0].plot(locdens_means,
-								all_means,
-								color=colors[label],
-								lw=3,
-								label=labels[label])
-
-					axs[0].fill_between(locdens_means,
-										all_means_high,
-										all_means_low,
-										facecolor=colors[label],
-										alpha=0.2)"""
+	axs2.fill_between(locdens_means,
+						all_means_high,
+						all_means_low,
+						facecolor='k',
+						alpha=0.2)
 
 
 	axs1.set_xlabel(r'Local stellar number density [pc$^{-3}$]')
@@ -633,6 +642,12 @@ def mass_vs_local_density(open_path, save_path, t_end, N, nruns, save):
 
 	axs1.set_xscale('log')
 	axs1.set_yscale('log')
+
+	axs2.set_xlabel(r'Local stellar number density [pc$^{-3}$]')
+	axs2.set_ylabel(r'Binned mean disc dust mass [$\mathrm{M}_{\oplus}$]')
+
+	axs2.set_xscale('log')
+	axs2.set_yscale('log')
 
 	if save:
 		pyplot.savefig('{0}/2D_dustmass_localdensity.png'.format(save_path))
