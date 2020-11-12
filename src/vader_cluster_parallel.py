@@ -305,13 +305,14 @@ def main(N,
 
         f = '{0}/{1}'.format(path, last_snapshot)
         stars = read_set_from_file(f, 'hdf5', close_file=True)
-        t = last_snapshot_t | t_end.unit
-        print t
+        t_save = last_snapshot_t | t_end.unit
+        print t_save
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
         t_end += t
         print "t_end = {0} Myr".format(t_end.value_in(units.Myr))
     else:
         t = 0.0 | t_end.unit
+        t_save = t
 
         path = "{0}/{1}/".format(save_path, run_number)
         try:
@@ -443,7 +444,7 @@ def main(N,
                           '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
                                                           run_number,
                                                           N,
-                                                          t.value_in(units.Myr)),
+                                                          t_save.value_in(units.Myr)),
                           'hdf5')
 
     channel_from_framework_to_gravity.copy()
@@ -456,11 +457,15 @@ def main(N,
 
     # Evolve!
     while t < t_end:
-        print("t = {0}".format(t))
+        print("t = {0:.3f} Myr, t_save = {1:.3f} Myr".format(float(t.value_in(units.Myr)),
+                                                             float(t_save.value_in(units.Myr))))
         dt = min(dt, t_end - t)
 
-        # First dt/2 for stellar evolution; copy to gravity and framework
-        stellar.evolve_model(t + dt/2)
+        print "First dt/2"
+        for sp in stellar.particles:
+            # sp.time_step = 0.5 * dt
+            sp.evolve_one_step()
+
         channel_from_stellar_to_gravity.copy()
         channel_from_stellar_to_framework.copy()
 
@@ -487,57 +492,68 @@ def main(N,
                 disk0 = disks[disk_indices[s0.key]]
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [disk0, disk1]
-                print("disked - disked")
-                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
-                      key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
-                                                                  s0.stellar_mass.in_(units.MSun),
-                                                                  s0.disked,
-                                                                  s1.key,
-                                                                  s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                """print("disked - disked")
+				print("key0: {0}, mass0: {1}, disked0: {2}\n \
+					  key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
+																  s0.stellar_mass.in_(units.MSun),
+																  s0.disked,
+																  s1.key,
+																  s1.stellar_mass.in_(units.MSun),
+																  s1.disked))"""
             elif s0.disked and not s1.disked:
-                print("disked - bright or dispersed")
-                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
-                      key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
-                                                                  s0.stellar_mass.in_(units.MSun),
-                                                                  s0.disked,
-                                                                  s1.key,
-                                                                  s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                """print("disked - bright or dispersed")
+				print("key0: {0}, mass0: {1}, disked0: {2}\n \
+					  key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
+																  s0.stellar_mass.in_(units.MSun),
+																  s0.disked,
+																  s1.key,
+																  s1.stellar_mass.in_(units.MSun),
+																  s1.disked))"""
 
                 disk0 = disks[disk_indices[s0.key]]
                 encountering_disks = [disk0, None]
 
             elif not s0.disked and s1.disked:
-                print("bright or dispersed - disked")
-                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
-                      key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
-                                                                  s0.stellar_mass.in_(units.MSun),
-                                                                  s0.disked,
-                                                                  s1.key,
-                                                                  s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+                """print("bright or dispersed - disked")
+				print("key0: {0}, mass0: {1}, disked0: {2}\n \
+					  key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
+																  s0.stellar_mass.in_(units.MSun),
+																  s0.disked,
+																  s1.key,
+																  s1.stellar_mass.in_(units.MSun),
+																  s1.disked))"""
 
                 disk1 = disks[disk_indices[s1.key]]
                 encountering_disks = [None, disk1]
             else:
-                print("bright - bright or dispersed - dispersed")
+                """print("bright - bright or dispersed - dispersed")
 
-                """print("key0: {0}, mass0: {1}, disked0: {2}\n \
-                      key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
-                                                                  s0.stellar_mass.in_(units.MSun),
-                                                                  s0.disked,
-                                                                  s1.key,
-                                                                  s1.stellar_mass.in_(units.MSun),
-                                                                  s1.disked))"""
+				print("key0: {0}, mass0: {1}, disked0: {2}\n \
+					  key1: {3}, mass1: {4}, disked1: {5}".format(s0.key,
+																  s0.stellar_mass.in_(units.MSun),
+																  s0.disked,
+																  s1.key,
+																  s1.stellar_mass.in_(units.MSun),
+																  s1.disked))"""
 
                 encountering_disks = [None, None]
 
             resolve_encounter([s0, s1],
                               encountering_disks,
                               gravity.model_time + t_ini)
+            # print "After encounter, inside cond, pre-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
+            #                                                          gravity.model_time.value_in(units.Myr))
 
+            # print "t + dt = {0}".format(t + dt)
+            # while gravity.model_time < t + dt:
             gravity.evolve_model(t + dt)
+            # channel_from_gravity_to_framework.copy()
+
+        """print "After encounter, inside cond, post-evolve: t = {0}, model time = {1:.3f}, {1}".format(t,
+																	  gravity.model_time.value_in(units.Myr))"""
+
+        # print "After encounter, outside cond: t = {0}, model time = {1:.3f}, {1}".format(t,
+        #                                                         gravity.model_time.value_in(units.Myr))
 
         # Copy stars' new collisional radii (updated in resolve_encounter) to gravity
         channel_from_framework_to_gravity.copy()
@@ -548,15 +564,20 @@ def main(N,
         stars[stars.disked].total_radiation = total_radiation(stars[stars.disked].key, ncores)
 
         # Photoevaporative mass loss in log10(MSun/yr), EUV + FUV
-        stars[stars.disked].photoevap_Mdot = photoevaporation_mass_loss(stars[stars.disked].key, ncores)
+        stars[stars.disked].photoevap_Mdot = photoevaporation_mass_loss(stars[stars.disked].key,
+                                                                                  ncores)
         stars[stars.disked].cumulative_photoevap_mass_loss += stars[stars.disked].photoevap_Mdot * dt
 
         # Update disks' mass loss rates before evolving them
         for k in disk_indices:
-            disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
+            if len(stars[stars.key == k].photoevap_Mdot) > 0:
+                disks[disk_indices[k]].outer_photoevap_rate = stars[stars.key == k].photoevap_Mdot
+            else:
+                disks[disk_indices[k]].outer_photoevap_rate = 0.0 | units.MSun / units.yr
 
         # Evolve VADER disks
         # This evolution includes gas+dust evolution and external photoevaporation
+        # disks_to_run = [d for d in disks if (not d.dispersed and d.born)]
         run_disks(disk_codes, [d for d in disks if not d.dispersed], dt)
 
         # Update stars' disks parameters, for book-keeping
@@ -573,13 +594,17 @@ def main(N,
         channel_from_framework_to_gravity.copy()
 
         # Second dt/2 for stellar evolution; copy to gravity and framework
-        stellar.evolve_model(t + dt/2)
+        for sp in stellar.particles:
+            # sp.time_step = dt / 2
+            sp.evolve_one_step()
         channel_from_stellar_to_gravity.copy()
         channel_from_stellar_to_framework.copy()
 
-        print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
-                                                                   gravity.model_time.value_in(units.Myr))
+        """print "Before t+=dt: t = {0}, model time = {1:.3f}, {1}".format(t,
+																   gravity.model_time.value_in(units.Myr))"""
+
         t += dt
+        t_save += dt
 
         active_disks = len([d for d in disks if not d.dispersed])
 
@@ -588,19 +613,28 @@ def main(N,
                               '{0}/{1}/N{2}_t{3}.hdf5'.format(save_path,
                                                               run_number,
                                                               N,
-                                                              t.value_in(units.Myr)),
+                                                              t_save.value_in(units.Myr)),
                               'hdf5')
             print("NO DISKS LEFT AT t = {0} Myr".format(t.value_in(units.Myr)))
             print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
             break
 
-        if (numpy.around(t.value_in(units.yr)) % save_interval.value_in(units.yr)) == 0.:
-            print("saving! at t = {0} Myr".format(t.value_in(units.Myr)))
+        # print "pre save: ", t.in_(units.yr), save_interval.in_(units.yr)
+        # print "pre save condition: ", int(int(t.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000)
+        # if int(int(t_save.value_in(units.yr))/1000) % int(save_interval.value_in(units.yr)/1000) == 0.:
+
+        # silly condition but fixes my precision/rounding issues
+        print "pre save condition: ", '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or \
+                                      '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '5'
+        print '{0:.3f}'.format(t_save.value_in(units.Myr))[-1]
+        if '{0:.3f}'.format(t_save.value_in(units.Myr))[-1] == '0' or '{0:.3f}'.format(t_save.value_in(units.Myr))[
+            -1] == '5':
+            print("saving! at t = {0} Myr".format(t_save.value_in(units.Myr)))
             write_set_to_file(stars,
                               '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
-                                                          run_number,
-                                                          N,
-                                                          t.value_in(units.Myr)),
+                                                                  run_number,
+                                                                  N,
+                                                                  t_save.value_in(units.Myr)),
                               'hdf5')
 
         numpy.savetxt(E_handle, E_list)
