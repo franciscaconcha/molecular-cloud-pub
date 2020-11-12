@@ -308,7 +308,7 @@ def main(N,
         t_save = last_snapshot_t | t_end.unit
         print t_save
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-        t_end += t
+        t_end += t_save
         print "t_end = {0} Myr".format(t_end.value_in(units.Myr))
     else:
         t = 0.0 | t_end.unit

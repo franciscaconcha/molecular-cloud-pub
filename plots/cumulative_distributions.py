@@ -59,8 +59,8 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 
 	try:
 		mean_masses = numpy.mean(all_masses, axis=0)
-		devs = numpy.std(new_sorted, axis=0)
-
+		mean_cumulative = numpy.mean(all_cumulative, axis=0)
+		devs = numpy.std(all_cumulative, axis=0)
 	except:
 		max_len = 0
 		for a in all_masses:
@@ -74,25 +74,38 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 			new_sorted.append(b)
 
 		mean_masses = numpy.mean(new_sorted, axis=0)
+
+		max_len = 0
+		for a in all_cumulative:
+			if len(a) > max_len:
+				max_len = len(a)
+
+		new_sorted = []
+		for a in all_cumulative:
+			b = numpy.pad(a, (max_len - len(a), 0), 'constant')
+			# constant_values=(min([min(r) for r in all_initial])))
+			new_sorted.append(b)
+
+		mean_cumulative = numpy.mean(new_sorted, axis=0)
 		devs = numpy.std(new_sorted, axis=0)
 
 	mean_masses = numpy.sort(mean_masses)
 
-	all_means_high = mean_masses + devs
-	all_means_low = mean_masses - devs
+	cumulative_high = mean_cumulative + devs
+	cumulative_low = mean_cumulative - devs
 
 	cumulative = 1. * numpy.arange(len(mean_masses)) / (len(mean_masses) - 1)
 
 	axs2.plot(mean_masses,
-				cumulative,
+				mean_cumulative,
 				color='k',
 				lw=3)
 
-	"""axs2.fill_between(locdens_means,
-						all_means_high,
-						all_means_low,
+	axs2.fill_between(mean_masses,
+						cumulative_high,
+						cumulative_low,
 						facecolor='k',
-						alpha=0.2)"""
+						alpha=0.2)
 
 	axs1.legend()
 	axs1.set_xlabel(r'Disc mass [$\mathrm{M}_{Jup}$]')
@@ -102,8 +115,6 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 
 	axs1.set_xscale('log')
 	axs2.set_xscale('log')
-
-
 
 
 def disk_dust_masses(open_path, save_path, t_end, N, nruns, save):
