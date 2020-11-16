@@ -67,12 +67,69 @@ def fd_vs_time(open_path, nruns, save, save_path):
         pyplot.savefig('{0}/Fd.png'.format(save_path))
 
 
+def fd_scatter(open_path, nruns, save, save_path):
+
+    # fractal dimensions of each run at tendSF as measured in fractal_dimension
+    Fd = {0: 1.6,
+          1: 1.5,
+          2: 1.7,
+          3: 1.5,
+          4: 1.4,
+          5: 1.6}
+
+    # times of end of star formation (Myr)
+    times = {0: 4.25,
+             1: 4.29,
+             2: 10.01,
+             3: 5.93,
+             4: 8.87,
+             5: 7.74}
+
+    fig = pyplot.figure()
+
+    pyplot.scatter(x=times.values(),
+                   y=Fd.values(),
+                   c='k')
+
+    # Observational points
+    # Region: (age, Fd)
+    # Cartwright & Whitworth 2004, references for ages in each row
+    CW2004 = {'IC 2391': (53, 2.2),  # Barrado et al. 2001
+          'Chamaeleon': ((2.5, 0.5), 2.25),  # Luhman et al. 2007
+          'Taurus': (1.0, 1.5)}  # C&W 2004
+
+    pyplot.errorbar(x=(53, 2.5, 1.0),
+                   y=(2.2, 2.25, 1.5),
+                   xerr=(0.0, 0.5, 0.0),
+                   color='r',
+                   fmt='o',
+                   label='Cartwright & Whitworth 2004')
+
+    Hartmann2002 = {'Taurus': ((1.02, 0.04), 1.0)}
+
+    pyplot.errorbar(x=(1.0),
+                   y=(1.02),
+                   yerr=(0.04),
+                   color='b',
+                   fmt='o',
+                   label='Hartmann 2002')
+
+    # Kraus & Hillenbrand 2008
+    KH2008 = {'Taurus': ((1.049, 0.007), 1.0),
+              'Upper Sco': ((0.69, 0.09), (8, 3))}  # Carpenter et al 2006
+
+    Simon1997 = {'Taurus': ((1.5, 0.2), 1.0),
+                 'Ophiuchus': ((1.5, 0.2), (1.6, 1.4)),  # Bontemps 2001
+                 'Trapezium': ((1.5, 0.2), 1.0)}  # Hillenbrand & Hartmann 1998
+
+
 def main(open_path, nruns, save, save_path):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
     #fractal_dimension(open_path, nruns, save, save_path)
-    fd_vs_time(open_path, nruns, save, save_path)
+    #fd_vs_time(open_path, nruns, save, save_path)
+    fd_scatter(open_path, nruns, save, save_path)
 
     if not save:
         pyplot.show()
