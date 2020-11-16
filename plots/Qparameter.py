@@ -8,7 +8,40 @@ from mycolors import *
 from legends import *
 
 
-def fractal_dimension(open_path, nruns):
+def Q_vs_time(open_path, nruns):
+    fig = pyplot.figure()
+
+    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+    Qparam = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+    for n in range(nruns):
+        path = '{0}/{1}/disks/'.format(open_path, n)
+        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+        files = [x for x in files if '.hdf5' in x]
+        files.sort(key=lambda f: float(filter(str.isdigit, f)))
+
+        for f in files[1:]:
+            stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+            t = float(f.split('t')[1].split('.hdf5')[0])
+            q = stars.Qparameter()
+            times[n].append(t)
+            Qparam[n].append(q)
+
+    for n in range(nruns):
+        pyplot.plot(times[n],
+                    Qparam[n],
+                    lw=3,
+                    c=runcolors[n],
+                    label=r'Run \#{0}'.format(n))
+
+    pyplot.xlabel('Time [Myr]')
+    pyplot.ylabel('Q parameter')
+
+    pyplot.legend()
+    pyplot.show()
+
+
+def Q_parameter(open_path, nruns):
     for n in range(nruns):
         path = '{0}/{1}/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
@@ -25,44 +58,11 @@ def fractal_dimension(open_path, nruns):
         t -= 10 | units.Myr
         if t < 1.0 | units.Myr:
             t += 10 | units.Myr
-        fd = stars.box_counting_dimension()
+        Q = stars.Qparameter()
 
-        print "Run {0}, t = {1:.3f} Myr, Fd = {2}".format(n,
+        print "Run {0}, t = {1:.3f} Myr, Q = {2}".format(n,
                                                           t.value_in(units.Myr),
-                                                          fd)
-
-
-def fd_vs_time(open_path, nruns):
-    fig = pyplot.figure()
-
-    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
-    dimension = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
-
-    for n in range(nruns):
-        path = '{0}/{1}/disks/'.format(open_path, n)
-        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-        files = [x for x in files if '.hdf5' in x]
-        files.sort(key=lambda f: float(filter(str.isdigit, f)))
-
-        for f in files[1:]:
-            stars = read_set_from_file(path + f, 'hdf5', close_file=True)
-            t = float(f.split('t')[1].split('.hdf5')[0])
-            fd = stars.box_counting_dimension()
-            times[n].append(t)
-            dimension[n].append(fd)
-
-    for n in range(nruns):
-        pyplot.plot(times[n],
-                    dimension[n],
-                    lw=3,
-                    c=runcolors[n],
-                    label=r'Run \#{0}'.format(n))
-
-    pyplot.xlabel('Time [Myr]')
-    pyplot.ylabel(r'$F_d$')
-
-    pyplot.legend()
-    pyplot.show()
+                                                          Q)
 
 
 def main(open_path, nruns):
@@ -71,6 +71,7 @@ def main(open_path, nruns):
 
     #fractal_dimension(open_path, nruns)
     fd_vs_time(open_path, nruns)
+    #Q_parameter(open_path, nruns)
 
 
 def new_option_parser():
