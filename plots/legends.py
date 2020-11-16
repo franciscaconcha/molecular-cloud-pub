@@ -16,16 +16,12 @@ labels = {'R01': 'R = 0.1 pc',
           'N1E4R25': 'R = 2.5 pc',
           'N1E4R5': 'R = 5 pc'}
 
-Ns = {0: 6369,
-      1: 6273,
-      2: 6161,
-      3: 6258,
-      4: 5717,
-      5: 6288,
-      6: 5218,
-      7: 6081,
-      8: 6221,
-      9: 5817}
+Ns = {0: 6289,
+      1: 6315,
+      2: 6162,
+      3: 6283,
+      4: 5691,
+      5: 6137}
 
 cmap = matplotlib.colors.ListedColormap(seaborn.color_palette('cubehelix', 13))
 cmap_colors = []

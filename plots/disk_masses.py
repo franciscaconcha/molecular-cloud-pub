@@ -34,7 +34,7 @@ def dust_mass_vs_local_density(open_path, save_path, t_end, nruns, save):
 
     for n in range(nruns):
         N = Ns[n]
-        f = '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, t_end)
+        f = '{0}/{1}/disks/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, t_end)
         stars = io.read_set_from_file(f, 'hdf5', close_file=True)
         stars = stars[stars.born]
         stars = stars[stars.disked]
@@ -143,7 +143,7 @@ def mean_mass_in_time(open_path, save_path, nruns):
     masses = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for n in range(nruns):
-        path = '{0}/{1}/prep/'.format(open_path, n)
+        path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         files = [x for x in files if '.hdf5' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))

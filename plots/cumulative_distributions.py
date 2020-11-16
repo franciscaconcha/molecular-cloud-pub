@@ -20,7 +20,7 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 	cumulative = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
 	for n in range(nruns):
-		path = '{0}/{1}/'.format(open_path, n)
+		path = '{0}/{1}/disks/'.format(open_path, n)
 		files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
 		files = [x for x in files if '.hdf5' in x]
 		files.sort(key=lambda f: float(filter(str.isdigit, f)))

@@ -26,15 +26,15 @@ def Rvir(open_path, save_path, nruns, save):
     Rvir = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for n in range(nruns):
-        path = '{0}/{1}/'.format(open_path, n)
+        path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-        files = [x for x in files if 'hydro_stars' in x]
+        #files = [x for x in files if 'hydro_stars' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
         for f in files[1:-1]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
-            #t = float(f.split('t')[1].split('.hdf5')[0])
-            t = stars.get_timestamp().value_in(units.Myr)
+            t = float(f.split('t')[1].split('.hdf5')[0])
+            #t = stars.get_timestamp().value_in(units.Myr)
             times[n].append(t)
 
             vr = stars.virial_radius().value_in(units.parsec)
@@ -60,15 +60,15 @@ def Rhm(open_path, save_path, nruns, save):
     Rhm = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for n in range(nruns):
-        path = '{0}/{1}/'.format(open_path, n)
+        path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-        files = [x for x in files if 'hydro_stars' in x]
+        #files = [x for x in files if 'hydro_stars' in x]
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
         for f in files[1:-1]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
-            # t = float(f.split('t')[1].split('.hdf5')[0])
-            t = stars.get_timestamp().value_in(units.Myr)
+            t = float(f.split('t')[1].split('.hdf5')[0])
+            #t = stars.get_timestamp().value_in(units.Myr)
 
             converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), 3.0 | units.parsec)
 
