@@ -8,7 +8,7 @@ from mycolors import *
 from legends import *
 
 
-def fractal_dimension(open_path, nruns):
+def fractal_dimension(open_path, nruns, save, save_path):
     for n in range(nruns):
         path = '{0}/{1}/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
@@ -32,8 +32,8 @@ def fractal_dimension(open_path, nruns):
                                                           fd)
 
 
-def fd_vs_time(open_path, nruns):
-    fig = pyplot.figure()
+def fd_vs_time(open_path, nruns, save, save_path):
+    fig1, axs1 = pyplot.subplots(1)
 
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     dimension = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
@@ -52,25 +52,30 @@ def fd_vs_time(open_path, nruns):
             dimension[n].append(fd)
 
     for n in range(nruns):
-        pyplot.plot(times[n],
-                    dimension[n],
-                    lw=3,
-                    c=runcolors[n],
-                    label=r'Run \#{0}'.format(n))
+        axs1.plot(times[n],
+                  dimension[n],
+                  lw=3,
+                  c=runcolors[n],
+                  label=r'Run \#{0}'.format(n))
 
-    pyplot.xlabel('Time [Myr]')
-    pyplot.ylabel(r'$F_d$')
+    axs1.xlabel('Time [Myr]')
+    axs1.ylabel(r'$F_d$')
 
-    pyplot.legend()
-    pyplot.show()
+    axs1.legend()
+
+    if save:
+        pyplot.savefig('{0}/Fd.png'.format(save_path))
 
 
-def main(open_path, nruns):
+def main(open_path, nruns, save, save_path):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    #fractal_dimension(open_path, nruns)
-    fd_vs_time(open_path, nruns)
+    #fractal_dimension(open_path, nruns, save, save_path)
+    fd_vs_time(open_path, nruns, save, save_path)
+
+    if not save:
+        pyplot.show()
 
 
 def new_option_parser():
@@ -81,6 +86,10 @@ def new_option_parser():
                       help="path to results to plot [%default]")
     result.add_option("-n", dest="nruns", type="int", default=1,
                       help="number of runs to plot for averages [%default]")
+    result.add_option("-S", dest="save", type="int", default=0,
+                      help="save plot? [%default]")
+    result.add_option("-s", dest="save_path", type="string", default='/media/fran/data1/photoevap-paper/figures',
+                      help="path to save the results [%default]")
     return result
 
 

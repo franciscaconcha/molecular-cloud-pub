@@ -8,7 +8,7 @@ from mycolors import *
 from legends import *
 
 
-def Q_vs_time(open_path, nruns):
+def Q_vs_time(open_path, nruns, save, save_path):
     fig = pyplot.figure()
 
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
@@ -38,7 +38,9 @@ def Q_vs_time(open_path, nruns):
     pyplot.ylabel('Q parameter')
 
     pyplot.legend()
-    pyplot.show()
+
+    if save:
+        pyplot.savefig('{0}/Qparam.png'.format(save_path))
 
 
 def Q_parameter(open_path, nruns):
@@ -65,12 +67,12 @@ def Q_parameter(open_path, nruns):
                                                           Q)
 
 
-def main(open_path, nruns):
+def main(open_path, nruns, save, save_path):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
     #fractal_dimension(open_path, nruns)
-    fd_vs_time(open_path, nruns)
+    Q_vs_time(open_path, nruns, save, save_path)
     #Q_parameter(open_path, nruns)
 
 
@@ -82,6 +84,10 @@ def new_option_parser():
                       help="path to results to plot [%default]")
     result.add_option("-n", dest="nruns", type="int", default=1,
                       help="number of runs to plot for averages [%default]")
+    result.add_option("-S", dest="save", type="int", default=0,
+                      help="save plot? [%default]")
+    result.add_option("-s", dest="save_path", type="string", default='/media/fran/data1/photoevap-paper/figures',
+                      help="path to save the results [%default]")
     return result
 
 
