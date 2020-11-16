@@ -1,0 +1,21 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - {name: Region, datatype: string}
+# - {name: Fd, datatype: float64}
+# - {name: Fd_error, datatype: float64}
+# - {name: Age, datatype: float64}
+# - {name: Age_error, datatype: float64}
+# - {name: Fd_source, datatype: string}
+# - {name: Age_source, datatype: string}
+# schema: astropy-2.0
+Region         Fd      Fd_error    Age     Age_error   Fd_source   Age_source
+#'IC2391'       2.2     0.0         53      0.0         CW2004      Barrado2001
+'Chamaeleon'    2.25    0.0         2.5     0.5         CW2004      Luhman2007
+'Taurus'        1.5     0.0         1.0     0.0         CW2004      CW2004
+'Taurus'        1.02    0.04        1.0     0.0         H2002       CW2004
+'Taurus'        1.049   0.007       1.0     0.0         KH2008      CW2004
+'UpperSco'     0.69    0.09        8.0     3.0         KH2008      Carpenter2006
+'Taurus'        1.5     0.2         1.0     0.0         Simon1997   CW2004
+'Ophiuchus'     1.5     0.2         1.6     1.4         Simon1997   Bontemps2001
+'Trapezium'     1.5     0.2         1.0     0.0         Simon1997   Hillenbrand1998

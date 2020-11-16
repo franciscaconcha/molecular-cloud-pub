@@ -5,7 +5,6 @@ from amuse.lab import *
 from amuse import io
 
 from mycolors import *
-from legends import *
 
 
 def fractal_dimension(open_path, nruns, save, save_path):
@@ -89,38 +88,85 @@ def fd_scatter(open_path, nruns, save, save_path):
 
     pyplot.scatter(x=times.values(),
                    y=Fd.values(),
-                   c='k')
+                   c='k',
+                   marker='D',
+                   s=120,
+                   alpha=0.8,
+                   label='Simulations'
+                   )
 
     # Observational points
-    # Region: (age, Fd)
-    # Cartwright & Whitworth 2004, references for ages in each row
-    CW2004 = {'IC 2391': (53, 2.2),  # Barrado et al. 2001
-          'Chamaeleon': ((2.5, 0.5), 2.25),  # Luhman et al. 2007
-          'Taurus': (1.0, 1.5)}  # C&W 2004
+    refs = {'CW2004': r'Cartwright \& Whitworth 2004',
+            'H2002': r'Hartmann 2002',
+            'KH2008': r'Kraus \& Hillenbrand 2008',
+            'Simon1997': r'Simon 1997'}
 
-    pyplot.errorbar(x=(53, 2.5, 1.0),
-                   y=(2.2, 2.25, 1.5),
-                   xerr=(0.0, 0.5, 0.0),
-                   color='r',
-                   fmt='o',
-                   label='Cartwright & Whitworth 2004')
+    from astropy.table import Table
+    data = Table.read('data/Fd_data.txt', format='ascii.ecsv')
+    CW2004 = data[data['Fd_source'] == 'CW2004']
+    H2002 = data[data['Fd_source'] == 'H2002']
+    KH2008 = data[data['Fd_source'] == 'KH2008']
+    Simon1997 = data[data['Fd_source'] == 'Simon1997']
 
-    Hartmann2002 = {'Taurus': ((1.02, 0.04), 1.0)}
+    markers, caps, bars = pyplot.errorbar(CW2004['Age'],
+                                            CW2004['Fd'],
+                                            xerr=CW2004['Age_error'],
+                                            yerr=CW2004['Fd_error'],
+                                            c=colors['yellow'],
+                                            label=refs['CW2004'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None')
+    [bar.set_alpha(0.5) for bar in bars]
 
-    pyplot.errorbar(x=(1.0),
-                   y=(1.02),
-                   yerr=(0.04),
-                   color='b',
-                   fmt='o',
-                   label='Hartmann 2002')
+    markers, caps, bars = pyplot.errorbar(H2002['Age'],
+                                            H2002['Fd'],
+                                            xerr=H2002['Age_error'],
+                                            yerr=H2002['Fd_error'],
+                                            c=colors['red'],
+                                            label=refs['H2002'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None'
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]
 
-    # Kraus & Hillenbrand 2008
-    KH2008 = {'Taurus': ((1.049, 0.007), 1.0),
-              'Upper Sco': ((0.69, 0.09), (8, 3))}  # Carpenter et al 2006
+    markers, caps, bars = pyplot.errorbar(KH2008['Age'],
+                                            KH2008['Fd'],
+                                            xerr=KH2008['Age_error'],
+                                            yerr=KH2008['Fd_error'],
+                                            c=colors['turquoise'],
+                                            label=refs['KH2008'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None'
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]
 
-    Simon1997 = {'Taurus': ((1.5, 0.2), 1.0),
-                 'Ophiuchus': ((1.5, 0.2), (1.6, 1.4)),  # Bontemps 2001
-                 'Trapezium': ((1.5, 0.2), 1.0)}  # Hillenbrand & Hartmann 1998
+    markers, caps, bars = pyplot.errorbar(Simon1997['Age'],
+                                            Simon1997['Fd'],
+                                            xerr=Simon1997['Age_error'],
+                                            yerr=Simon1997['Fd_error'],
+                                            c=colors['orange'],
+                                            label=refs['Simon1997'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None'
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]
+
+    #pyplot.xscale('log')
+    pyplot.legend(fontsize=18)
+    pyplot.xlabel('Age [Myr]')
+    pyplot.ylabel(r'$F_d$', fontsize=24)
 
 
 def main(open_path, nruns, save, save_path):

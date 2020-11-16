@@ -26,7 +26,7 @@ for i in range(cmap.N):
 # Just more pleasant to look at (to me) than basic matplotlib colors
 colors = {'blue': cmap_colors[0],  # blue
           'orange': cmap_colors[1],  # orange
-          'green': cmap_colors[2],  # green
+          'green': adjust_lightness(cmap_colors[2], 0.6),  # green
           'red': cmap_colors[3],  # red
           'purple': cmap_colors[4],  # purple
           'brown': cmap_colors[5],  # brown
