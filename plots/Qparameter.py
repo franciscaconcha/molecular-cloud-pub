@@ -60,6 +60,7 @@ def Q_parameter(open_path, nruns):
         t -= 10 | units.Myr
         if t < 1.0 | units.Myr:
             t += 10 | units.Myr
+        stars = stars.bound_subset()
         Q = stars.Qparameter()
 
         print "Run {0}, t = {1:.3f} Myr, Q = {2}".format(n,
@@ -71,9 +72,8 @@ def main(open_path, nruns, save, save_path):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    #fractal_dimension(open_path, nruns)
-    Q_vs_time(open_path, nruns, save, save_path)
-    #Q_parameter(open_path, nruns)
+    #Q_vs_time(open_path, nruns, save, save_path)
+    Q_parameter(open_path, nruns)
 
 
 def new_option_parser():

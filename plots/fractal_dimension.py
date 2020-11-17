@@ -159,14 +159,55 @@ def fd_scatter(open_path, nruns, save, save_path):
                                             ms=12,
                                             elinewidth=2,
                                             capsize=2,
-                                            ls='None'
+                                            ls='None',
+                                            fillstyle='none',
+                                            mew=2,  # marker edge width
                                             )
     [bar.set_alpha(0.5) for bar in bars]
+
+    for i, txt in enumerate(CW2004['Region']):
+        if txt == 'Taurus':
+            pyplot.annotate(txt,
+                                (CW2004[i]['Age'] - 1.1, CW2004[i]['Fd'] - 0.10),
+                                fontsize=20,
+                                color=colors['yellow'])
+        else:
+            pyplot.annotate(txt,
+                                (CW2004[i]['Age'] - 1.8, CW2004[i]['Fd'] - 0.10),
+                                fontsize=20,
+                                color=colors['yellow'])
+
+    for i, txt in enumerate(H2002['Region']):
+        pyplot.annotate(txt,
+                            (H2002[i]['Age'] + .1, H2002[i]['Fd'] - 0.10),
+                            fontsize=20,
+                            color=colors['red'])
+
+    for i, txt in enumerate(KH2008['Region']):
+        pyplot.annotate(txt,
+                            (KH2008[i]['Age'] + .1, KH2008[i]['Fd'] + 0.02),
+                            fontsize=20,
+                            color=colors['turquoise'])
+
+    for i, txt in enumerate(Simon1997['Region']):
+        if txt == 'Ophiuchus':
+            pyplot.annotate(txt,
+                                (Simon1997[i]['Age'] + .1, Simon1997[i]['Fd'] + 0.02),
+                                fontsize=20,
+                                color=colors['orange'])
+        elif txt == 'Trapezium':
+            pyplot.annotate(txt,
+                                (Simon1997[i]['Age'] - 1.3, Simon1997[i]['Fd'] + 0.02),
+                                fontsize=16,
+                                color=colors['orange'])
 
     #pyplot.xscale('log')
     pyplot.legend(fontsize=18)
     pyplot.xlabel('Age [Myr]')
     pyplot.ylabel(r'$F_d$', fontsize=24)
+
+    if save:
+        pyplot.savefig('{0}/Fd_vs_age.png'.format(save_path))
 
 
 def main(open_path, nruns, save, save_path):
