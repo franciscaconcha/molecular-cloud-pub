@@ -61,7 +61,7 @@ def Q_parameter(open_path, nruns):
         if t < 1.0 | units.Myr:
             t += 10 | units.Myr
         Rvir = stars.virial_radius()
-        converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), 3.0 | units.parsec)
+        converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
         stars = stars.bound_subset(tidal_radius=Rvir, unit_converter=converter)
         Q = stars.Qparameter()
 
