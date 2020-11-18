@@ -43,6 +43,29 @@ def Rvir(open_path, save_path, nruns, save):
     for n in range(nruns):
         pyplot.plot(times[n], Rvir[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
 
+    print "RVIR"
+    print times
+    print Rvir
+
+    # Plummer
+    path = '{0}/plummer10k/'.format(open_path)
+    files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+    # files = [x for x in files if 'hydro_stars' in x]
+    files.sort(key=lambda f: float(filter(str.isdigit, f)))
+
+    pt, pRvir = [], []
+
+    for f in files[1:-1]:
+        stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+        t = float(f.split('t')[1].split('.hdf5')[0])
+        # t = stars.get_timestamp().value_in(units.Myr)
+        pt.append(t)
+
+        vr = stars.virial_radius().value_in(units.parsec)
+        pRvir.append(vr)
+
+    pyplot.plot(pt, pRvir, c='k', lw=3, label=r'Plummer sphere, $N_* = 10^4$')
+
     pyplot.legend(loc='best', ncol=2)
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$\mathrm{R}_\mathrm{vir}$ [pc]')
@@ -81,6 +104,32 @@ def Rhm(open_path, save_path, nruns, save):
     for n in range(nruns):
         pyplot.plot(times[n], Rhm[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
 
+    print "RHM"
+    print times
+    print Rhm
+
+    # Plummer
+    path = '{0}/plummer10k/'.format(open_path)
+    files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+    # files = [x for x in files if 'hydro_stars' in x]
+    files.sort(key=lambda f: float(filter(str.isdigit, f)))
+
+    pt, pRhm = [], []
+
+    for f in files[1:-1]:
+        stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+        t = float(f.split('t')[1].split('.hdf5')[0])
+        # t = stars.get_timestamp().value_in(units.Myr)
+        pt.append(t)
+
+        converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), 2.5 | units.parsec)
+
+        r_hm, mf = stars.LagrangianRadii(mf=[0.5], unit_converter=converter)
+        hmr = r_hm.value_in(units.parsec)[0]
+        pRhm.append(hmr)
+
+    pyplot.plot(pt, pRhm, c='k', lw=3, label=r'Plummer sphere, $N_* = 10^4$')
+
     pyplot.legend(loc='best', ncol=2)
 
     pyplot.xlabel('Time [Myr]')
@@ -88,11 +137,9 @@ def Rhm(open_path, save_path, nruns, save):
     pyplot.ylabel(r'$\mathrm{R}_\mathrm{hm}$ [pc]')
 
     if save:
-
         pyplot.savefig('{0}/Rhm.png'.format(save_path))
 
     else:
-
         pyplot.show()
 
 
