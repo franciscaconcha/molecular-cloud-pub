@@ -1,5 +1,6 @@
 from matplotlib import pyplot
 import os
+import numpy
 
 from amuse.lab import *
 from amuse import io
@@ -37,7 +38,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     dimension = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-    for n in range(nruns):
+    """for n in range(nruns):
         path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         files = [x for x in files if '.hdf5' in x]
@@ -48,22 +49,60 @@ def fd_vs_time(open_path, nruns, save, save_path):
             t = float(f.split('t')[1].split('.hdf5')[0])
             fd = stars.box_counting_dimension()
             times[n].append(t)
-            dimension[n].append(fd)
+            dimension[n].append(fd)"""
+
+    from read_fd import times, dimension, end_times, plummert, plummerfd
+
+    # Find the index in time[n] when star formation ends
+    indexes = []
+    for n in range(nruns):
+        i = 0
+        for t in times[n]:
+            if t < end_times[n]:
+                i += 1
+        indexes.append(i)
 
     for n in range(nruns):
-        axs1.plot(times[n],
-                  dimension[n],
+        i = indexes[n]
+        axs1.plot(times[n][:i],
+                  dimension[n][:i],
                   lw=3,
                   c=runcolors[n],
                   label=r'Run \#{0}'.format(n))
+        axs1.plot(times[n][i:],
+                  dimension[n][i:],
+                  lw=3,
+                  ls=":",
+                  c=runcolors[n],
+                  )
 
-    axs1.xlabel('Time [Myr]')
-    axs1.ylabel(r'$F_d$')
+    """path = '{0}/plummer10k/'.format(open_path)
+    files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+    files = [x for x in files if '.hdf5' in x]
+    files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-    axs1.legend()
+    pt, pd = [], []
+
+    for f in files[1:]:
+        stars = read_set_from_file(path + f, 'hdf5', close_file=True)
+        t = float(f.split('t')[1].split('.hdf5')[0])
+        fd = stars.box_counting_dimension()
+        pt.append(t)
+        pd.append(fd)"""
+
+    axs1.plot(plummert,
+              plummerfd,
+              lw=3,
+              c='k',
+              label=r'Plummer sphere')
+
+    axs1.set_xlabel('Time [Myr]')
+    axs1.set_ylabel(r'$F_d$')
+
+    pyplot.legend(loc='upper right', ncol=2, fontsize=20)
 
     if save:
-        pyplot.savefig('{0}/Fd.png'.format(save_path))
+        pyplot.savefig('{0}/Fd_vs_time.png'.format(save_path))
 
 
 def fd_scatter(open_path, nruns, save, save_path):
@@ -99,7 +138,8 @@ def fd_scatter(open_path, nruns, save, save_path):
     refs = {'CW2004': r'Cartwright \& Whitworth 2004',
             'H2002': r'Hartmann 2002',
             'KH2008': r'Kraus \& Hillenbrand 2008',
-            'Simon1997': r'Simon 1997'}
+            'Simon1997': r'Simon 1997',
+            'Parker2014': r'Parker 2014'}
 
     from astropy.table import Table
     data = Table.read('data/Fd_data.txt', format='ascii.ecsv')
@@ -107,47 +147,7 @@ def fd_scatter(open_path, nruns, save, save_path):
     H2002 = data[data['Fd_source'] == 'H2002']
     KH2008 = data[data['Fd_source'] == 'KH2008']
     Simon1997 = data[data['Fd_source'] == 'Simon1997']
-
-    markers, caps, bars = pyplot.errorbar(CW2004['Age'],
-                                            CW2004['Fd'],
-                                            xerr=CW2004['Age_error'],
-                                            yerr=CW2004['Fd_error'],
-                                            c=colors['yellow'],
-                                            label=refs['CW2004'],
-                                            marker='D',
-                                            ms=12,
-                                            elinewidth=2,
-                                            capsize=2,
-                                            ls='None')
-    [bar.set_alpha(0.5) for bar in bars]
-
-    markers, caps, bars = pyplot.errorbar(H2002['Age'],
-                                            H2002['Fd'],
-                                            xerr=H2002['Age_error'],
-                                            yerr=H2002['Fd_error'],
-                                            c=colors['red'],
-                                            label=refs['H2002'],
-                                            marker='D',
-                                            ms=12,
-                                            elinewidth=2,
-                                            capsize=2,
-                                            ls='None'
-                                            )
-    [bar.set_alpha(0.5) for bar in bars]
-
-    markers, caps, bars = pyplot.errorbar(KH2008['Age'],
-                                            KH2008['Fd'],
-                                            xerr=KH2008['Age_error'],
-                                            yerr=KH2008['Fd_error'],
-                                            c=colors['turquoise'],
-                                            label=refs['KH2008'],
-                                            marker='D',
-                                            ms=12,
-                                            elinewidth=2,
-                                            capsize=2,
-                                            ls='None'
-                                            )
-    [bar.set_alpha(0.5) for bar in bars]
+    #Sanchez2009 = data[data['Fd_source'] == 'Sanchez2009']
 
     markers, caps, bars = pyplot.errorbar(Simon1997['Age'],
                                             Simon1997['Fd'],
@@ -164,6 +164,63 @@ def fd_scatter(open_path, nruns, save, save_path):
                                             mew=2,  # marker edge width
                                             )
     [bar.set_alpha(0.5) for bar in bars]
+
+    markers, caps, bars = pyplot.errorbar(H2002['Age'],
+                                            H2002['Fd'],
+                                            xerr=H2002['Age_error'],
+                                            yerr=H2002['Fd_error'],
+                                            c=colors['red'],
+                                            label=refs['H2002'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None'
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]
+
+    markers, caps, bars = pyplot.errorbar(CW2004['Age'],
+                                            CW2004['Fd'],
+                                            xerr=CW2004['Age_error'],
+                                            yerr=CW2004['Fd_error'],
+                                            c=colors['yellow'],
+                                            label=refs['CW2004'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None',
+                                            zorder=1)
+    [bar.set_alpha(0.5) for bar in bars]
+
+    markers, caps, bars = pyplot.errorbar(KH2008['Age'],
+                                            KH2008['Fd'],
+                                            xerr=KH2008['Age_error'],
+                                            yerr=KH2008['Fd_error'],
+                                            c=colors['turquoise'],
+                                            label=refs['KH2008'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None'
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]
+
+    """markers, caps, bars = pyplot.errorbar(numpy.exp(Sanchez2009['Age']),
+                                            Sanchez2009['Fd'],
+                                            xerr=Sanchez2009['Age_error'],
+                                            yerr=Sanchez2009['Fd_error'],
+                                            c=colors['brown'],
+                                            label=refs['Sanchez2009'],
+                                            marker='D',
+                                            ms=12,
+                                            elinewidth=2,
+                                            capsize=2,
+                                            ls='None',
+                                            #alpha=0.5,
+                                            )
+    [bar.set_alpha(0.5) for bar in bars]"""
 
     for i, txt in enumerate(CW2004['Region']):
         if txt == 'Taurus':
@@ -215,8 +272,8 @@ def main(open_path, nruns, save, save_path):
     pyplot.style.use('paper')
 
     #fractal_dimension(open_path, nruns, save, save_path)
-    #fd_vs_time(open_path, nruns, save, save_path)
-    fd_scatter(open_path, nruns, save, save_path)
+    fd_vs_time(open_path, nruns, save, save_path)
+    #fd_scatter(open_path, nruns, save, save_path)
 
     if not save:
         pyplot.show()

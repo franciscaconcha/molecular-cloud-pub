@@ -25,7 +25,7 @@ def Rvir(open_path, save_path, nruns, save):
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     Rvir = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-    for n in range(nruns):
+    """for n in range(nruns):
         path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         #files = [x for x in files if 'hydro_stars' in x]
@@ -38,19 +38,40 @@ def Rvir(open_path, save_path, nruns, save):
             times[n].append(t)
 
             vr = stars.virial_radius().value_in(units.parsec)
-            Rvir[n].append(vr)
+            Rvir[n].append(vr)"""
+
+    from read_radii import times, Rvir, plummertimes, plummerRvir, end_times
+
+    # Find the index in time[n] when star formation ends
+    indexes = []
+    for n in range(nruns):
+        i = 0
+        for t in times[n]:
+            if t < end_times[n]:
+                i += 1
+        indexes.append(i)
 
     for n in range(nruns):
-        pyplot.plot(times[n], Rvir[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
+        i = indexes[n]
+        pyplot.plot(times[n][:i],
+                    Rvir[n][:i],
+                    lw=3,
+                    c=runcolors[n],
+                    label=r'Run \#{0}'.format(n))
+        pyplot.plot(times[n][i:],
+                    Rvir[n][i:],
+                    lw=3,
+                    ls=":",
+                    c=runcolors[n],
+                    )
 
-    print "RVIR"
-    print times
-    print Rvir
+    #for n in range(nruns):
+    #    pyplot.plot(times[n], Rvir[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
 
     # Plummer
-    path = '{0}/plummer10k/'.format(open_path)
+    """path = '{0}/plummer10k/'.format(open_path)
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-    # files = [x for x in files if 'hydro_stars' in x]
+    files = [x for x in files if '.hdf5' in x]
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
     pt, pRvir = [], []
@@ -64,9 +85,11 @@ def Rvir(open_path, save_path, nruns, save):
         vr = stars.virial_radius().value_in(units.parsec)
         pRvir.append(vr)
 
-    pyplot.plot(pt, pRvir, c='k', lw=3, label=r'Plummer sphere, $N_* = 10^4$')
+    print pRvir"""
 
-    pyplot.legend(loc='best', ncol=2)
+    pyplot.plot(plummertimes, plummerRvir, c='k', lw=3, label=r'Plummer sphere')
+
+    pyplot.legend(loc='best', ncol=2, fontsize=20)
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$\mathrm{R}_\mathrm{vir}$ [pc]')
 
@@ -82,7 +105,7 @@ def Rhm(open_path, save_path, nruns, save):
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     Rhm = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-    for n in range(nruns):
+    """for n in range(nruns):
         path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         #files = [x for x in files if 'hydro_stars' in x]
@@ -99,19 +122,40 @@ def Rhm(open_path, save_path, nruns, save):
             hmr = r_hm.value_in(units.parsec)[0]
 
             times[n].append(t)
-            Rhm[n].append(hmr)
+            Rhm[n].append(hmr)"""
+
+    from read_radii import times, Rhm, plummertimes, plummerRhm, end_times
+
+    # Find the index in time[n] when star formation ends
+    indexes = []
+    for n in range(nruns):
+        i = 0
+        for t in times[n]:
+            if t < end_times[n]:
+                i += 1
+        indexes.append(i)
 
     for n in range(nruns):
-        pyplot.plot(times[n], Rhm[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
+        i = indexes[n]
+        pyplot.plot(times[n][:i],
+                    Rhm[n][:i],
+                    lw=3,
+                    c=runcolors[n],
+                    label=r'Run \#{0}'.format(n))
+        pyplot.plot(times[n][i:],
+                    Rhm[n][i:],
+                    lw=3,
+                    ls=":",
+                    c=runcolors[n],
+                    )
 
-    print "RHM"
-    print times
-    print Rhm
+    #for n in range(nruns):
+    #    pyplot.plot(times[n], Rhm[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
 
     # Plummer
-    path = '{0}/plummer10k/'.format(open_path)
+    """path = '{0}/plummer10k/'.format(open_path)
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-    # files = [x for x in files if 'hydro_stars' in x]
+    files = [x for x in files if '.hdf5' in x]
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
     pt, pRhm = [], []
@@ -128,9 +172,13 @@ def Rhm(open_path, save_path, nruns, save):
         hmr = r_hm.value_in(units.parsec)[0]
         pRhm.append(hmr)
 
-    pyplot.plot(pt, pRhm, c='k', lw=3, label=r'Plummer sphere, $N_* = 10^4$')
+    print "RHM"
+    print pt
+    print pRhm"""
 
-    pyplot.legend(loc='best', ncol=2)
+    pyplot.plot(plummertimes, plummerRhm, c='k', lw=3, label=r'Plummer sphere')
+
+    pyplot.legend(loc='best', fontsize=20)
 
     pyplot.xlabel('Time [Myr]')
 
