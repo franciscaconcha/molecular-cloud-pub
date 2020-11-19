@@ -19,13 +19,30 @@ from legends import *
 
 
 def local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save):
-    fig = pyplot.figure()
+    fig, (ax1, ax2) = pyplot.subplots(nrows=1,
+                                            ncols=2,
+                                            sharey=True,
+                                            figsize=(18, 8))
 
     for n in range(nruns):
-        pyplot.clf()
-        N = Ns[n]
-        f = '{0}/{1}/disks/N{2}_t{3:.3f}.hdf5'.format(open_path, n, N, t_end)
-        stars = io.read_set_from_file(f, 'hdf5', close_file=True)
+        path = '{0}/{1}/disks/'.format(open_path, n)
+        files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
+        files = [x for x in files if '.hdf5' in x]
+        files.sort(key=lambda f: float(filter(str.isdigit, f)))
+
+        # Indices for time in which star formation ends for each run
+        sf_end_indices = [85, 86, 224, 127, 196, 171]
+
+        first_file = files[sf_end_indices[n]]
+        last_file = files[-1]
+
+        min_mass = 0.1 * (0.08 | units.MSun).value_in(units.MJupiter)
+        max_mass = 0.1 * (1.9 | units.MSun).value_in(units.MJupiter)
+
+        print min_mass, max_mass
+
+        # First file
+        stars = io.read_set_from_file(path + first_file, 'hdf5', close_file=True)
         stars = stars[stars.disked]
 
         positions = []
@@ -38,33 +55,89 @@ def local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save):
         tree = KDTree(positions)
 
         nearest_dist, nearest_ind = tree.query(positions, k=5)
-        #print(nearest_dist)  # drop id; assumes sorted -> see args!
-        #print(nearest_ind)
 
         for i in range(len(stars)):
             s = stars[i]
             distances_to_neighbours = nearest_dist[i]
             max_distance = max(distances_to_neighbours)
             s.local_density = 5. / ((4./3.) * numpy.pi * max_distance**3)
+            #s.local_density = 5. / (numpy.pi * max_distance ** 2)
 
-        pyplot.scatter(stars.local_density,
+        pyplot.set_cmap('viridis_r')
+
+        ax1.scatter(stars.local_density,
                        stars.disk_mass.value_in(units.MJupiter),
                        s=2 * stars.disk_radius.value_in(units.au),
-                       c=runcolors[n],
-                       alpha=0.5)#, norm=matplotlib.colors.LogNorm())
+                       #c=stars.initial_disk_mass.value_in(units.MJupiter),
+                       c='gray',
+                       alpha=0.3,
+                       edgecolors='none',
+                       #norm=matplotlib.colors.LogNorm(),
+                       #vmin=min_mass,
+                       #vmax=max_mass,
+                    )
 
-        pyplot.xscale('symlog')
-        pyplot.yscale('symlog')
+        # Last file
+        stars = io.read_set_from_file(path + last_file, 'hdf5', close_file=True)
+        stars = stars[stars.disked]
 
-        pyplot.xlabel(r'Local number density (5-NN) [pc$^{-3}$]')
-        pyplot.ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]')
-        pyplot.title('Run \#{0} at {1:.1f} Myr'.format(n, t_end))
+        positions = []
+        for s in stars:
+            positions.append(numpy.array([s.x.value_in(units.parsec),
+                                          s.y.value_in(units.parsec),
+                                          s.z.value_in(units.parsec)]))
+        positions = numpy.array(positions)
 
-        if save:
-            pyplot.savefig('{0}/density_vs_disk_mass/n{1}_{2:.1f}Myr.png'.format(save_path,
-                                                                                 n, t_end))
-        else:
-            pyplot.show()
+        tree = KDTree(positions)
+
+        nearest_dist, nearest_ind = tree.query(positions, k=5)
+
+        for i in range(len(stars)):
+            s = stars[i]
+            distances_to_neighbours = nearest_dist[i]
+            max_distance = max(distances_to_neighbours)
+            s.local_density = 5. / ((4. / 3.) * numpy.pi * max_distance ** 3)
+            # s.local_density = 5. / (numpy.pi * max_distance ** 2)
+
+        p = ax2.scatter(stars.local_density,
+                   stars.disk_mass.value_in(units.MJupiter),
+                   s=2 * stars.disk_radius.value_in(units.au),
+                   #c=stars.initial_disk_mass.value_in(units.MJupiter),
+                   c='gray',
+                   alpha=0.3,
+                   edgecolors='none',
+                   #norm=matplotlib.colors.LogNorm(),
+                   #vmin=min_mass,
+                   #vmax=max_mass,
+                    )
+
+    #divider = make_axes_locatable(ax2)
+    #cax = divider.append_axes('right', size='5%', pad=0.1)
+    #cbar = fig.colorbar(p, cax=cax, orientation='vertical')
+
+    ax1.set_xlim(left=0, right=1E7)
+    ax1.set_ylim(bottom=-0.5)
+
+    ax2.set_xlim(left=0, right=1E7)
+    ax2.set_ylim(bottom=-0.5)
+    ax2.yaxis.set_tick_params(labelleft=True)
+
+    ax1.set_xscale('symlog')
+    ax2.set_xscale('symlog')
+    #pyplot.yscale('log')
+
+    ax1.set_xlabel(r'Local number density (5-NN) [pc$^{-3}$]', fontsize=24)
+    ax2.set_xlabel(r'Local number density (5-NN) [pc$^{-3}$]', fontsize=24)
+    ax1.set_ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]', fontsize=24)
+    ax2.set_ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]', fontsize=24)
+
+    ax1.set_title('End of star formation')
+    ax2.set_title('End of simulations')
+
+    pyplot.tight_layout()
+
+    if save:
+        pyplot.savefig('{0}/scatterdisks.png'.format(save_path))
 
 
 def distance(star1,
@@ -110,10 +183,10 @@ def distance_vs_disk_mass(open_path, save_path, t_end, nruns, save):
                        c=runcolors[n],
                        alpha=0.5)#, norm=matplotlib.colors.LogNorm())
 
-        #pyplot.xscale('symlog')
-        pyplot.yscale('symlog')
+        pyplot.xscale('log')
+        pyplot.yscale('log')
 
-        pyplot.xlabel(r'Local number density (5-NN) [pc$^{-3}$]')
+        pyplot.xlabel(r'Mean distance to massive stars [pc]')
         pyplot.ylabel(r'Disc mass [$\mathrm{M}_{Jup}$]')
         pyplot.title('Run \#{0} at {1:.1f} Myr'.format(n, t_end))
 
@@ -129,8 +202,8 @@ def main(open_path, N, save_path, t_end, save, Rvir, distance, nruns, movie):
     # My own stylesheet, comment out if not needed
     pyplot.style.use('paper')
 
-    #local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save)
-    distance_vs_disk_mass(open_path, save_path, t_end, nruns, save)
+    local_density_vs_disk_mass(open_path, save_path, t_end, nruns, save)
+    #distance_vs_disk_mass(open_path, save_path, t_end, nruns, save)
 
     if not save:
         pyplot.show()
