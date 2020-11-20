@@ -54,7 +54,7 @@ def Q_vs_time(open_path, nruns, save, save_path):
     print plummert
     print plummerq
 
-    axs1.plot(plummert,
+    pyplot.plot(plummert,
               plummerq,
               lw=3,
               c='k',

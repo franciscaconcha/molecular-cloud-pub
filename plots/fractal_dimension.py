@@ -53,9 +53,9 @@ def fd_vs_time(open_path, nruns, save, save_path):
             dimension[n].append(fd)
 
     print times
-    print dimension 
+    print dimension
 
-    #from read_fd import times, dimension, end_times, plummert, plummerfd
+    from read_fd import end_times
 
     # Find the index in time[n] when star formation ends
     indexes = []
