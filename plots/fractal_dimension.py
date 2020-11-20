@@ -80,7 +80,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
                   c=runcolors[n],
                   )
 
-    path = '{0}/plummer6k/0/'.format(open_path)
+    path = '{0}/plummer6k/'.format(open_path)
     print path
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
     files = [x for x in files if '.hdf5' in x]
