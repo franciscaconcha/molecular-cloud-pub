@@ -38,7 +38,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     dimension = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-    """for n in range(nruns):
+    for n in range(nruns):
         path = '{0}/{1}/disks/'.format(open_path, n)
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
         files = [x for x in files if '.hdf5' in x]
@@ -49,9 +49,9 @@ def fd_vs_time(open_path, nruns, save, save_path):
             t = float(f.split('t')[1].split('.hdf5')[0])
             fd = stars.box_counting_dimension()
             times[n].append(t)
-            dimension[n].append(fd)"""
+            dimension[n].append(fd)
 
-    from read_fd import times, dimension, end_times, plummert, plummerfd
+    #from read_fd import times, dimension, end_times, plummert, plummerfd
 
     # Find the index in time[n] when star formation ends
     indexes = []
@@ -76,19 +76,22 @@ def fd_vs_time(open_path, nruns, save, save_path):
                   c=runcolors[n],
                   )
 
-    """path = '{0}/plummer10k/'.format(open_path)
+    path = '{0}/plummer6k/0/'.format(open_path)
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
     files = [x for x in files if '.hdf5' in x]
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-    pt, pd = [], []
+    plummert, plummerfd = [], []
 
     for f in files[1:]:
         stars = read_set_from_file(path + f, 'hdf5', close_file=True)
         t = float(f.split('t')[1].split('.hdf5')[0])
         fd = stars.box_counting_dimension()
-        pt.append(t)
-        pd.append(fd)"""
+        plummert.append(t)
+        plummerfd.append(fd)
+
+    print plummert
+    print plummerfd
 
     axs1.plot(plummert,
               plummerfd,
