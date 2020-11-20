@@ -55,7 +55,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
     print times
     print dimension"""
 
-    from read_fd import times, dimension, end_times
+    from read_fd import times, dimension, end_times, plummert, plummerfd
 
     # Find the index in time[n] when star formation ends
     indexes = []
@@ -88,7 +88,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
 
     plummert, plummerfd = [], []
 
-    for f in files[1:]:
+    """for f in files[1:]:
         stars = read_set_from_file(path + f, 'hdf5', close_file=True)
         t = float(f.split('t')[1].split('.hdf5')[0])
         fd = stars.box_counting_dimension()
@@ -96,7 +96,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
         plummerfd.append(fd)
 
     print plummert
-    print plummerfd
+    print plummerfd"""
 
     axs1.plot(plummert,
               plummerfd,
