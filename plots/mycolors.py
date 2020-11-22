@@ -31,9 +31,10 @@ colors = {'blue': cmap_colors[0],  # blue
           'purple': cmap_colors[4],  # purple
           'brown': cmap_colors[5],  # brown
           'pink': cmap_colors[6],  # pink
-          'gray': cmap_colors[7],  # gray
+          'gray': adjust_lightness(cmap_colors[7], 1.3),  # gray
           'yellow': cmap_colors[8],  # yellow
           'turquoise': adjust_lightness(cmap_colors[9], 0.7),  # turquoise
+          'navy': adjust_lightness(cmap_colors[0], 0.7),
           }
 
 cmap = matplotlib.colors.ListedColormap(seaborn.color_palette('deep', 10))

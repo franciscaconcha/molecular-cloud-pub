@@ -39,7 +39,7 @@ def fd_vs_time(open_path, nruns, save, save_path):
     times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
     dimension = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-    """for n in range(nruns):
+    for n in range(nruns):
         path = '{0}/{1}/disks/'.format(open_path, n)
         print path
         files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
@@ -54,9 +54,9 @@ def fd_vs_time(open_path, nruns, save, save_path):
             dimension[n].append(fd)
 
     print times
-    print dimension"""
+    print dimension
 
-    from read_fd import times, dimension, end_times, plummert, plummerfd
+    #from read_fd import times, dimension, end_times, plummert, plummerfd
 
     # Indices for time in which star formation ends for each run
     sf_end_indices = [85, 86, 224, 127, 196, 171]
