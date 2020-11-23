@@ -40,24 +40,15 @@ def Rvir(open_path, save_path, nruns, save):
             vr = stars.virial_radius().value_in(units.parsec)
             Rvir[n].append(vr)"""
 
-    from read_radii import times, Rvir, plummertimes, plummerRvir, end_times
-
-    # Find the index in time[n] when star formation ends
-    indexes = []
-    for n in range(nruns):
-        i = 0
-        for t in times[n]:
-            if t < end_times[n]:
-                i += 1
-        indexes.append(i)
+    from read_radii import times, Rvir, plummertimes, plummerRvir, sf_end_indices
 
     for n in range(nruns):
-        i = indexes[n]
+        i = sf_end_indices[n]
         pyplot.plot(times[n][:i],
                     Rvir[n][:i],
                     lw=3,
                     c=runcolors[n],
-                    label=r'Run \#{0}'.format(n))
+                    label=r'Run {0}'.format(n))
         pyplot.plot(times[n][i:],
                     Rvir[n][i:],
                     lw=3,
@@ -65,11 +56,8 @@ def Rvir(open_path, save_path, nruns, save):
                     c=runcolors[n],
                     )
 
-    #for n in range(nruns):
-    #    pyplot.plot(times[n], Rvir[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
-
     # Plummer
-    """path = '{0}/plummer10k/'.format(open_path)
+    """path = '{0}/plummer6k/'.format(open_path)
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
     files = [x for x in files if '.hdf5' in x]
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
@@ -85,7 +73,8 @@ def Rvir(open_path, save_path, nruns, save):
         vr = stars.virial_radius().value_in(units.parsec)
         pRvir.append(vr)
 
-    print pRvir"""
+    print pRvir
+    print pt"""
 
     pyplot.plot(plummertimes, plummerRvir, c='k', lw=3, label=r'Plummer sphere')
 
@@ -124,19 +113,19 @@ def Rhm(open_path, save_path, nruns, save):
             times[n].append(t)
             Rhm[n].append(hmr)"""
 
-    from read_radii import times, Rhm, plummertimes, plummerRhm, end_times
+    from read_radii import times, Rhm, plummertimes, plummerRhm, sf_end_indices
 
     # Find the index in time[n] when star formation ends
-    indexes = []
+    """indexes = []
     for n in range(nruns):
         i = 0
         for t in times[n]:
             if t < end_times[n]:
                 i += 1
-        indexes.append(i)
+        indexes.append(i)"""
 
     for n in range(nruns):
-        i = indexes[n]
+        i = sf_end_indices[n]
         pyplot.plot(times[n][:i],
                     Rhm[n][:i],
                     lw=3,
@@ -149,11 +138,8 @@ def Rhm(open_path, save_path, nruns, save):
                     c=runcolors[n],
                     )
 
-    #for n in range(nruns):
-    #    pyplot.plot(times[n], Rhm[n], c=runcolors[n], lw=3, label='Run {0}'.format(n))
-
     # Plummer
-    """path = '{0}/plummer10k/'.format(open_path)
+    """path = '{0}/plummer6k/'.format(open_path)
     files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
     files = [x for x in files if '.hdf5' in x]
     files.sort(key=lambda f: float(filter(str.isdigit, f)))
