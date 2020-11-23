@@ -67,13 +67,15 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		files = [x for x in files if 'N' in x]
 		files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
+		print path 
+
 		for f in files:
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
 			t = float(f.split('t')[1].split('.hdf5')[0])
 
-			stars = stars[stars.disked]
+			#stars = stars[stars.disked]
 
-			for s in stars:
+			for s in stars[stars.disked]:
 				s.disk_dust_mass = dust_mass(s, t)
 
 			write_set_to_file(stars,
