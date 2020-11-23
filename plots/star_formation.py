@@ -4,6 +4,8 @@ import os
 
 from amuse.lab import *
 
+from legends import *
+from mycolors import *
 
 def stars_locations(path, save_path, Rcloud, Nsph, Mcloud):
     filepath = path
@@ -252,42 +254,41 @@ def final_imf(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.savefig('{0}/IMF_vs_simulation.png'.format(save_path))
 
 
-def Nstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
-    filepath = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'.format(path,
-                                                      int(Mcloud.value_in(units.MSun)),
-                                                      int(Rcloud.value_in(units.parsec)),
-                                                      N,
-                                                      r)
-    files = os.listdir(filepath)
+def Nstars_vs_time(open_path, save_path, nruns, save):
 
-    star_files = [x for x in files if 'stars' in x]
-    star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
+    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5:[]}
+    Nstars = {0: [], 1: [], 2: [], 3: [], 4: [], 5:[]}
 
-    Nstars, times = [], []
+    for n in range(nruns):
+        filepath = '{0}/{1}/disks/'.format(open_path, n)
+        files = os.listdir(filepath)
 
-    for f in star_files:
-        stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
-        time = stars.get_timestamp().value_in(units.Myr)
+        star_files = [x for x in files if '.hdf5' in x]
+        star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
 
-        times.append(time)
-        Nstars.append(len(stars))
+        Nstars, times = [], []
 
-    import decimal
-    # Need to do this to round down the last time stamp properly
-    d = float(decimal.Decimal(times[0]).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
+        for f in star_files:
+            stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
+            time = float(f.split('t')[1].split('.hdf5')[0])
 
-    earlier_times = numpy.arange(0., d, 0.1)
-    times = numpy.concatenate((earlier_times, times))
+            if time < t_end[n]:
+                times[n].append(time)
+                Nstars[n].append(len(stars))
 
-    Nstars = numpy.pad(Nstars, (len(times) - len(Nstars), 0), 'constant')
-
-    pyplot.plot(times, Nstars, lw=3)
+    for n in range(nruns):
+        pyplot.plot(times[n],
+                    Nstars[n],
+                    c=runcolors[n],
+                    lw=3)
 
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$N_*$')
-    pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
-    pyplot.savefig('{0}/Nstars_vs_time.png'.format(path))
-    pyplot.show()
+    #pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
+    if save:
+        pyplot.savefig('{0}/Nstars_vs_time.png'.format(save_path))
+    else:
+        pyplot.show()
 
 
 def Mstars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
@@ -379,18 +380,18 @@ def stars_vs_time(path, save_path, Mcloud, Rcloud, N, r=1):
     pyplot.show()
 
 
-def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
+def main(open_path, save, save_path, nruns, tend, dt_diag, Ncloud, Mcloud, Rcloud):
     # My own style sheet, comment out if not needed
     pyplot.style.use('paper')
     pyplot.close('all')
 
-    stars_locations(path, save_path, Rcloud, 4000, Mcloud)
+    #stars_locations(path, save_path, Rcloud, 4000, Mcloud)
     #star_formation_movie(path, save_path, Rcloud, 24000, Mcloud)
     #a_vs_e(path, save_path, Ncloud)
 
     # final_imf(path, save_path, Mcloud, Rcloud, Ncloud)
 
-    # Nstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
+    Nstars_vs_time(open_path, save_path, nruns, save)
     # Mstars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
     # stars_vs_time(path, save_path, Mcloud, Rcloud, Ncloud)
 
@@ -398,12 +399,14 @@ def main(path, save_path, tend, dt_diag, Ncloud, Mcloud, Rcloud):
 def new_option_parser():
     from amuse.units.optparse import OptionParser
     result = OptionParser()
-    result.add_option("-p", dest="path",
-                      default=".",
-                      help="input filename")
-    result.add_option("-s", dest="save_path",
-                      default="./results/",
-                      help="save path for results")
+    result.add_option("-p", dest="open_path", type="string", default='/media/fran/data1/photoevap/results',
+                      help="path to results to plot [%default]")
+    result.add_option("-S", dest="save", type="int", default=0,
+                      help="save plot? [%default]")
+    result.add_option("-s", dest="save_path", type="string", default='/media/fran/data1/photoevap-paper/figures',
+                      help="path to save the results [%default]")
+    result.add_option("-n", dest="nruns", type="int", default=1,
+                      help="number of runs to plot for averages [%default]")
     result.add_option("--tend", dest="tend",
                       unit=units.Myr,
                       type="float",
