@@ -61,7 +61,16 @@ def dust_mass(star, t):
 
 
 def main(open_path, N, save_path, t_end, save, nruns):
+	# Number of stars created in each run
+	Ns = {0: 6289,
+	      1: 6315,
+	      2: 6162,
+	      3: 6283,
+	      4: 5691,
+	      5: 6137}
+
 	for n in range(nruns):
+		N = Ns[n]
 		path = '{0}/{1}/disks/'.format(open_path, n)
 		files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
 		files = [x for x in files if '.hdf5' in x]
@@ -81,7 +90,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 
 			write_set_to_file(stars,
 			                  '{0}/{1}/mdust/N{2}_t{3:.3f}.hdf5'.format(open_path,
-			                                                      n,
+			                                                      N,
 			                                                      len(stars),
 			                                                      t),
 			                  'hdf5')
