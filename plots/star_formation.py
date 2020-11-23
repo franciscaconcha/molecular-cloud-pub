@@ -256,8 +256,8 @@ def final_imf(path, save_path, Mcloud, Rcloud, N, r=1):
 
 def Nstars_vs_time(open_path, save_path, nruns, save):
 
-    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5:[]}
-    Nstars = {0: [], 1: [], 2: [], 3: [], 4: [], 5:[]}
+    times = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+    Nstars = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
     for n in range(nruns):
         filepath = '{0}/{1}/disks/'.format(open_path, n)
@@ -265,8 +265,6 @@ def Nstars_vs_time(open_path, save_path, nruns, save):
 
         star_files = [x for x in files if '.hdf5' in x]
         star_files.sort(key=lambda f: int(filter(str.isdigit, f)))
-
-        Nstars, times = [], []
 
         for f in star_files:
             stars = read_set_from_file('{0}/{1}'.format(filepath, f), "hdf5", close_file=True)
