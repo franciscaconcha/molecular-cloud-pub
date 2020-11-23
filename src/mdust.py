@@ -81,7 +81,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		#print files
 		i = sf_end_indices[n]
 
-		prev_stars = read_set_from_file(path + files[0], 'hdf5', close_file=True)
+		prev_stars = read_set_from_file(path + files[i], 'hdf5', close_file=True)
 		t = float(files[i].split('t')[1].split('.hdf5')[0])
 		prev_dust_mass = prev_stars.disk_dust_mass
 		prev_gas_mass = prev_stars.disk_gas_mass
