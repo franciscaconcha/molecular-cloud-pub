@@ -70,7 +70,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 	      5: 6137}
 	sf_end_indices = [85, 86, 224, 127, 196, 171]
 
-	for n in range(nruns):
+	for n in range(4, nruns):
 		N = Ns[n]
 		path = '{0}/{1}/disks/'.format(open_path, n)
 		files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
@@ -82,7 +82,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		i = sf_end_indices[n]
 
 		prev_stars = read_set_from_file(path + files[0], 'hdf5', close_file=True)
-		t = float(files[0].split('t')[1].split('.hdf5')[0])
+		t = float(files[i].split('t')[1].split('.hdf5')[0])
 		prev_dust_mass = prev_stars.disk_dust_mass
 		prev_gas_mass = prev_stars.disk_gas_mass
 
@@ -93,7 +93,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		                                                            t),
 		                  'hdf5')
 
-		for f in files[1:]:
+		for f in files[i+1:]:
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
 			t = float(f.split('t')[1].split('.hdf5')[0])
 
