@@ -79,11 +79,24 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		print path
 		#print files
 
-		for f in files:
+		prev_stars = read_set_from_file(path + files[0], 'hdf5', close_file=True)
+		t = float(files[0].split('t')[1].split('.hdf5')[0])
+		prev_dust_mass = prev_stars.disk_dust_mass
+		prev_gas_mass = prev_stars.disk_gas_mass
+
+		write_set_to_file(stars,
+		                  '{0}/{1}/mdust/N{2}_t{3:.3f}.hdf5'.format(open_path,
+		                                                            n,
+		                                                            N,
+		                                                            t),
+		                  'hdf5')
+
+		for f in files[1:]:
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
 			t = float(f.split('t')[1].split('.hdf5')[0])
 
-			#stars = stars[stars.disked]
+			stars.disk_dust_mass = prev_dust_mass
+			stars.disk_gas_mass = prev_gas_mass
 
 			for s in stars[stars.disked]:
 				s.disk_dust_mass = dust_mass(s, t)
@@ -94,6 +107,10 @@ def main(open_path, N, save_path, t_end, save, nruns):
 			                                                      N,
 			                                                      t),
 			                  'hdf5')
+
+			prev_stars = stars
+			prev_dust_mass = prev_stars.disk_dust_mass
+			prev_gas_mass = prev_stars.disk_gas_mass
 
 
 def new_option_parser():
