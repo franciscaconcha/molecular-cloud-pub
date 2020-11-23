@@ -23,6 +23,7 @@ def dust_mass(star, t):
 	rho_g = 1. | units.g / units.cm ** 3
 	a_min = 1e-8 | units.m
 	t = t | units.Myr
+	dt = 1000 | units.yr
 	# Remove dust in a leapfrog-like integration
 	# Follows the prescription of Haworth et al. 2018 (MNRAS 475)
 
