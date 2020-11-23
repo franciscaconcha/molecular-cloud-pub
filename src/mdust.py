@@ -90,8 +90,8 @@ def main(open_path, N, save_path, t_end, save, nruns):
 
 			write_set_to_file(stars,
 			                  '{0}/{1}/mdust/N{2}_t{3:.3f}.hdf5'.format(open_path,
+			                                                      n,
 			                                                      N,
-			                                                      len(stars),
 			                                                      t),
 			                  'hdf5')
 
