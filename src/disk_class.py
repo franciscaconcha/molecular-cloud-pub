@@ -16,7 +16,8 @@ G0 = 1.6e-3 * units.erg / units.s / units.cm ** 2
 
 class Disk:
 
-    def __init__(self, star_id, disk_radius, disk_gas_mass, central_mass, dispersed_mass_threshold,
+    def __init__(self, star_id, disk_radius, disk_gas_mass,
+                 disk_dust_mass, central_mass, dispersed_mass_threshold,
                  dispersed_density_threshold,
                  grid, alpha,
                  mu=2.33, Tm=None, delta=1e-2, rho_g=1. | units.g / units.cm ** 3, a_min=1e-8 | units.m,
@@ -63,7 +64,7 @@ class Disk:
         self.rho_g = rho_g  # density of individual dust grains
         self.a_min = a_min  # minimum dust grain size
 
-        self.disk_dust_mass = self.delta * self.disk_gas_mass
+        self.disk_dust_mass = self.disk_dust_mass#self.delta * self.disk_gas_mass
 
     def evolve_disk_for(self, dt):
         '''
@@ -345,7 +346,9 @@ class Disk:
         return self.disk_mass / (numpy.pi * self.disk_radius**2)
 
 
-def setup_disks_and_codes(star_keys, disk_radii, disk_masses, stellar_masses,
+def setup_disks_and_codes(star_keys, disk_radii, disk_gas_masses,
+                          disk_dust_masses,
+                          stellar_masses,
                           dispersed_mass_threshold,
                           dispersed_density_threshold, number_of_vaders,
                           number_of_cells, r_min, r_max, alpha, critical_radii=None,
@@ -390,7 +393,8 @@ def setup_disks_and_codes(star_keys, disk_radii, disk_masses, stellar_masses,
     if Tm is None:
         Tm = [None] * number_of_disks
 
-    disks = [Disk(star_keys[i], disk_radii[i], disk_masses[i], stellar_masses[i], dispersed_mass_threshold[i],
+    disks = [Disk(star_keys[i], disk_radii[i], disk_gas_masses[i], disk_dust_masses[i],
+                  stellar_masses[i], dispersed_mass_threshold[i],
                   dispersed_density_threshold[i], viscous_codes[0].grid, alpha, mu=mu, Tm=Tm[i],
                   internal_photoevap_flag=IPE, external_photoevap_flag=EPE, critical_radius=critical_radii[i]) \
              for i in range(number_of_disks)]

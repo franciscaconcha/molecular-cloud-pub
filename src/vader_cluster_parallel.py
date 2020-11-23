@@ -308,7 +308,7 @@ def main(N,
         t_save = last_snapshot_t | t_end.unit
         print t_save
         converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-        t_end += t_save
+        #t_end += t_save
         print "t_end = {0} Myr".format(t_end.value_in(units.Myr))
     else:
         t = 0.0 | t_end.unit
@@ -384,7 +384,8 @@ def main(N,
 
     disk_codes, disks = setup_disks_and_codes(stars[stars.disked].key,
                                               stars[stars.disked].disk_radius,
-                                              stars[stars.disked].disk_mass,
+                                              stars[stars.disked].disk_gas_mass,
+                                              stars[stars.disked].disk_dust_mass,
                                               stars[stars.disked].stellar_mass,
                                               stars[stars.disked].dispersed_mass_threshold,
                                               stars[stars.disked].dispersed_density_threshold,
@@ -454,6 +455,7 @@ def main(N,
 
     active_disks = len(stars[stars.disked])   # Counter for active disks
     dt = 1000 | units.yr
+    t = 0.0 | units.yr
 
     # Evolve!
     while t < t_end:
