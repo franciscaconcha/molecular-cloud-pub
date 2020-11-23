@@ -152,10 +152,13 @@ def delta_vs_time(open_path, save_path, nruns, save):
     meands, devds = get_mean(ds)
 
     pyplot.plot(meants,
-                meands)
+                meands,
+                lw=3,
+                color=colors['red'])
     pyplot.fill_between(meants,
                         meands - devds,
                         meands + devds,
+                        facecolor=colors['red'],
                         alpha=0.5)
 
     # Indices for time in which star formation ends for each run
@@ -187,7 +190,7 @@ def delta_vs_time(open_path, save_path, nruns, save):
     #pyplot.yscale('log')
 
     pyplot.xlabel(r'Time [Myr]')
-    pyplot.ylabel(r'$M_{dust} / M_{gas}$')
+    pyplot.ylabel(r'$\mathrm{M}_\mathrm{dust} / \mathrm{M}_\mathrm{gas}$')
 
     if save:
         pyplot.savefig('{0}/delta_vs_time.png'.format(save_path))
