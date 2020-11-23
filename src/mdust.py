@@ -49,7 +49,7 @@ def dust_mass(star, t):
 
 	# Eulerian integration
 	dM_dust = star.dust_photoevap_rate * dt
-	if star.dispersed:  # If disk is dispersed, do only half a step
+	if not star.disked:  # If disk is dispersed, do only half a step
 		dM_dust /= 2.
 	star.disk_dust_mass -= dM_dust
 
