@@ -64,10 +64,11 @@ def main(open_path, N, save_path, t_end, save, nruns):
 	for n in range(nruns):
 		path = '{0}/{1}/disks/'.format(open_path, n)
 		files = os.listdir(path)  # = '{0}/M{1}MSun_R{2}pc_N{3}/{4}/'
-		files = [x for x in files if 'N' in x]
+		files = [x for x in files if '.hdf5' in x]
 		files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
-		print path 
+		print path
+		print files
 
 		for f in files:
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
