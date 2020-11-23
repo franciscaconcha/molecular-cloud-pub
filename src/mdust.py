@@ -93,7 +93,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		                                                            t),
 		                  'hdf5')
 
-		for j in range(len(files[1:])):
+		for j in range(1, len(files)):
 			f = files[j]
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
 			t = float(f.split('t')[1].split('.hdf5')[0])
