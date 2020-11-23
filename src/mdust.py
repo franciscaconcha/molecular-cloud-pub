@@ -77,7 +77,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
 		print path
-		print files
+		#print files
 
 		for f in files:
 			stars = read_set_from_file(path + f, 'hdf5', close_file=True)
