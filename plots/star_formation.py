@@ -278,10 +278,16 @@ def Nstars_vs_time(open_path, save_path, nruns, save):
         pyplot.plot(times[n],
                     Nstars[n],
                     c=runcolors[n],
-                    lw=3)
+                    lw=3,
+                    label='Run {0}'.format(n))
 
     pyplot.xlabel('Time [Myr]')
     pyplot.ylabel(r'$N_*$')
+
+    pyplot.ylim(bottom=0.0)
+
+    pyplot.legend(loc='lower right', ncol=2)
+
     #pyplot.title(r'Final $N_*$ = {0}'.format(len(stars)))  # Current stars is the last file
     if save:
         pyplot.savefig('{0}/Nstars_vs_time.png'.format(save_path))
