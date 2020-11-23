@@ -20,6 +20,8 @@ def dust_mass(star, t):
 	Tm = (100. | units.K) * (star.stellar_mass.value_in(units.MSun)) ** (1. / 4.)  # Tm ~ L^1/4 ~ (M^3)^1/4
 	mu = 2.33
 	delta = 1e-2
+	rho_g = 1. | units.g / units.cm ** 3
+	a_min = 1e-8 | units.m
 	t = t | units.Myr
 	# Remove dust in a leapfrog-like integration
 	# Follows the prescription of Haworth et al. 2018 (MNRAS 475)
@@ -35,7 +37,7 @@ def dust_mass(star, t):
 
 	star.dust_photoevap_rate = delta * star.photoevap_Mdot ** (3. / 2.) * \
 	                           (v_th / (
-			                           4. * numpy.pi * F * constants.G * star.stellar_mass * star.rho_g * star.a_min)) ** (
+			                           4. * numpy.pi * F * constants.G * star.stellar_mass * rho_g * a_min)) ** (
 			                           1. / 2.) * \
 	                           numpy.exp(-delta * (constants.G * star.stellar_mass) ** (
 			                           1. / 2.) * t / (2. * star.disk_radius ** (3. / 2.)))
@@ -74,7 +76,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 				s.disk_dust_mass = dust_mass(s, t)
 
 			write_set_to_file(stars,
-			                  '{0}/{1}/N{2}_t{3:.3f}.hdf5'.format(save_path,
+			                  '{0}/{1}/mdust/N{2}_t{3:.3f}.hdf5'.format(open_path,
 			                                                      n,
 			                                                      len(stars),
 			                                                      t),
