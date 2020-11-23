@@ -84,7 +84,7 @@ def main(open_path, N, save_path, t_end, save, nruns):
 		prev_dust_mass = prev_stars.disk_dust_mass
 		prev_gas_mass = prev_stars.disk_gas_mass
 
-		write_set_to_file(stars,
+		write_set_to_file(prev_stars,
 		                  '{0}/{1}/mdust/N{2}_t{3:.3f}.hdf5'.format(open_path,
 		                                                            n,
 		                                                            N,
