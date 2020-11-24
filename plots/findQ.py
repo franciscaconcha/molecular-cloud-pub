@@ -20,12 +20,12 @@ def Q_vs_time(open_path, nruns, save, save_path):
         print path
         #files = files[0::10]
 
-        for f in files[0::10]:
+        for f in files[1::5]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
             t = float(f.split('t')[1].split('.hdf5')[0])
-            Rvir = stars.virial_radius()
-            converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-            stars = stars.bound_subset(tidal_radius=Rvir, unit_converter=converter)
+            #Rvir = stars.virial_radius()
+            #converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
+            #stars = stars.bound_subset(tidal_radius=Rvir, unit_converter=converter)
             q = stars.Qparameter()
             times[n].append(t)
             Qparam[n].append(q)
@@ -37,12 +37,12 @@ def Q_vs_time(open_path, nruns, save, save_path):
 
     plummert, plummerq = [], []
 
-    for f in files[1:]:
+    for f in files[1::5]:
         stars = read_set_from_file(path + f, 'hdf5', close_file=True)
         t = float(f.split('t')[1].split('.hdf5')[0])
-        Rvir = stars.virial_radius()
-        converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
-        stars = stars.bound_subset(tidal_radius=Rvir, unit_converter=converter)
+        #Rvir = stars.virial_radius()
+        #converter = nbody_system.nbody_to_si(stars.stellar_mass.sum(), Rvir)
+        #stars = stars.bound_subset(tidal_radius=Rvir, unit_converter=converter)
         q = stars.Qparameter()
         plummert.append(t)
         plummerq.append(q)
