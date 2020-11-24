@@ -18,8 +18,9 @@ def Q_vs_time(open_path, nruns, save, save_path):
         files.sort(key=lambda f: float(filter(str.isdigit, f)))
 
         print path
+        #files = files[0::10]
 
-        for f in files[1:]:
+        for f in files[0::10]:
             stars = read_set_from_file(path + f, 'hdf5', close_file=True)
             t = float(f.split('t')[1].split('.hdf5')[0])
             Rvir = stars.virial_radius()
