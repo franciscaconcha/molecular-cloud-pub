@@ -548,7 +548,9 @@ def disk_dust_masses(open_path, save_path, t_end, N, nruns, save):
 
 
 def disk_masses(open_path, save_path, t_end, N, nruns, save):
-	""" Cumulative distribution of disc masses """
+	""" Cumulative distribution of disc masses
+
+	"""
 	fig2, axs2 = pyplot.subplots(1)
 
 	first_masses = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
