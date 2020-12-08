@@ -548,6 +548,7 @@ def disk_dust_masses(open_path, save_path, t_end, N, nruns, save):
 
 
 def disk_masses(open_path, save_path, t_end, N, nruns, save):
+	""" Cumulative distribution of disc masses """
 	fig2, axs2 = pyplot.subplots(1)
 
 	first_masses = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
@@ -653,7 +654,7 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 		last_file = files[-1]
 
 		first_stars = read_set_from_file(path + first_file, 'hdf5', close_file=True)
-		disk_masses = first_stars[first_stars.disked].disk_gas_mass.value_in(units.MEarth)  # / 100
+		disk_masses = first_stars[first_stars.disked].disk_mass.value_in(units.MEarth)
 		# disk_masses = stars[stars.disked].disk_mass.value_in(units.MEarth) / 100
 
 		sorted_masses = numpy.sort(disk_masses)
@@ -663,7 +664,7 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 		first_cumulative[n] = cumulative_c
 
 		last_stars = read_set_from_file(path + last_file, 'hdf5', close_file=True)
-		disk_masses = last_stars[last_stars.disked].disk_gas_mass.value_in(units.MEarth)  # / 100
+		disk_masses = last_stars[last_stars.disked].disk_mass.value_in(units.MEarth)
 		# disk_masses = stars[stars.disked].disk_mass.value_in(units.MEarth) / 100
 
 		sorted_masses = numpy.sort(disk_masses)
@@ -718,7 +719,7 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 								loc='lower left',
 								bbox_to_anchor=(0.004, 0.18),
 								#ncol=2,
-								fontsize=22, framealpha=0.4)
+								fontsize=20, framealpha=0.4)
 
 	axs2.add_artist(first_legend)
 
@@ -729,12 +730,12 @@ def disk_masses(open_path, save_path, t_end, N, nruns, save):
 				loc='lower left',
 				#bbox_to_anchor=(0.52, 0.2),
 				# ncol=2,
-				fontsize=22, framealpha=0.4)
+				fontsize=20, framealpha=0.4)
 
 	# axs2.set_xlim([0.04, 500])
 	axs2.set_ylim([0.0, 1.0])
 
-	axs2.set_xlim([0.01, 50000])
+	axs2.set_xlim([1, 80000])
 	axs2.set_ylim([0.0, 1.0])
 
 	axs2.set_xlabel(r'Disc mass [$\mathrm{M}_{\oplus}$]')
