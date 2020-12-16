@@ -6,16 +6,30 @@
 # - {name: Fd_error, datatype: float64}
 # - {name: Age, datatype: float64}
 # - {name: Age_error, datatype: float64}
+# - {name: Q, datatype: float64}
+# - {name: Q_error, datatype: float64}
 # - {name: Fd_source, datatype: string}
 # - {name: Age_source, datatype: string}
+# - {name: Q_source, datatype: string}
 # schema: astropy-2.0
-Region         Fd      Fd_error    Age     Age_error   Fd_source   Age_source
-#'IC2391'       2.2     0.0         53      0.0         CW2004      Barrado2001
-'Chamaeleon'    2.25    0.0         2.5     0.5         CW2004      Luhman2007
-'Taurus'        1.5     0.0         1.0     0.0         CW2004      CW2004
-'Taurus'        1.02    0.04        1.0     0.0         H2002       CW2004
-'Taurus'        1.049   0.007       1.0     0.0         KH2008      CW2004
-'UpperSco'     0.69    0.09        8.0     3.0         KH2008      Carpenter2006
-'Taurus'        1.5     0.2         1.0     0.0         Simon1997   CW2004
-'Ophiuchus'     1.5     0.2         1.6     1.4         Simon1997   Bontemps2001
-'Trapezium'     1.5     0.2         1.0     0.0         Simon1997   Hillenbrand1998
+Region         Fd      Fd_error    Age     Age_error    Q       Q_error     Fd_source           Age_source          Q_source
+#'IC2391'       2.2     0.0         53      0.0         NaN     NaN         CW2004              Barrado2001         -
+'Chamaeleon'    2.25    0.0         2.5     0.5         0.67    0.0         CW2004              Luhman2007          CW2004
+'Chamaeleon'    2.25    0.0         2.5     0.5         0.71    0.0         CW2004              Luhman2007          Parker2014
+'Chamaeleon'    2.25    0.0         2.5     0.5         0.80    0.08        CW2004              Luhman2007          Sacco2017
+'Taurus'        1.5     0.0         1.0     0.0         0.47    0.0         CW2004              CW2004              CW2004
+'Taurus'        1.02    0.04        1.0     0.0         NaN     NaN         H2002               CW2004              -
+'Taurus'        1.049   0.007       1.0     0.0         NaN     NaN         KH2008              CW2004              -
+'UpperSco'      0.69    0.09        8.0     3.0         0.88    0.0         KH2008              Carpenter2006       Kraus2008
+'UpperSco'      0.69    0.09        8.0     3.0         0.75    0.0         KH2008              Carpenter2006       Parker2014
+'Taurus'        1.5     0.2         1.0     0.0         NaN     NaN         Simon1997           CW2004              -
+'Ophiuchus'     1.5     0.2         1.6     1.4         0.85    0.0         Simon1997           Bontemps2001        CW2004
+'Ophiuchus'     1.5     0.2         1.6     1.4         0.58    0.0         Simon1997           Bontemps2001        Parker2014
+'Trapezium'     1.5     0.2         1.0     0.0         NaN     NaN         Simon1997           Hillenbrand1998     -
+'CrA'           NaN     NaN           1.0     0.0         0.32  0.0         -                   Parker2014          Neuhauser2008
+'CrA'           NaN     NaN           1.0     0.0         0.38  0.0         -                   Parker2014          Parker2014
+'NGC1333'       NaN     NaN           1.0     0.0         0.89  0.0         -                   Luhman2016          Parker2017
+'ONC'           NaN     NaN           1.0     0.0         0.87  0.0         -                   Hillenbrand1998     Hillenbrand1998
+'ONC'           NaN     NaN           1.0     0.0         0.94  0.0         -                   Hillenbrand1998     Parker2014
+'CygnusOB2'     NaN     NaN           4.0     1.0         0.45  0.05        -                   Wright2010          Wright2013
+'IC348'         NaN     NaN           4.0     2.0         0.98  0.0         -                   Luhman2016          Parker2017
