@@ -1,6 +1,10 @@
 import numpy
 from matplotlib import pyplot
 from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1 import ImageGrid
+
+
 
 from amuse.community.fi.interface import FiMap
 from amuse.io import read_set_from_file
@@ -55,7 +59,6 @@ def column_density (gas_particles, stars, ax, N=480, box_size=10.|units.parsec):
 
     mapper.stop()
 
-
     # Dividing by pixel size gives mass column density
     bs = box_size.value_in(units.parsec)
     surface_density = image / (bs/N)**2
@@ -63,32 +66,29 @@ def column_density (gas_particles, stars, ax, N=480, box_size=10.|units.parsec):
     if numpy.max(surface_density) == 0.:
         print ("[WARNING] image identically 0")
 
-    #fig = pyplot.figure(figsize=(12, 12))
-    #ax = fig.add_subplot(111)
 
-    cax = ax.imshow(surface_density, norm=LogNorm(),
+    p = ax.imshow(surface_density, norm=LogNorm(),
         extent=[-bs/2., bs/2., -bs/2., bs/2.], origin='lower', cmap='RdPu',
-        vmin=numpy.max(surface_density)/1e3, vmax=numpy.max(surface_density))
+        #vmin=numpy.max(surface_density)/1e3, vmax=numpy.max(surface_density))
+        vmin=100, vmax=1E4)
     # Since the color scale is logarithmic and calibrated on the max, this does not work if
     # the image is identically zero!
 
     if len(stars):
         ax.scatter(stars.x.value_in(units.parsec),
                        stars.y.value_in(units.parsec),
-                       s=30,
-                       marker="o",
+                       s=10,
+                       marker=".",
                        alpha=0.2,
-                       c='orange',
+                       c='black',
                        #facecolors='none',
                        )
-
-    cbar = fig.colorbar(cax)
-    cbar.set_label('Column Density [M$_\\odot$ pc$^{-2}$]')
 
     ax.set_xlabel('x [pc]')
     ax.set_ylabel('y [pc]')
 
     ax.set_title('t = {0:.2f} Myr'.format(gas_particles.get_timestamp().value_in(units.Myr)))
+    return p
 
 
 def new_option_parser():
@@ -96,6 +96,10 @@ def new_option_parser():
     result = OptionParser()
     result.add_option("-p", dest="path", default=".",
                       help="path for files [%default]")
+    result.add_option("-S", dest="save", type="int", default=0,
+                      help="save plot? [%default]")
+    result.add_option("-s", dest="save_path", type="string", default='.',
+                      help="path to save the results [%default]")
     return result
 
 
@@ -104,19 +108,22 @@ if __name__ in ('__main__', '__plot__'):
 
     pyplot.style.use('paper')
 
-    indices = [0, 16, 24]
+    indices = [1, 16, 18]
 
     fig, axs = pyplot.subplots(nrows=1,
-                               ncols=3,
-                               sharey=True,
-                               figsize=(18, 8))
+                               ncols=4,
+                               #sharey=True,
+                               figsize=(18, 8),
+                               gridspec_kw={"width_ratios": [1, 1, 1, 0.1]})
+    fig.subplots_adjust(wspace=0.4)
 
     j = 0
 
     for fileindex in indices:
         print fileindex
+        ax = axs[j]
         gas_particles = read_set_from_file(
-            o.path +'hydro_gas_particles_i{:04}.amuse'.format(int(fileindex)),
+            o.path + 'hydro_gas_particles_i{:04}.amuse'.format(int(fileindex)),
             'hdf5',
             close_file=True)
         print gas_particles.get_timestamp().value_in(units.Myr)
@@ -124,10 +131,20 @@ if __name__ in ('__main__', '__plot__'):
         try:
             stars = read_set_from_file(
                 o.path +'hydro_stars_particles_i{:04}.amuse'.format(int(fileindex)), 'hdf5')
+            print stars.get_timestamp().value_in(units.Myr)
+
         except:
             stars = []
 
-        column_density(gas_particles, stars, axs[j])
+        im = column_density(gas_particles, stars, ax)
         j += 1
 
-    pyplot.show()
+    cbar = fig.colorbar(im, cax=axs[j], fraction=0.5, pad=0.04)
+    cbar.set_label('Column Density [M$_\\odot$ pc$^{-2}$]')
+
+    pyplot.tight_layout()
+
+    if o.save:
+        pyplot.savefig('{0}/cloud.png'.format(o.save_path))
+    else:
+        pyplot.show()
