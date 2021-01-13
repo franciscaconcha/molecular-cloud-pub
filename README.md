@@ -78,23 +78,14 @@ This script will output a series of files named `N<final number of stars>_t<time
 
 #### 3. Evolution after star formation has ended
 
-Once star formation ends, the gas in the cloud is removed instantaneously and the stars and discs continue evolving for 2 Myr. This third step of the simulations is implemented in the script `src/vader_cluster_parallel.py`. m
+Once star formation ends, the gas in the cloud is removed instantaneously and the stars and discs continue evolving for 2 Myr. This third step of the simulations is implemented in the script `src/vader_cluster_parallel.py`. This script will take as input the last `N<final number of stars>_t<timestamp>Myr.hdf5` file generated in the last step and will continue the evolution of the stellar dynamics, stellar evolution, disc expansion, internal and external photoevaporation, and dust inside the disc.
 
-### Creating the plots
+This script takes a series of options which can be listed with `amuse.sh src/vader_cluster_parallel.py --help`. The main options are:
 
-There are several different scripts to create the Figures of the paper. All of them are located in the ```plots``` directoy:
-
-* Figure 1: ```tracks.py```
-* Figure 2: ```disc_fractions.py```
-* Figures 3 and 4: ```binned.py```
-
-Each script can be run with
-
-```
-amuse.sh plots/<scriptname>.py
-```
-
-A list of options is available for each script, including the path to the files that you want to use for the plots. To see the list of options add ```--help``` or ```-h``` to the line above. The results used on the paper are available in the ```results/``` directory.
+* `-p`: path to the `N<final number of stars>_t<timestamp>Myr.hdf5` files to read
+* `-s`: path to save the results
+* `-f`: path to the FRIED grid files, for external photoevaporation ([source](https://arxiv.org/abs/1808.07484)) 
+* `-c`: number of cores to use (default 2)  
 
 
 ## License
