@@ -1,6 +1,6 @@
 # Evolution of circumstellar discs in young star forming regions #
 #### Francisca Concha-Ramírez, Simon Portegies Zwart, Martijn J. C. Wilhelm
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3897171.svg)](https://doi.org/10.5281/zenodo.3897171)
+[![DOI](https://zenodo.org/badge/329289936.svg)](https://zenodo.org/badge/latestdoi/329289936)
  [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![python](https://img.shields.io/badge/python-3.0-yellow.svg)
 
 
